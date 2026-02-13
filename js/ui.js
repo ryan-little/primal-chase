@@ -16,10 +16,21 @@ const UI = {
   },
 
   /**
-   * Render the title screen (static content, just show it)
+   * Render the title screen with random logo selection
    */
   renderTitle() {
     this.showScreen('screen-title');
+    document.body.classList.remove('night-mode');
+    // Random logo selection
+    const logos = [
+      'assets/primalchaselogo.png',
+      'assets/primalchaselogoout.png',
+      'assets/primalchaselogoreign.png'
+    ];
+    const logo = document.getElementById('title-logo');
+    if (logo) {
+      logo.src = logos[Math.floor(Math.random() * logos.length)];
+    }
   },
 
   /**
@@ -31,6 +42,7 @@ const UI = {
     this.renderPhaseHeader(gameState);
     this.renderVitals(gameState);
     this.renderHunt(gameState);
+    this.renderActionHistory(gameState);
 
     // Render situation: outcome from last action + current encounter
     const situationElement = document.getElementById('situation-text');
@@ -70,6 +82,64 @@ const UI = {
     // Add appropriate CSS class for styling
     phaseIndicator.className = 'phase-indicator';
     phaseIndicator.classList.add(isDay ? 'day' : 'night');
+
+    // Toggle night mode on body
+    if (isDay) {
+      document.body.classList.remove('night-mode');
+    } else {
+      document.body.classList.add('night-mode');
+    }
+
+  },
+
+  /**
+   * Render action history in sidebar
+   */
+  renderActionHistory(gameState) {
+    const container = document.getElementById('history-entries');
+    if (!container) return;
+
+    const history = gameState.actionHistory || [];
+    if (history.length === 0) {
+      container.innerHTML = '<div class="history-entry" style="opacity: 0.5">No actions yet</div>';
+      return;
+    }
+
+    container.innerHTML = '';
+    // Show most recent first
+    [...history].reverse().forEach(entry => {
+      const div = document.createElement('div');
+      div.className = 'history-entry';
+
+      const phaseClass = entry.phase === 'night' ? 'night' : '';
+      const phaseLabel = entry.phase === 'day' ? 'D' : 'N';
+
+      div.innerHTML = `
+        <span class="history-phase ${phaseClass}">${phaseLabel}${entry.day}</span>
+        <span class="history-action">${entry.action}</span>
+        <span class="history-gap">${entry.hunterGap}mi</span>
+      `;
+
+      container.appendChild(div);
+    });
+  },
+
+  /**
+   * Play the game start transition animation
+   */
+  playStartTransition(callback) {
+    const overlay = document.getElementById('start-transition');
+    if (!overlay) {
+      callback();
+      return;
+    }
+
+    overlay.classList.add('active');
+
+    setTimeout(() => {
+      overlay.classList.remove('active');
+      callback();
+    }, 2000);
   },
 
   /**
@@ -272,6 +342,10 @@ const UI = {
     const parts = [];
     const effects = action.effects || action;
 
+    // Get passive drains for current phase to show TOTAL real effect
+    const phase = (typeof Game !== 'undefined' && Game.state) ? Game.state.phase : 'day';
+    const passive = CONFIG.passiveDrain[phase] || {};
+
     // Distance
     const dist = action.distance !== undefined ? action.distance : (effects.distance || 0);
     if (dist > 0) {
@@ -282,40 +356,38 @@ const UI = {
       parts.push(`<span class="action-cost">${dist} mi</span>`);
     }
 
-    // Heat
-    const heat = effects.heat || 0;
+    // Heat (action + passive)
+    const heat = (effects.heat || 0) + (passive.heat || 0);
     if (heat !== 0) {
       const cls = heat > 0 ? 'action-cost' : 'action-gain';
       parts.push(`<span class="${cls}">${heat > 0 ? '+' : ''}${heat} heat</span>`);
     }
 
-    // Stamina
-    const stam = effects.stamina || 0;
+    // Stamina (action + passive)
+    const stam = (effects.stamina || 0) + (passive.stamina || 0);
     if (stam !== 0) {
       const cls = stam < 0 ? 'action-cost' : 'action-gain';
       parts.push(`<span class="${cls}">${stam > 0 ? '+' : ''}${stam} stam</span>`);
     }
 
-    // Thirst
-    const thirst = effects.thirst || 0;
-    if (thirst !== 0) {
-      if (thirst <= -100) {
-        parts.push('<span class="action-gain">resets thirst</span>');
-      } else {
-        const cls = thirst > 0 ? 'action-cost' : 'action-gain';
-        parts.push(`<span class="${cls}">${thirst > 0 ? '+' : ''}${thirst} thirst</span>`);
-      }
+    // Thirst (action + passive)
+    const thirstRaw = effects.thirst || 0;
+    const thirstTotal = thirstRaw + (passive.thirst || 0);
+    if (thirstRaw <= -100) {
+      parts.push('<span class="action-gain">resets thirst</span>');
+    } else if (thirstTotal !== 0) {
+      const cls = thirstTotal > 0 ? 'action-cost' : 'action-gain';
+      parts.push(`<span class="${cls}">${thirstTotal > 0 ? '+' : ''}${thirstTotal} thirst</span>`);
     }
 
-    // Hunger
-    const hunger = effects.hunger || 0;
-    if (hunger !== 0) {
-      if (hunger <= -100) {
-        parts.push('<span class="action-gain">resets hunger</span>');
-      } else {
-        const cls = hunger > 0 ? 'action-cost' : 'action-gain';
-        parts.push(`<span class="${cls}">${hunger > 0 ? '+' : ''}${hunger} hunger</span>`);
-      }
+    // Hunger (action + passive)
+    const hungerRaw = effects.hunger || 0;
+    const hungerTotal = hungerRaw + (passive.hunger || 0);
+    if (hungerRaw <= -100) {
+      parts.push('<span class="action-gain">resets hunger</span>');
+    } else if (hungerTotal !== 0) {
+      const cls = hungerTotal > 0 ? 'action-cost' : 'action-gain';
+      parts.push(`<span class="${cls}">${hungerTotal > 0 ? '+' : ''}${hungerTotal} hunger</span>`);
     }
 
     // Chance indicator for situational actions
@@ -344,6 +416,7 @@ const UI = {
    */
   renderDeath(gameState) {
     this.showScreen('screen-death');
+    document.body.classList.remove('night-mode');
 
     // Render death narrative
     const narrativeElement = document.getElementById('death-narrative');
@@ -359,6 +432,19 @@ const UI = {
       document.getElementById('score-days').textContent = scoreData.days;
       document.getElementById('score-distance').textContent = `${scoreData.distance} mi`;
       document.getElementById('score-lost').textContent = scoreData.timesLostHunters;
+
+      // Render percentile comparisons
+      const percentileContainer = document.getElementById('percentile-stats');
+      if (percentileContainer && Score.calculatePercentiles) {
+        const percentiles = Score.calculatePercentiles(scoreData);
+        if (percentiles.length > 0) {
+          percentileContainer.innerHTML = percentiles
+            .map(p => `<div class="percentile-stat">${p}</div>`)
+            .join('');
+        } else {
+          percentileContainer.innerHTML = '';
+        }
+      }
 
       // Render achievements
       const achievementsList = document.getElementById('achievements-list');
@@ -461,9 +547,11 @@ const UI = {
     const btnStart = document.getElementById('btn-start');
     if (btnStart) {
       btnStart.onclick = () => {
-        if (typeof Game !== 'undefined' && Game.newGame) {
-          Game.newGame();
-        }
+        this.playStartTransition(() => {
+          if (typeof Game !== 'undefined' && Game.newGame) {
+            Game.newGame();
+          }
+        });
       };
     }
 
@@ -481,9 +569,11 @@ const UI = {
     const btnTryAgain = document.getElementById('btn-try-again');
     if (btnTryAgain) {
       btnTryAgain.onclick = () => {
-        if (typeof Game !== 'undefined' && Game.newGame) {
-          Game.newGame();
-        }
+        this.playStartTransition(() => {
+          if (typeof Game !== 'undefined' && Game.newGame) {
+            Game.newGame();
+          }
+        });
       };
     }
 
@@ -536,7 +626,7 @@ const UI = {
    */
   init() {
     this.bindEvents();
-    this.showScreen('screen-title');
+    this.renderTitle();
   }
 };
 
