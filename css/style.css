@@ -204,38 +204,66 @@ body.night-mode .bg-sky::after {
   justify-content: center;
 }
 
-/* ===== GAME START TRANSITION ===== */
-.start-transition {
+/* ===== TYPEWRITER CINEMATIC INTRO ===== */
+.typewriter-overlay {
   position: fixed;
   inset: 0;
   z-index: 200;
-  background: var(--bg-dark);
+  background: #000;
   display: flex;
+  flex-direction: column;
   align-items: center;
   justify-content: center;
   opacity: 0;
   pointer-events: none;
-  transition: opacity 0.5s ease;
+  transition: opacity 0.8s ease;
+  padding: 2rem;
 }
 
-.start-transition.active {
+.typewriter-overlay.active {
   opacity: 1;
   pointer-events: all;
 }
 
-.start-text {
-  font-size: 1.6em;
-  color: var(--text-gold);
-  font-style: italic;
-  letter-spacing: 2px;
+.typewriter-overlay.fading {
   opacity: 0;
-  transform: translateY(10px);
-  transition: opacity 0.8s ease 0.3s, transform 0.8s ease 0.3s;
+  transition: opacity 1.5s ease;
 }
 
-.start-transition.active .start-text {
+.typewriter-content {
+  max-width: 700px;
+  width: 100%;
+  text-align: left;
+}
+
+.typewriter-content p {
+  font-family: Georgia, serif;
+  font-size: 1.15em;
+  line-height: 1.8;
+  color: #b8944f;
+  margin-bottom: 1.2em;
+  opacity: 0;
+  transition: opacity 0.5s ease;
+}
+
+.typewriter-content p.visible {
   opacity: 1;
-  transform: translateY(0);
+}
+
+.typewriter-content p em {
+  font-style: italic;
+  color: #d4883a;
+}
+
+.typewriter-skip {
+  position: absolute;
+  bottom: 2rem;
+  color: rgba(184, 148, 79, 0.4);
+  font-family: Georgia, serif;
+  font-size: 0.85em;
+  letter-spacing: 1px;
+  animation: fade-in 1s ease 2s forwards;
+  opacity: 0;
 }
 
 /* ===== TITLE SCREEN ===== */

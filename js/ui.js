@@ -1,3 +1,11 @@
+const INTRO_PARAGRAPHS = [
+  "Under a white sun that has burned since before memory, you pause at the crest of a ridge. The savanna unfolds below — golden grass, thornwood, the shimmer of heat rising from stone. You are the apex. Nothing in this land can match you.",
+  "But behind you, miles back, something is wrong.",
+  "They do not chase. They do not tire. They just <em>follow</em>.",
+  "You have already run farther than instinct says is possible. Your body aches. Your tongue is cracked. The air tastes of dust and something older — something like dread.",
+  "There is no winning this chase. There is only distance. Only one more day."
+];
+
 const UI = {
   /**
    * Show a specific screen, hide all others
@@ -30,6 +38,128 @@ const UI = {
     const logo = document.getElementById('title-logo');
     if (logo) {
       logo.src = logos[Math.floor(Math.random() * logos.length)];
+    }
+  },
+
+  /**
+   * Play typewriter cinematic intro, then call callback
+   */
+  playTypewriterIntro(callback) {
+    const overlay = document.getElementById('typewriter-overlay');
+    const content = document.getElementById('typewriter-content');
+    if (!overlay || !content) {
+      callback();
+      return;
+    }
+
+    content.innerHTML = '';
+    this._typewriterCallback = callback;
+    this._typewriterSkipped = false;
+
+    // Create paragraph elements
+    INTRO_PARAGRAPHS.forEach(text => {
+      const p = document.createElement('p');
+      p.innerHTML = text;
+      content.appendChild(p);
+    });
+
+    // Show overlay
+    overlay.classList.add('active');
+    overlay.classList.remove('fading');
+
+    // Bind skip handlers
+    this._skipHandler = (e) => {
+      if (e.type === 'keydown' && e.code !== 'Space') return;
+      if (e.type === 'keydown') e.preventDefault();
+      this._skipTypewriter();
+    };
+    document.addEventListener('keydown', this._skipHandler);
+    overlay.addEventListener('click', this._skipHandler);
+
+    // Start typing after brief pause
+    setTimeout(() => this._typeNextParagraph(0), 600);
+  },
+
+  /**
+   * Type out a single paragraph character by character
+   */
+  _typeNextParagraph(index) {
+    if (this._typewriterSkipped) return;
+
+    const content = document.getElementById('typewriter-content');
+    const paragraphs = content.querySelectorAll('p');
+
+    if (index >= paragraphs.length) {
+      setTimeout(() => this._finishTypewriter(), 1500);
+      return;
+    }
+
+    const p = paragraphs[index];
+    const fullHTML = p.innerHTML;
+    p.innerHTML = '';
+    p.classList.add('visible');
+
+    let charIndex = 0;
+    let currentText = '';
+    const typeSpeed = 35;
+
+    const typeNext = () => {
+      if (this._typewriterSkipped) return;
+      if (charIndex >= fullHTML.length) {
+        setTimeout(() => this._typeNextParagraph(index + 1), 800);
+        return;
+      }
+
+      // Handle HTML tags — add entire tag at once
+      if (fullHTML[charIndex] === '<') {
+        const closeIndex = fullHTML.indexOf('>', charIndex);
+        if (closeIndex !== -1) {
+          currentText += fullHTML.substring(charIndex, closeIndex + 1);
+          charIndex = closeIndex + 1;
+        }
+      } else {
+        currentText += fullHTML[charIndex];
+        charIndex++;
+      }
+
+      p.innerHTML = currentText;
+      setTimeout(typeNext, typeSpeed);
+    };
+
+    typeNext();
+  },
+
+  /**
+   * Skip the typewriter and go straight to game
+   */
+  _skipTypewriter() {
+    if (this._typewriterSkipped) return;
+    this._typewriterSkipped = true;
+    this._finishTypewriter();
+  },
+
+  /**
+   * Finish typewriter — fade out and start game
+   */
+  _finishTypewriter() {
+    const overlay = document.getElementById('typewriter-overlay');
+
+    if (this._skipHandler) {
+      document.removeEventListener('keydown', this._skipHandler);
+      if (overlay) overlay.removeEventListener('click', this._skipHandler);
+      this._skipHandler = null;
+    }
+
+    if (overlay) {
+      overlay.classList.add('fading');
+
+      setTimeout(() => {
+        overlay.classList.remove('active', 'fading');
+        if (this._typewriterCallback) {
+          this._typewriterCallback();
+          this._typewriterCallback = null;
+        }
+      }, 1500);
     }
   },
 
@@ -122,24 +252,6 @@ const UI = {
 
       container.appendChild(div);
     });
-  },
-
-  /**
-   * Play the game start transition animation
-   */
-  playStartTransition(callback) {
-    const overlay = document.getElementById('start-transition');
-    if (!overlay) {
-      callback();
-      return;
-    }
-
-    overlay.classList.add('active');
-
-    setTimeout(() => {
-      overlay.classList.remove('active');
-      callback();
-    }, 2000);
   },
 
   /**
@@ -547,7 +659,7 @@ const UI = {
     const btnStart = document.getElementById('btn-start');
     if (btnStart) {
       btnStart.onclick = () => {
-        this.playStartTransition(() => {
+        this.playTypewriterIntro(() => {
           if (typeof Game !== 'undefined' && Game.newGame) {
             Game.newGame();
           }
@@ -569,11 +681,9 @@ const UI = {
     const btnTryAgain = document.getElementById('btn-try-again');
     if (btnTryAgain) {
       btnTryAgain.onclick = () => {
-        this.playStartTransition(() => {
-          if (typeof Game !== 'undefined' && Game.newGame) {
-            Game.newGame();
-          }
-        });
+        if (typeof Game !== 'undefined' && Game.newGame) {
+          Game.newGame();
+        }
       };
     }
 
