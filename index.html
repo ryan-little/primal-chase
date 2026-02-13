@@ -1,0 +1,221 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Primal Chase</title>
+  <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+
+  <!-- Title Screen -->
+  <div id="screen-title" class="screen active">
+    <div class="title-container">
+      <img src="assets/primalchaselogoout.png" alt="Primal Chase" class="logo">
+      <div class="intro-narrative">
+        <p>Under the white glare of the midday sun, you pause at the crest of a ridge. The savanna sprawls endlessly in every direction—golden grass, scattered thornwood, the shimmer of heat rising from stone. You are the apex. Nothing here can match your speed, your senses, your claim to this land.</p>
+        <p>But behind you, miles back, something is wrong.</p>
+        <p>The two-legged ones. The soft ones. They do not hunt like anything you have seen. They do not chase. They do not tire. They just <em>follow</em>. And they never stop.</p>
+        <p>You have already run farther than you have ever run. Your body aches. Your tongue is dry. And still, when you look back, there is dust on the horizon.</p>
+        <p>There is no winning this chase. There is only distance. Only one more day.</p>
+      </div>
+      <div class="title-buttons">
+        <button id="btn-start" class="title-btn">Start the Hunt</button>
+        <button id="btn-howto" class="title-btn">Learn to Run</button>
+        <button id="btn-leaderboard" class="title-btn">The Longest Strides</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Game Screen -->
+  <div id="screen-game" class="screen">
+    <div class="game-container">
+      <div class="game-header">
+        <div id="phase-indicator" class="phase-indicator">DAY 1</div>
+      </div>
+
+      <div class="vitals-section">
+        <div class="status-bar-container">
+          <div class="status-label">Heat</div>
+          <div class="status-value" id="heat-value">0%</div>
+          <div class="status-bar-track">
+            <div id="heat-bar" class="status-bar-fill heat-bar" style="width: 0%"></div>
+          </div>
+        </div>
+
+        <div class="status-bar-container">
+          <div class="status-label">Stamina</div>
+          <div class="status-value" id="stamina-value">100%</div>
+          <div class="status-bar-track">
+            <div id="stamina-bar" class="status-bar-fill stamina-bar" style="width: 100%"></div>
+          </div>
+        </div>
+
+        <div class="status-bar-container">
+          <div class="status-label">Thirst</div>
+          <div class="status-value" id="thirst-value">0%</div>
+          <div class="status-bar-track">
+            <div id="thirst-bar" class="status-bar-fill thirst-bar" style="width: 0%"></div>
+          </div>
+        </div>
+
+        <div class="status-bar-container">
+          <div class="status-label">Hunger</div>
+          <div class="status-value" id="hunger-value">0%</div>
+          <div class="status-bar-track">
+            <div id="hunger-bar" class="status-bar-fill hunger-bar" style="width: 0%"></div>
+          </div>
+        </div>
+      </div>
+
+      <div id="hunt-info" class="hunt-info">
+        <div class="hunt-distance">The hunters are <span id="hunter-distance">25</span> miles behind.</div>
+        <div class="hunt-flavor" id="hunt-flavor">You can barely sense them. But they are there.</div>
+        <div class="distance-covered">Distance covered: <span id="distance-covered">0</span> miles</div>
+      </div>
+
+      <div id="situation-text" class="situation-text">
+        <!-- Encounter description will be injected here -->
+      </div>
+
+      <div id="monologue" class="monologue">
+        <!-- Internal monologue will be injected here -->
+      </div>
+
+      <div id="action-buttons" class="action-buttons">
+        <!-- Action buttons will be dynamically generated here -->
+      </div>
+    </div>
+  </div>
+
+  <!-- Death Screen -->
+  <div id="screen-death" class="screen">
+    <div class="death-container">
+      <div id="death-narrative" class="death-narrative">
+        <!-- Death narrative will be injected here -->
+      </div>
+
+      <div class="score-summary">
+        <h2>Your Chase</h2>
+        <div class="score-stats">
+          <div class="score-stat">
+            <span class="score-label">Days Survived:</span>
+            <span id="score-days" class="score-number">0</span>
+          </div>
+          <div class="score-stat">
+            <span class="score-label">Distance Covered:</span>
+            <span id="score-distance" class="score-number">0 mi</span>
+          </div>
+          <div class="score-stat">
+            <span class="score-label">Times Lost Hunters:</span>
+            <span id="score-lost" class="score-number">0</span>
+          </div>
+        </div>
+
+        <div id="achievements-list" class="achievements-list">
+          <!-- Achievements will be injected here -->
+        </div>
+      </div>
+
+      <div class="death-buttons">
+        <button id="btn-share-text" class="death-btn">Share Text</button>
+        <button id="btn-share-image" class="death-btn">Share Image</button>
+        <button id="btn-submit-score" class="death-btn">Submit to Longest Strides</button>
+        <button id="btn-try-again" class="death-btn primary">Try Again</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Leaderboard Screen -->
+  <div id="screen-leaderboard" class="screen">
+    <div class="leaderboard-container">
+      <h1 class="leaderboard-title">The Longest Strides</h1>
+      <div id="leaderboard-table" class="leaderboard-table">
+        <table>
+          <thead>
+            <tr>
+              <th>Rank</th>
+              <th>Days</th>
+              <th>Distance</th>
+              <th>Lost Hunters</th>
+              <th>Death</th>
+            </tr>
+          </thead>
+          <tbody id="leaderboard-body">
+            <!-- Leaderboard entries will be injected here -->
+          </tbody>
+        </table>
+      </div>
+      <button id="btn-leaderboard-back" class="back-btn">Return to Title</button>
+    </div>
+  </div>
+
+  <!-- How to Play Screen -->
+  <div id="screen-howto" class="screen">
+    <div class="howto-container">
+      <h1>Learn to Run</h1>
+      <div class="howto-content">
+        <section>
+          <h2>The Chase</h2>
+          <p>You are an apex predator—a big cat, built for short bursts of devastating speed. But the humans hunting you do not play by your rules. They track. They follow. They never stop. This is persistence hunting, and you cannot win. You can only survive one more day.</p>
+        </section>
+
+        <section>
+          <h2>How to Play</h2>
+          <p>Each turn represents one day, split into two phases: <strong class="day-text">DAY</strong> and <strong class="night-text">NIGHT</strong>. Each phase, you choose one action. Your stats will change based on what you do, and the hunters will either gain ground or fall back.</p>
+        </section>
+
+        <section>
+          <h2>Your Vitals</h2>
+          <ul>
+            <li><strong>Heat:</strong> Running under the sun builds heat. Too much, and you collapse from heatstroke. Rest in shade to cool down.</li>
+            <li><strong>Stamina:</strong> Your energy reserves. Push too hard without resting, and exhaustion will claim you.</li>
+            <li><strong>Thirst:</strong> The savanna is merciless. Find water when you can, or dehydration will kill you before the hunters do.</li>
+            <li><strong>Hunger:</strong> You need to eat. Scavenge when the opportunity arises, or starve slowly.</li>
+          </ul>
+        </section>
+
+        <section>
+          <h2>Actions</h2>
+          <ul>
+            <li><strong>Push:</strong> Sprint at full speed. Covers the most ground, but drains stamina and builds dangerous heat.</li>
+            <li><strong>Trot:</strong> A sustainable pace. Moderate distance, moderate costs.</li>
+            <li><strong>Rest:</strong> Stop moving. Recover heat and stamina, but the hunters gain ground.</li>
+            <li><strong>Drink:</strong> Appears when water is near. Resets thirst but costs time.</li>
+            <li><strong>Eat:</strong> Appears when food is available. Resets hunger, reduces thirst, but costs time.</li>
+          </ul>
+        </section>
+
+        <section>
+          <h2>The Hunters</h2>
+          <p>They start 25 miles behind. They move at a steady pace, but their speed increases every time you manage to lose them. Water sources, rough terrain, and rare events can slow them down—or help you slip away temporarily. But they always return. And they are always faster than before.</p>
+        </section>
+
+        <section>
+          <h2>Night</h2>
+          <p>At night, heat is no longer a threat. Thirst costs are reduced. But you cannot see as well, so you move slower. The hunters camp at night—they gain almost no ground. Use the darkness to rest, recover, and prepare for the next day.</p>
+        </section>
+
+        <section>
+          <h2>Death</h2>
+          <p>You will die. The only question is how far you get. When it ends, your run is scored and added to <strong>The Longest Strides</strong>—the local leaderboard of those who ran the farthest.</p>
+        </section>
+      </div>
+      <button id="btn-howto-back" class="back-btn">Return to Title</button>
+    </div>
+  </div>
+
+  <!-- Hidden canvas for share image generation -->
+  <canvas id="share-canvas" style="display: none;"></canvas>
+
+  <!-- Scripts loaded in dependency order -->
+  <script src="js/config.js"></script>
+  <script src="js/encounters.js"></script>
+  <script src="js/monologue.js"></script>
+  <script src="js/hunters.js"></script>
+  <script src="js/game.js"></script>
+  <script src="js/ui.js"></script>
+  <script src="js/score.js"></script>
+
+</body>
+</html>
