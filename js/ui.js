@@ -55,6 +55,7 @@ const UI = {
     content.innerHTML = '';
     this._typewriterCallback = callback;
     this._typewriterSkipped = false;
+    this._typewriterFinished = false;
 
     // Create paragraph elements
     INTRO_PARAGRAPHS.forEach(text => {
@@ -116,6 +117,9 @@ const UI = {
         if (closeIndex !== -1) {
           currentText += fullHTML.substring(charIndex, closeIndex + 1);
           charIndex = closeIndex + 1;
+        } else {
+          currentText += fullHTML[charIndex];
+          charIndex++;
         }
       } else {
         currentText += fullHTML[charIndex];
@@ -142,6 +146,8 @@ const UI = {
    * Finish typewriter — fade out and start game
    */
   _finishTypewriter() {
+    if (this._typewriterFinished) return;
+    this._typewriterFinished = true;
     const overlay = document.getElementById('typewriter-overlay');
 
     if (this._skipHandler) {
