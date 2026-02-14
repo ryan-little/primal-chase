@@ -722,18 +722,23 @@ const UI = {
         narrativeElement.innerHTML = '';
         this._situationSkipped = false;
         this._situationTypewriterDone = false;
-        this.typewriteText(narrativeElement, narrative, CONFIG.typewriter.speed, null);
 
-        // Skip handler for death typewriter
+        // Skip handler for death typewriter (cleaned up on skip OR completion)
+        const cleanupSkipHandlers = () => {
+          document.removeEventListener('keydown', deathSkipHandler);
+          const deathScreen = document.getElementById('screen-death');
+          if (deathScreen) deathScreen.removeEventListener('click', deathSkipHandler);
+        };
         const deathSkipHandler = (e) => {
           if (e.type === 'keydown' && e.code !== 'Space') return;
           if (e.type === 'keydown') e.preventDefault();
           this._situationSkipped = true;
-          document.removeEventListener('keydown', deathSkipHandler);
-          document.getElementById('screen-death').removeEventListener('click', deathSkipHandler);
+          cleanupSkipHandlers();
         };
         document.addEventListener('keydown', deathSkipHandler);
         document.getElementById('screen-death').addEventListener('click', deathSkipHandler);
+
+        this.typewriteText(narrativeElement, narrative, CONFIG.typewriter.speed, cleanupSkipHandlers);
       } else {
         narrativeElement.innerHTML = `<p>${narrative}</p>`;
       }
