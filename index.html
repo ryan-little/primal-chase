@@ -24,6 +24,7 @@
         <button id="btn-start" class="title-btn title-btn-primary">Start the Hunt</button>
         <button id="btn-leaderboard" class="title-btn">The Longest Strides</button>
       </div>
+      <a id="btn-options" class="options-link">Options</a>
     </div>
   </div>
 
@@ -219,6 +220,36 @@
         </section>
       </div>
       <button id="btn-howto-back" class="back-btn">Return to Title</button>
+    </div>
+  </div>
+
+  <!-- Options Screen -->
+  <div id="screen-options" class="screen">
+    <div class="options-container">
+      <h1>Options</h1>
+      <div class="options-content">
+        <div class="option-row">
+          <span class="option-label">Difficulty</span>
+          <div class="option-control">
+            <button class="option-btn active" data-option="difficulty" data-value="normal">Normal</button>
+            <button class="option-btn disabled" data-option="difficulty" data-value="easy" disabled>Easy (Coming Soon)</button>
+            <button class="option-btn disabled" data-option="difficulty" data-value="hard" disabled>Hard (Coming Soon)</button>
+          </div>
+        </div>
+        <div class="option-row">
+          <span class="option-label">Show Opening</span>
+          <div class="option-control">
+            <button class="option-toggle active" id="opt-opening" data-option="showOpening">ON</button>
+          </div>
+        </div>
+        <div class="option-row">
+          <span class="option-label">Typewriter Effect</span>
+          <div class="option-control">
+            <button class="option-toggle active" id="opt-typewriter" data-option="typewriterEffect">ON</button>
+          </div>
+        </div>
+      </div>
+      <button id="btn-options-back" class="back-btn">Return to Title</button>
     </div>
   </div>
 

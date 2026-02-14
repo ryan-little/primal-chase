@@ -900,6 +900,109 @@ body.night-mode::after {
   transform: translateY(0);
 }
 
+/* ===== OPTIONS SCREEN ===== */
+.options-link {
+  color: var(--text-secondary);
+  font-family: Georgia, serif;
+  font-size: 0.9em;
+  cursor: pointer;
+  opacity: 0.6;
+  transition: opacity 0.2s ease, color 0.2s ease;
+  letter-spacing: 0.5px;
+  margin-top: 0.8rem;
+  text-align: center;
+}
+
+.options-link:hover {
+  opacity: 1;
+  color: var(--text-primary);
+}
+
+.options-container {
+  max-width: 600px;
+  width: 100%;
+  background: rgba(10, 6, 3, 0.85);
+  padding: 2rem;
+  border: 1px solid var(--border-color);
+  border-radius: 2px;
+}
+
+.options-container h1 {
+  text-align: center;
+  font-size: 2em;
+  margin-bottom: 2rem;
+  color: var(--text-primary);
+  text-shadow: 0 2px 6px rgba(0, 0, 0, 0.8);
+}
+
+.options-content {
+  display: flex;
+  flex-direction: column;
+  gap: 1.5rem;
+  margin-bottom: 2rem;
+}
+
+.option-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 0.8rem 0;
+  border-bottom: 1px solid var(--border-color);
+}
+
+.option-label {
+  color: var(--text-secondary);
+  font-family: 'Courier New', monospace;
+  font-size: 1em;
+}
+
+.option-control {
+  display: flex;
+  gap: 0.5rem;
+}
+
+.option-btn {
+  background: rgba(42, 26, 14, 0.6);
+  color: var(--text-secondary);
+  border: 1px solid var(--border-color);
+  padding: 0.5rem 1rem;
+  font-family: 'Courier New', monospace;
+  font-size: 0.85em;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.option-btn.active {
+  background: rgba(74, 53, 38, 0.9);
+  color: var(--text-primary);
+  border-color: var(--text-primary);
+}
+
+.option-btn.disabled {
+  opacity: 0.35;
+  cursor: not-allowed;
+}
+
+.option-toggle {
+  background: rgba(74, 53, 38, 0.9);
+  color: var(--text-safe);
+  border: 1px solid var(--text-safe);
+  padding: 0.5rem 1.2rem;
+  font-family: 'Courier New', monospace;
+  font-size: 0.85em;
+  font-weight: bold;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  min-width: 3.5rem;
+  text-align: center;
+}
+
+.option-toggle.off {
+  color: var(--text-danger);
+  border-color: var(--text-danger);
+  background: rgba(42, 26, 14, 0.6);
+}
+
 /* ===== RESPONSIVE: TABLET ===== */
 @media (max-width: 768px) {
   body {

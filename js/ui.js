@@ -1,3 +1,44 @@
+const Options = {
+  _defaults: {
+    difficulty: 'normal',
+    showOpening: true,
+    typewriterEffect: true
+  },
+
+  _values: null,
+
+  load() {
+    try {
+      const stored = localStorage.getItem('primalChaseOptions');
+      this._values = stored ? { ...this._defaults, ...JSON.parse(stored) } : { ...this._defaults };
+    } catch (e) {
+      this._values = { ...this._defaults };
+    }
+  },
+
+  save() {
+    try {
+      localStorage.setItem('primalChaseOptions', JSON.stringify(this._values));
+    } catch (e) { /* localStorage not available */ }
+  },
+
+  get(key) {
+    if (!this._values) this.load();
+    return this._values[key] !== undefined ? this._values[key] : this._defaults[key];
+  },
+
+  set(key, value) {
+    if (!this._values) this.load();
+    this._values[key] = value;
+    this.save();
+  },
+
+  toggle(key) {
+    this.set(key, !this.get(key));
+    return this.get(key);
+  }
+};
+
 const INTRO_PARAGRAPHS = [
   "Under a white sun that has burned since before memory, you pause at the crest of a ridge. The savanna unfolds below — golden grass, thornwood, the shimmer of heat rising from stone. You are the apex. Nothing in this land can match you.",
   "But behind you, miles back, something is wrong.",
@@ -662,6 +703,26 @@ const UI = {
   },
 
   /**
+   * Render options screen with synced toggle states
+   */
+  renderOptions() {
+    this.showScreen('screen-options');
+    // Sync toggle states
+    const openingBtn = document.getElementById('opt-opening');
+    const typewriterBtn = document.getElementById('opt-typewriter');
+    if (openingBtn) {
+      const on = Options.get('showOpening');
+      openingBtn.textContent = on ? 'ON' : 'OFF';
+      openingBtn.classList.toggle('off', !on);
+    }
+    if (typewriterBtn) {
+      const on = Options.get('typewriterEffect');
+      typewriterBtn.textContent = on ? 'ON' : 'OFF';
+      typewriterBtn.classList.toggle('off', !on);
+    }
+  },
+
+  /**
    * Bind all event handlers
    */
   bindEvents() {
@@ -669,11 +730,13 @@ const UI = {
     const btnStart = document.getElementById('btn-start');
     if (btnStart) {
       btnStart.onclick = () => {
-        this.playTypewriterIntro(() => {
-          if (typeof Game !== 'undefined' && Game.newGame) {
-            Game.newGame();
-          }
-        });
+        if (Options.get('showOpening')) {
+          this.playTypewriterIntro(() => {
+            if (typeof Game !== 'undefined' && Game.newGame) Game.newGame();
+          });
+        } else {
+          if (typeof Game !== 'undefined' && Game.newGame) Game.newGame();
+        }
       };
     }
 
@@ -750,12 +813,34 @@ const UI = {
     if (btnLeaderboardBack) {
       btnLeaderboardBack.onclick = () => this.renderTitle();
     }
+
+    // Options
+    const btnOptions = document.getElementById('btn-options');
+    if (btnOptions) {
+      btnOptions.onclick = () => this.renderOptions();
+    }
+
+    const btnOptionsBack = document.getElementById('btn-options-back');
+    if (btnOptionsBack) {
+      btnOptionsBack.onclick = () => this.renderTitle();
+    }
+
+    // Toggle buttons
+    document.querySelectorAll('.option-toggle').forEach(btn => {
+      btn.onclick = () => {
+        const key = btn.dataset.option;
+        const newVal = Options.toggle(key);
+        btn.textContent = newVal ? 'ON' : 'OFF';
+        btn.classList.toggle('off', !newVal);
+      };
+    });
   },
 
   /**
    * Initialize UI system
    */
   init() {
+    Options.load();
     this.bindEvents();
     this.renderTitle();
   }
