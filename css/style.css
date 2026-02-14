@@ -477,6 +477,17 @@ body.night-mode::after {
   margin-bottom: 0.5rem;
 }
 
+.monologue-label {
+  display: block;
+  font-style: normal;
+  font-size: 0.75em;
+  font-family: 'Courier New', monospace;
+  text-transform: uppercase;
+  letter-spacing: 1.5px;
+  color: rgba(212, 165, 116, 0.5);
+  margin-bottom: 0.3rem;
+}
+
 /* ===== ACTION BUTTONS (ALWAYS VISIBLE) ===== */
 .action-buttons {
   display: flex;
@@ -518,6 +529,22 @@ body.night-mode::after {
 .action-name {
   font-weight: bold;
   font-size: 1.05em;
+}
+
+.action-key {
+  display: inline-block;
+  width: 1.4em;
+  height: 1.4em;
+  line-height: 1.4em;
+  text-align: center;
+  font-family: 'Courier New', monospace;
+  font-size: 0.85em;
+  border: 1px solid var(--border-color);
+  border-radius: 3px;
+  margin-right: 0.4em;
+  background: rgba(0, 0, 0, 0.3);
+  color: var(--text-secondary);
+  vertical-align: middle;
 }
 
 .action-description {

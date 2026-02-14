@@ -404,7 +404,7 @@ const UI = {
     if (!monologueElement) return;
 
     if (text) {
-      monologueElement.textContent = text;
+      monologueElement.innerHTML = `<span class="monologue-label">Inner voice</span>${text}`;
       monologueElement.style.display = 'block';
     } else {
       monologueElement.style.display = 'none';
@@ -428,7 +428,7 @@ const UI = {
       button.className = 'action-btn';
 
       // Build button content
-      let html = `<div class="action-name">${index + 1}. ${action.name}</div>`;
+      let html = `<div class="action-name"><span class="action-key">${index + 1}</span> ${action.name}</div>`;
 
       if (action.description) {
         html += `<div class="action-description">${action.description}</div>`;
@@ -726,6 +726,17 @@ const UI = {
         }
       };
     }
+
+    // Keyboard shortcuts for action buttons (1-5)
+    document.addEventListener('keydown', (e) => {
+      const gameScreen = document.getElementById('screen-game');
+      if (!gameScreen || !gameScreen.classList.contains('active')) return;
+      const num = parseInt(e.key);
+      if (num >= 1 && num <= 5) {
+        const buttons = document.querySelectorAll('#action-buttons .action-btn');
+        if (buttons[num - 1]) buttons[num - 1].click();
+      }
+    });
 
     // Back buttons
     const btnHowToBack = document.getElementById('btn-howto-back');
