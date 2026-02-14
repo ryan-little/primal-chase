@@ -512,6 +512,19 @@ body.night-mode .night-bg {
   flex-shrink: 0;
 }
 
+/* 2x2 grid for 4+ actions on desktop */
+.action-buttons.grid-layout {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+}
+
+/* 5th button: centered, spanning full width */
+.action-buttons.grid-layout .action-btn:nth-child(5) {
+  grid-column: 1 / -1;
+  max-width: 50%;
+  justify-self: center;
+}
+
 .action-btn {
   background: rgba(42, 26, 14, 0.9);
   color: var(--text-primary);
@@ -1157,6 +1170,15 @@ body.night-mode .night-bg {
   .action-buttons {
     padding: 0.6rem;
     gap: 0.4rem;
+  }
+
+  .action-buttons.grid-layout {
+    display: flex;
+    flex-direction: column;
+  }
+
+  .action-buttons.grid-layout .action-btn:nth-child(5) {
+    max-width: none;
   }
 
   .action-btn {
