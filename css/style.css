@@ -30,164 +30,65 @@ body {
   overflow-x: hidden;
 }
 
-/* ===== ANIMATED LANDSCAPE BACKGROUND ===== */
-
-/* Sky layer — full viewport, behind everything */
-.bg-sky {
-  position: fixed;
-  inset: 0;
-  z-index: -10;
-  background: linear-gradient(
-    180deg,
-    #4a6e8a 0%,
-    #7a9ab5 30%,
-    #c4956a 65%,
-    #8b5e3c 85%,
-    #3d2517 100%
-  );
-  transition: background 2s ease;
-}
-
-body.night-mode .bg-sky {
-  background: linear-gradient(
-    180deg,
-    #0a0e1a 0%,
-    #0f1628 25%,
-    #1a2540 50%,
-    #1c2035 70%,
-    #151020 100%
-  );
-}
-
-/* Sun — positioned in day sky */
-.bg-sun {
-  position: absolute;
-  width: 60px;
-  height: 60px;
-  border-radius: 50%;
-  top: 12%;
-  left: 15%;
-  background: radial-gradient(circle, #fff8e1 0%, #f5d76e 30%, #d4883a 70%, transparent 100%);
-  box-shadow:
-    0 0 40px rgba(245, 215, 110, 0.6),
-    0 0 80px rgba(212, 136, 58, 0.3),
-    0 0 120px rgba(212, 136, 58, 0.15);
-  opacity: 1;
-  transition: opacity 2s ease;
-}
-
-body.night-mode .bg-sun {
-  opacity: 0;
-}
-
-/* Moon — positioned in night sky */
-.bg-moon {
-  position: absolute;
-  width: 45px;
-  height: 45px;
-  border-radius: 50%;
-  top: 10%;
-  right: 18%;
-  background: radial-gradient(circle at 35% 40%, transparent 38%, #e8eef5 40%, #c8d8e8 60%, #a8b8c8 100%);
-  box-shadow:
-    0 0 20px rgba(200, 216, 232, 0.4),
-    0 0 50px rgba(168, 184, 200, 0.2);
-  opacity: 0;
-  transition: opacity 2s ease;
-}
-
-body.night-mode .bg-moon {
-  opacity: 1;
-}
-
-/* Distant mountains silhouette */
-.bg-mountains {
-  position: fixed;
-  bottom: 25%;
-  left: 0;
-  right: 0;
-  height: 20%;
-  z-index: -9;
-  background:
-    url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 1200 200' preserveAspectRatio='none'%3E%3Cpath d='M0,200 L0,120 Q50,80 100,110 Q150,60 200,90 Q280,30 350,70 Q400,50 450,80 Q520,20 600,60 Q680,30 750,70 Q800,45 850,65 Q920,25 1000,55 Q1050,40 1100,70 Q1150,50 1200,80 L1200,200 Z' fill='%232a1a0e'/%3E%3C/svg%3E") no-repeat bottom center;
-  background-size: cover;
-  opacity: 0.7;
-  transition: opacity 2s ease, filter 2s ease;
-}
-
-body.night-mode .bg-mountains {
-  opacity: 0.5;
-  filter: brightness(0.3);
-}
-
-/* Acacia tree silhouettes */
-.bg-trees {
-  position: fixed;
-  bottom: 12%;
-  left: 0;
-  right: 0;
-  height: 30%;
-  z-index: -8;
-  background:
-    url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 1400 300' preserveAspectRatio='none'%3E%3Cpath d='M150,300 L150,180 L148,180 Q120,170 100,150 Q80,130 90,120 Q100,110 130,115 Q140,105 150,100 Q160,105 170,115 Q200,110 210,120 Q220,130 200,150 Q180,170 152,180 L152,300' fill='%231a0f08'/%3E%3Cpath d='M500,300 L500,200 L498,200 Q460,185 440,165 Q425,145 435,135 Q450,125 480,130 Q490,118 500,110 Q510,118 520,130 Q550,125 565,135 Q575,145 560,165 Q540,185 502,200 L502,300' fill='%231a0f08'/%3E%3Cpath d='M900,300 L900,210 L898,210 Q870,200 855,185 Q840,170 848,160 Q860,150 885,155 Q893,145 900,138 Q907,145 915,155 Q940,150 952,160 Q960,170 945,185 Q930,200 902,210 L902,300' fill='%231a0f08'/%3E%3Cpath d='M1250,300 L1250,190 L1248,190 Q1220,178 1205,160 Q1190,142 1198,132 Q1210,122 1238,128 Q1245,118 1250,112 Q1255,118 1262,128 Q1290,122 1302,132 Q1310,142 1295,160 Q1280,178 1252,190 L1252,300' fill='%231a0f08'/%3E%3C/svg%3E") no-repeat bottom center;
-  background-size: cover;
-  opacity: 0.6;
-  transition: opacity 2s ease, filter 2s ease;
-}
-
-body.night-mode .bg-trees {
-  opacity: 0.4;
-  filter: brightness(0.2);
-}
-
-/* Foreground grass with sway animation */
-.bg-grass {
-  position: fixed;
-  bottom: 0;
-  left: 0;
-  right: 0;
-  height: 15%;
-  z-index: -7;
-  background:
-    url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 800 120' preserveAspectRatio='none'%3E%3Cpath d='M0,120 L0,80 Q10,40 15,70 Q20,30 25,65 Q35,20 40,60 Q50,35 55,70 Q65,25 70,65 Q80,40 85,75 Q95,30 100,60 Q110,45 115,75 Q125,20 130,60 Q140,35 145,70 Q155,25 160,65 Q170,40 175,75 Q185,30 190,60 Q200,45 205,75 Q215,20 220,60 Q230,35 235,70 Q245,25 250,65 Q260,40 265,75 Q275,30 280,60 Q290,45 295,75 Q305,20 310,60 Q320,35 325,70 Q335,25 340,65 Q350,40 355,75 Q365,30 370,60 Q380,45 385,75 Q395,20 400,60 Q410,35 415,70 Q425,25 430,65 Q440,40 445,75 Q455,30 460,60 Q470,45 475,75 Q485,20 490,60 Q500,35 505,70 Q515,25 520,65 Q530,40 535,75 Q545,30 550,60 Q560,45 565,75 Q575,20 580,60 Q590,35 595,70 Q605,25 610,65 Q620,40 625,75 Q635,30 640,60 Q650,45 655,75 Q665,20 670,60 Q680,35 685,70 Q695,25 700,65 Q710,40 715,75 Q725,30 730,60 Q740,45 745,75 Q755,20 760,60 Q770,35 775,70 Q785,25 790,65 L800,80 L800,120 Z' fill='%231c1209'/%3E%3C/svg%3E") repeat-x bottom center;
-  background-size: 800px 100%;
-  animation: grass-sway 8s ease-in-out infinite alternate;
-  transition: filter 2s ease;
-}
-
-body.night-mode .bg-grass {
-  filter: brightness(0.3) hue-rotate(200deg);
-}
-
-@keyframes grass-sway {
-  0% { transform: translateX(0); }
-  100% { transform: translateX(-15px); }
-}
-
-/* Night stars overlay */
-body.night-mode .bg-sky::after {
+/* Savannah texture background */
+body::before {
   content: '';
-  position: absolute;
+  position: fixed;
   inset: 0;
+  z-index: -2;
   background:
-    radial-gradient(1px 1px at 10% 15%, rgba(255, 255, 255, 0.7), transparent),
-    radial-gradient(1px 1px at 25% 35%, rgba(255, 255, 255, 0.5), transparent),
-    radial-gradient(1.5px 1.5px at 40% 10%, rgba(255, 255, 255, 0.8), transparent),
-    radial-gradient(1px 1px at 55% 25%, rgba(255, 255, 255, 0.4), transparent),
-    radial-gradient(1px 1px at 70% 8%, rgba(255, 255, 255, 0.6), transparent),
-    radial-gradient(1.5px 1.5px at 85% 20%, rgba(255, 255, 255, 0.7), transparent),
-    radial-gradient(1px 1px at 15% 5%, rgba(255, 255, 255, 0.5), transparent),
-    radial-gradient(1px 1px at 60% 18%, rgba(255, 255, 255, 0.4), transparent),
-    radial-gradient(1px 1px at 35% 28%, rgba(255, 255, 255, 0.6), transparent),
-    radial-gradient(1px 1px at 80% 32%, rgba(255, 255, 255, 0.5), transparent),
-    radial-gradient(1px 1px at 92% 5%, rgba(255, 255, 255, 0.7), transparent),
-    radial-gradient(1px 1px at 48% 3%, rgba(255, 255, 255, 0.5), transparent);
-  animation: star-twinkle 4s ease-in-out infinite alternate;
+    /* Subtle noise grain */
+    url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='0.04'/%3E%3C/svg%3E"),
+    /* Warm gradient base */
+    linear-gradient(175deg, #2e1c10 0%, #1a0f08 40%, #1c1209 70%, #2a1a0e 100%);
 }
 
-@keyframes star-twinkle {
-  0% { opacity: 0.7; }
-  100% { opacity: 1; }
+/* Savannah grass-like texture overlay */
+body::after {
+  content: '';
+  position: fixed;
+  inset: 0;
+  z-index: -1;
+  background:
+    repeating-linear-gradient(
+      90deg,
+      transparent,
+      transparent 3px,
+      rgba(180, 140, 60, 0.015) 3px,
+      rgba(180, 140, 60, 0.015) 4px
+    ),
+    repeating-linear-gradient(
+      0deg,
+      transparent,
+      transparent 8px,
+      rgba(120, 80, 30, 0.02) 8px,
+      rgba(120, 80, 30, 0.02) 9px
+    );
+  pointer-events: none;
+}
+
+/* Night mode body tint */
+body.night-mode::before {
+  background:
+    url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='0.04'/%3E%3C/svg%3E"),
+    linear-gradient(175deg, #0d1420 0%, #0a0e18 40%, #0c1220 70%, #101828 100%);
+  transition: background 1.5s ease;
+}
+
+body.night-mode::after {
+  background:
+    /* Star-like dots */
+    radial-gradient(1px 1px at 20% 30%, rgba(200, 220, 255, 0.4), transparent),
+    radial-gradient(1px 1px at 40% 70%, rgba(200, 220, 255, 0.3), transparent),
+    radial-gradient(1px 1px at 60% 20%, rgba(200, 220, 255, 0.5), transparent),
+    radial-gradient(1px 1px at 80% 50%, rgba(200, 220, 255, 0.3), transparent),
+    radial-gradient(1px 1px at 15% 80%, rgba(200, 220, 255, 0.4), transparent),
+    radial-gradient(1px 1px at 70% 90%, rgba(200, 220, 255, 0.3), transparent),
+    radial-gradient(1px 1px at 90% 10%, rgba(200, 220, 255, 0.5), transparent),
+    radial-gradient(1px 1px at 50% 40%, rgba(200, 220, 255, 0.3), transparent),
+    radial-gradient(1px 1px at 30% 60%, rgba(200, 220, 255, 0.4), transparent),
+    radial-gradient(1px 1px at 85% 75%, rgba(200, 220, 255, 0.3), transparent);
+  transition: background 1.5s ease;
 }
 
 /* ===== SCREEN SYSTEM ===== */
