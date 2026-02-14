@@ -3,6 +3,7 @@ const Options = {
     difficulty: 'normal',
     showOpening: true,
     typewriterEffect: true,
+    situationTypewriter: true,
     typewriterSpeed: 30
   },
 
@@ -247,14 +248,17 @@ const UI = {
       this.renderVitals(gameState);
       this.renderHunt(gameState);
 
-      // After transition duration, remove transitioning class and continue
+      // After transition duration, remove transitioning class and render situation
       setTimeout(() => {
         document.querySelectorAll('.status-bar-fill').forEach(bar => {
           bar.classList.remove('transitioning');
         });
 
         this._renderSituation(gameState);
-        this.disableActions(false);
+        // If situation typewriter is off, re-enable actions now; otherwise typewriter callback handles it
+        if (!(Options.get('typewriterEffect') && Options.get('situationTypewriter'))) {
+          this.disableActions(false);
+        }
       }, CONFIG.transition.duration);
     } else {
       // No transition — render everything immediately
@@ -270,28 +274,44 @@ const UI = {
    */
   _renderSituation(gameState) {
     const situationElement = document.getElementById('situation-text');
-    if (situationElement) {
+    if (!situationElement) return;
+
+    const encounterText = (gameState.currentEncounter && gameState.currentEncounter.text)
+      ? gameState.currentEncounter.text
+      : 'The land stretches endlessly before you. Heat shimmers on the horizon.';
+
+    // Render available actions (may be disabled during typewriter)
+    if (gameState.currentEncounter && gameState.currentEncounter.actions) {
+      this.renderActions(gameState.currentEncounter.actions);
+    }
+
+    if (Options.get('typewriterEffect') && Options.get('situationTypewriter')) {
+      // Show outcome text instantly, then typewrite encounter text
+      situationElement.innerHTML = '';
+      if (gameState.lastOutcome) {
+        situationElement.innerHTML = `<p class="outcome-text">${gameState.lastOutcome}</p>`;
+        gameState.lastOutcome = null;
+      }
+
+      this.disableActions(true);
+      const speed = Options.get('typewriterSpeed') || CONFIG.typewriter.speed;
+      this.typewriteText(situationElement, encounterText, speed, () => {
+        // Render monologue after typewriter finishes
+        this.renderMonologue(gameState.monologue);
+        this.disableActions(false);
+      });
+    } else {
+      // No typewriter — render everything instantly
       let html = '';
       if (gameState.lastOutcome) {
         html += `<p class="outcome-text">${gameState.lastOutcome}</p>`;
         gameState.lastOutcome = null;
       }
-
-      const encounterText = (gameState.currentEncounter && gameState.currentEncounter.text)
-        ? gameState.currentEncounter.text
-        : 'The land stretches endlessly before you. Heat shimmers on the horizon.';
-
       situationElement.innerHTML = html + `<p>${encounterText}</p>`;
       this._situationTypewriterDone = true;
-    }
 
-    // Render internal monologue
-    this.renderMonologue(gameState.monologue);
-
-    // Render available actions from the encounter's actions array
-    if (gameState.currentEncounter && gameState.currentEncounter.actions) {
-      this.renderActions(gameState.currentEncounter.actions);
-      // If typewriter is active, buttons are already disabled above
+      // Render internal monologue
+      this.renderMonologue(gameState.monologue);
     }
   },
 
@@ -824,6 +844,7 @@ const UI = {
     // Sync toggle states
     const openingBtn = document.getElementById('opt-opening');
     const typewriterBtn = document.getElementById('opt-typewriter');
+    const situationBtn = document.getElementById('opt-situation-typewriter');
     if (openingBtn) {
       const on = Options.get('showOpening');
       openingBtn.textContent = on ? 'ON' : 'OFF';
@@ -834,16 +855,25 @@ const UI = {
       typewriterBtn.textContent = on ? 'ON' : 'OFF';
       typewriterBtn.classList.toggle('off', !on);
     }
-    // Sync speed slider visibility and value
+    if (situationBtn) {
+      const on = Options.get('situationTypewriter');
+      situationBtn.textContent = on ? 'ON' : 'OFF';
+      situationBtn.classList.toggle('off', !on);
+    }
+    // Sync speed slider and situation toggle visibility
     this._syncSpeedSlider();
   },
 
   _syncSpeedSlider() {
     const speedInline = document.getElementById('typewriter-speed-inline');
     const speedSlider = document.getElementById('opt-typewriter-speed');
+    const situationRow = document.getElementById('opt-situation-row');
     const on = Options.get('typewriterEffect');
     if (speedInline) {
       speedInline.classList.toggle('hidden', !on);
+    }
+    if (situationRow) {
+      situationRow.classList.toggle('hidden', !on);
     }
     if (speedSlider) {
       const speed = Options.get('typewriterSpeed') || CONFIG.typewriter.speed;

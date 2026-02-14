@@ -76,8 +76,8 @@ const CONFIG = {
 
   // Typewriter effect
   typewriter: {
-    speed: 20,           // ms per character for situation/death text
-    introSpeed: 35       // ms per character for opening intro
+    speed: 30,           // ms per character for death text
+    introSpeed: 45       // ms per character for opening intro
   },
 
   // Phase transition

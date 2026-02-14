@@ -227,7 +227,99 @@ const Monologue = {
 
     // Haunted — mythic survival (day 30+)
     { mood: 'haunted', minDay: 30, text: 'Thirty days. I am a myth now, running on the edge of what is possible. Not even the vultures believed I would last this long.' },
-    { mood: 'haunted', minDay: 30, text: 'I wonder if they still want to kill me, or if they just want to see how this ends. I wonder the same thing.' }
+    { mood: 'haunted', minDay: 30, text: 'I wonder if they still want to kill me, or if they just want to see how this ends. I wonder the same thing.' },
+
+    // ===================== ADDITIONAL FRAGMENTS =====================
+
+    // Confident — after push (additions)
+    { mood: 'confident', triggers: ['after_push'], text: 'The ground vanished beneath me. That is what speed is — the earth giving way to will.' },
+    { mood: 'confident', triggers: ['after_push'], text: 'My heart drums and the dust rises behind me like a curtain drawn shut.' },
+    { mood: 'confident', triggers: ['after_push'], text: 'Every stride a declaration. I am not prey. I am a force the land must answer to.' },
+
+    // Confident — after rest (additions)
+    { mood: 'confident', triggers: ['after_rest'], text: 'The stillness fills me. Muscle unknotting, heat draining into cool earth.' },
+    { mood: 'confident', triggers: ['after_rest'], text: 'To rest is not to surrender. The river pools before it runs.' },
+    { mood: 'confident', triggers: ['after_rest'], text: 'I lie in the shade and my body remembers what it is. Not tired. Not yet.' },
+
+    // Confident — after drink (additions)
+    { mood: 'confident', triggers: ['after_drink'], text: 'Water on the tongue. The world shrinks to this one perfect thing.' },
+    { mood: 'confident', triggers: ['after_drink'], text: 'Cold and clean. The thirst folds inward and is gone, like a bad dream at dawn.' },
+    { mood: 'confident', triggers: ['after_drink'], text: 'I drink and something ancient in me sighs. The land provides, as it always has.' },
+
+    // Confident — after eat (additions)
+    { mood: 'confident', triggers: ['after_eat'], text: 'The weight in my belly is armor. I am fueled. I am whole.' },
+    { mood: 'confident', triggers: ['after_eat'], text: 'Blood and sinew. The old transaction between predator and land, honored once more.' },
+    { mood: 'confident', triggers: ['after_eat'], text: 'The hunger retreats like something ashamed. Strength fills the space it leaves.' },
+
+    // Confident — lost hunters (additions)
+    { mood: 'confident', triggers: ['lost_hunters'], text: 'They stumble in circles while I cut straight lines. This is what it means to belong here.' },
+    { mood: 'confident', triggers: ['lost_hunters'], text: 'Gone. The land swallowed my trail and they are left groping at empty earth.' },
+    { mood: 'confident', triggers: ['lost_hunters'], text: 'I feel the absence of their pressure like a weight lifted from my spine. The air tastes different without them.' },
+
+    // Confident — night (additions)
+    { mood: 'confident', triggers: ['night'], nightOnly: true, text: 'The dark wraps around me like a second skin. This is my element. Let them cling to their fire.' },
+    { mood: 'confident', triggers: ['night'], nightOnly: true, text: 'Moonlight on my back and cool sand beneath my paws. The night was made for creatures like me.' },
+
+    // Concerned — after push (additions)
+    { mood: 'concerned', triggers: ['after_push'], text: 'The legs still answer. Somehow. But the conversation is getting shorter.' },
+    { mood: 'concerned', triggers: ['after_push'], text: 'I ran hard and gained ground, but the cost rises each time. My body keeps accounts I cannot see.' },
+    { mood: 'concerned', triggers: ['after_push'], text: 'The burst leaves me gasping. Once, I could do this three times before noon. Now once is a bargain with pain.' },
+
+    // Concerned — after rest (additions)
+    { mood: 'concerned', triggers: ['after_rest'], text: 'Rest, and listen to them grow closer. This is the arithmetic that will kill me.' },
+    { mood: 'concerned', triggers: ['after_rest'], text: 'My muscles cool but my mind does not. Every moment still is a moment they gain.' },
+    { mood: 'concerned', triggers: ['after_rest'], text: 'The shade is a mercy I can barely afford. The debt grows with every breath I take lying down.' },
+
+    // Concerned — after drink (additions)
+    { mood: 'concerned', triggers: ['after_drink'], text: 'Water, but the relief is briefer now. The thirst returns before the memory of drinking fades.' },
+    { mood: 'concerned', triggers: ['after_drink'], text: 'I drink and wonder how many more times this land will offer its palm before it closes into a fist.' },
+
+    // Concerned — after eat (additions)
+    { mood: 'concerned', triggers: ['after_eat'], text: 'Food in my belly, but the taste of it has changed. Less triumph, more transaction.' },
+    { mood: 'concerned', triggers: ['after_eat'], text: 'I eat, but the time it cost me sits heavier than the meal. Everything has a price now.' },
+
+    // Concerned — night (additions)
+    { mood: 'concerned', triggers: ['night'], nightOnly: true, text: 'Their fire flickers on the horizon like a second heartbeat. It never goes out.' },
+    { mood: 'concerned', triggers: ['night'], nightOnly: true, text: 'The dark should comfort me. Instead I strain at every sound, parsing the wind for footfalls.' },
+
+    // Desperate — after drink (additions)
+    { mood: 'desperate', triggers: ['after_drink'], text: 'Water. I almost wept. Can animals weep? Something in me tried.' },
+    { mood: 'desperate', triggers: ['after_drink'], text: 'I drink and the world reassembles itself from the blur. Not whole, but enough. Enough to run.' },
+
+    // Desperate — after eat (additions)
+    { mood: 'desperate', triggers: ['after_eat'], text: 'I ate like something feral, without grace, without the old precision. Survival has no dignity.' },
+    { mood: 'desperate', triggers: ['after_eat'], text: 'The meal sits in me like a stone. My body has almost forgotten what to do with food.' },
+
+    // Desperate — near death (additions)
+    { mood: 'desperate', triggers: ['near_death'], text: 'I am a wire pulled taut. One more vibration and it snaps.' },
+    { mood: 'desperate', triggers: ['near_death'], text: 'My vision darkens at the edges. The world is a tunnel now, and at its end — them.' },
+    { mood: 'desperate', triggers: ['near_death'], text: 'Every breath costs more than the last. The air itself has turned against me.' },
+
+    // Desperate — lost hunters
+    { mood: 'desperate', triggers: ['lost_hunters'], text: 'Lost them. But the relief is animal and brief — I know they will find the trail again. They always do.' },
+    { mood: 'desperate', triggers: ['lost_hunters'], text: 'The silence where they were is not peace. It is the silence of a predator repositioning.' },
+
+    // Desperate — night (additions)
+    { mood: 'desperate', triggers: ['night'], nightOnly: true, text: 'I move in the dark and my body creaks like old timber. The night hears everything.' },
+    { mood: 'desperate', triggers: ['night'], nightOnly: true, text: 'Darkness behind me. I cannot tell if it holds them or hides me.' },
+
+    // Haunted — after drink (additions)
+    { mood: 'haunted', triggers: ['after_drink'], text: 'Water. I almost did not recognize the sensation. My body has been dry for so long it flinched at the wet.' },
+    { mood: 'haunted', triggers: ['after_drink'], text: 'I drank and for one breath the chase did not exist. Then the world came back.' },
+
+    // Haunted — after eat (additions)
+    { mood: 'haunted', triggers: ['after_eat'], text: 'I ate. The act felt ancient — something from a life I can no longer reach.' },
+    { mood: 'haunted', triggers: ['after_eat'], text: 'Food in my belly and it makes no difference. You cannot eat your way out of this.' },
+
+    // Haunted — near death (additions)
+    { mood: 'haunted', triggers: ['near_death'], text: 'I can feel the place where my body will stop. It is very close now. Just ahead, like a door left open.' },
+    { mood: 'haunted', triggers: ['near_death'], text: 'The ground is pulling at me. Not gravity — something older. The earth wants me back.' },
+
+    // Night-specific fragments (various moods)
+    { mood: 'confident', nightOnly: true, text: 'The night air cools the furnace in my chest. I breathe deep and the dark tastes like freedom.' },
+    { mood: 'concerned', nightOnly: true, text: 'I move by starlight and memory. The ground is uncertain beneath paws that can no longer see.' },
+    { mood: 'desperate', nightOnly: true, text: 'The stars are indifferent. Billions of cold eyes watching me falter and offering nothing.' },
+    { mood: 'haunted', nightOnly: true, text: 'Another night. I have stopped counting them. The dark is just the space between one suffering and the next.' }
   ],
 
   // ============================================================
@@ -299,11 +391,12 @@ const Monologue = {
     const mood = this.getMood(gameState.day);
     const triggers = this.getTriggers(gameState, lastAction);
 
-    // Filter fragments by mood and day
+    // Filter fragments by mood, day, and night restriction
     let candidates = this.fragments.filter(f => {
       if (f.mood !== mood) return false;
       if (f.minDay && gameState.day < f.minDay) return false;
       if (f.maxDay && gameState.day > f.maxDay) return false;
+      if (f.nightOnly && gameState.phase !== 'night') return false;
       if (this.recentlyUsed.includes(f.text)) return false;
       return true;
     });
@@ -325,7 +418,7 @@ const Monologue = {
       if (general.length === 0) {
         // Absolute fallback — clear recents and try again
         this.recentlyUsed = [];
-        general = this.fragments.filter(f => f.mood === mood && !f.triggers);
+        general = this.fragments.filter(f => f.mood === mood && !f.triggers && !(f.nightOnly && gameState.phase !== 'night'));
       }
       selected = general[Math.floor(Math.random() * general.length)];
     }

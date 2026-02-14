@@ -524,7 +524,9 @@ body.night-mode .night-bg {
 }
 
 .action-btn.disabled {
-  opacity: 0.4;
+  color: var(--text-secondary);
+  border-color: rgba(74, 53, 38, 0.4);
+  background: rgba(26, 15, 8, 0.7);
   pointer-events: none;
   cursor: not-allowed;
 }
@@ -991,16 +993,20 @@ body.night-mode .night-bg {
   background: rgba(42, 26, 14, 0.6);
 }
 
-/* Typewriter speed slider (inline with toggle) */
-.speed-inline {
-  display: flex;
-  align-items: center;
-  gap: 0.6rem;
-  margin-left: 0.8rem;
+/* Typewriter speed slider row */
+.speed-row {
+  padding-top: 0;
+  border-bottom: none;
 }
 
-.speed-inline.hidden {
-  display: none;
+.speed-row .option-label {
+  font-size: 0.85em;
+  opacity: 0.7;
+}
+
+.speed-control {
+  flex: 1;
+  margin-left: 1rem;
 }
 
 .slider-label {
@@ -1008,12 +1014,14 @@ body.night-mode .night-bg {
   font-family: 'Courier New', monospace;
   font-size: 0.75em;
   opacity: 0.7;
+  flex-shrink: 0;
 }
 
 .option-slider {
   -webkit-appearance: none;
   appearance: none;
-  width: 120px;
+  flex: 1;
+  min-width: 80px;
   height: 6px;
   background: rgba(42, 26, 14, 0.8);
   border: 1px solid var(--border-color);
@@ -1025,8 +1033,8 @@ body.night-mode .night-bg {
 .option-slider::-webkit-slider-thumb {
   -webkit-appearance: none;
   appearance: none;
-  width: 16px;
-  height: 16px;
+  width: 22px;
+  height: 22px;
   background: var(--text-primary);
   border: 2px solid var(--border-color);
   border-radius: 50%;
@@ -1039,8 +1047,8 @@ body.night-mode .night-bg {
 }
 
 .option-slider::-moz-range-thumb {
-  width: 16px;
-  height: 16px;
+  width: 22px;
+  height: 22px;
   background: var(--text-primary);
   border: 2px solid var(--border-color);
   border-radius: 50%;
@@ -1073,11 +1081,8 @@ body.night-mode .night-bg {
     overflow-y: visible;
   }
 
-  /* Sticky action buttons on mobile */
   .action-buttons {
-    position: sticky;
-    bottom: 0;
-    z-index: 50;
+    position: static;
   }
 
   .logo {

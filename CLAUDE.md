@@ -8,9 +8,9 @@ A text-based, browser-playable survival strategy game. You play as an apex preda
 
 **Hosting:** GitHub Pages via `ryan-little/primal-chase`. Custom domain `primalchase.com` (purchased on Cloudflare).
 
-**Git workflow:** `main` branch holds docs/context. `v1` branch for development. Merge to main when V1 is complete.
+**Git workflow:** `main` branch for deployment (GitHub Pages). `v1` branch for development. V1.4 is the first shippable version.
 
-**Current status:** V1.3 implementation complete. Options screen, typewriter effects, phase transitions, tutorial Day 1, and death screen improvements all implemented. Ready for playtesting.
+**Current status:** V1.4 — first shippable version. Ready for real-world testing and GitHub Pages deployment.
 
 ## Critical Rules
 
@@ -41,7 +41,7 @@ PrimalChase/
 │   ├── monologue.js    ← internal monologue system (182 fragments, mood/event/day/nightOnly-tagged)
 │   ├── hunters.js      ← hunter pursuit/tracking/escalation logic + flavor text (6 per tier per phase)
 │   ├── game.js         ← core game loop, state machine, phase transitions, action history tracking
-│   ├── ui.js           ← DOM rendering, Options system, typewriter engine, screen transitions, phase animations
+│   ├── ui.js           ← DOM rendering, Options system (typewriter/situation toggles), typewriter engine, screen transitions
 │   └── score.js        ← scoring, localStorage leaderboard, share card generation, percentile stats
 ├── assets/
 │   ├── primalchaselogo.png       ← randomly selected on title screen
@@ -51,7 +51,7 @@ PrimalChase/
 │   ├── simulate.js     ← reusable simulation engine (runs N games with configurable strategies)
 │   ├── report.js       ← ASCII report generator with charts
 │   ├── charts.html     ← Balance Lab web dashboard for visualizing simulation data
-│   ├── baseline-stats.json ← sorted arrays from 2500 sim runs (used for percentile calculations)
+│   ├── baseline-stats.json ← sorted arrays from 3000 sim runs (used for percentile calculations)
 │   └── results/        ← timestamped simulation outputs and latest-report.txt
 ├── docs/               ← reference docs, not deployed
 │   └── plans/
@@ -111,13 +111,13 @@ The game state is a single object managed in `game.js`:
 ├──────────────────────────────────────────┤
 │ PHASE HEADER (DAY X / NIGHT X)          │
 ├──────────────┬───────────────────────────┤
-│ VITALS 2x2   │ HUNT INFO + HISTORY       │ ← .game-top grid
-│ Heat|Stamina │ Distance, flavor text     │
-│ Thirst|Hunger│ Last 5 actions            │
+│ VITALS 2x2   │ HUNT INFO                 │ ← .game-top grid
+│ Heat|Stamina │ "Hunters are X mi behind" │
+│ Thirst|Hunger│ "You have covered X mi"   │
 ├──────────────┴───────────────────────────┤
 │ SITUATION + MONOLOGUE (scrollable)       │ ← .situation-scroll, flex:1
 ├──────────────────────────────────────────┤
-│ ACTION BUTTONS (always visible)          │ ← flex-shrink:0, sticky on mobile
+│ ACTION BUTTONS                           │ ← flex-shrink:0, scrolls on mobile
 └──────────────────────────────────────────┘
 ```
 
@@ -189,21 +189,23 @@ Each has 3 unique narrative death screen texts (in DEATH_NARRATIVES in ui.js).
 - Savannah texture: SVG noise grain + warm gradient base + grass-like repeating lines
 - Night mode: dark blue/indigo gradient with star-like radial dots
 - Status bars with color transitions (green → amber → red)
+- Day/night transition: `.night-bg` overlay div fades opacity over 2s (CSS can't animate gradients)
 - Sun/moon celestial arc animation on phase transitions (1.5s CSS animation)
 - "The chase begins..." fade-in/out game start transition
-- Death screen: red overlay, staggered fade-in (narrative → scores → buttons)
+- Death screen: typewriter narrative finishes before score/buttons appear (JS-driven `.death-results-visible` class)
 - Title screen: random logo selection from 3 variants, staggered fade-in
-- Five screens: Title, Game, Death, Leaderboard, How-to-Play
+- Stable-layout typewriter: renders full text invisible (`color: transparent` via `.tw-hidden`), reveals progressively — no reflow on centered text
+- Six screens: Title, Game, Death, Leaderboard, How-to-Play, Options
 
 ### Percentile Stats
 
-On death, the player sees "You survived longer than X% of runs" and "Your distance was farther than X% of runs". Pre-computed breakpoints from 2500 simulation runs are embedded in `BASELINE_PERCENTILES` in score.js. Update by re-running `node test/simulate.js --games=500 --strategy=all` and computing new breakpoints.
+On death, the player sees "You survived longer than X% of runs" and "Your distance was farther than X% of runs". Pre-computed breakpoints from 3000 simulation runs (6 strategies x 500 games) are embedded in `BASELINE_PERCENTILES` in score.js. Update by re-running `node test/simulate.js --games=500 --strategy=all` and computing new breakpoints.
 
 ### Share Card
 
 Two formats:
 1. **Clipboard text** — formatted score summary with achievements
-2. **Image** — Canvas API renders score text over dimmed/cropped logo, downloadable as PNG
+2. **Image** — Canvas API renders score card (gradient background, no logo to avoid canvas tainting on file://). Copies to clipboard on HTTPS (secure context), falls back to PNG download on file://.
 
 ### Leaderboard
 
@@ -224,12 +226,13 @@ node test/report.js
 open test/charts.html
 ```
 
-**Strategies:** push-heavy, trot-heavy, balanced, rest-heavy, smart (picks based on stat urgency)
+**Strategies:** push-heavy, trot-heavy, balanced, rest-heavy, smart (stat-urgency heuristic), gto (expected-value optimizer)
 
-**Current balance (from latest sim — 2500 games):**
-- Smart strategy: avg 8.7 days, median 9, max 14
-- Overall average: 6.4 days across all strategies
-- Death distribution: dehydration 36%, caught 31%, exhaustion 25%, starvation 7%, heatstroke 2%
+**Current balance (from latest sim — 3000 games, 6 strategies):**
+- GTO strategy: avg 10.4 days, median 10, max 23, avg distance 56.7 mi
+- Smart strategy: avg 8.8 days, median 9, max 15
+- Overall average: 7.1 days across all strategies
+- Death distribution: dehydration 36%, caught 31%, exhaustion 22%, starvation 10%, heatstroke 2%
 
 **After balance changes:** Re-run simulation, compute new percentile breakpoints, and update `BASELINE_PERCENTILES` in score.js.
 
@@ -257,12 +260,26 @@ All 8 implementation phases complete: simulation engine, stat display honesty, e
 - Tutorial Day 1: fixed encounters for Day phase ("The Ridge") and Night phase ("First Darkness")
 - CONFIG: typewriter speeds + transition durations
 
+### V1.4 — Polish & First Shippable Version
+- Removed action history sidebar; hunt info now uses natural language ("Hunters are X miles behind")
+- Day/night background transition via opacity-based `.night-bg` overlay (2s fade)
+- Stable-layout typewriter engine: text typed in-place without reflow (invisible-first approach)
+- Situation typewriter: encounter text types in per-phase, with separate on/off toggle in Options
+- Death screen: narrative typewriter finishes before score/buttons appear
+- Options restructured: speed slider on its own row, situation typewriter sub-toggle, mobile-friendly layout
+- Action buttons: centered alignment, dimmed (not opacity) when disabled, non-sticky on mobile
+- Share image: gradient-only canvas (avoids tainting), clipboard copy on HTTPS, download fallback
+- Learn to Run page rewritten with 2-column grid, all game mechanics, full achievements list
+- GTO simulation strategy added (expected-value optimizer, avg 10.4 days)
+- Percentile breakpoints refreshed from 3000-game simulation dataset
+
 ## Content Guidelines
 
 The writing tone is atmospheric and primal. Think Cormac McCarthy meets nature documentary. The animal is intelligent but not human — it thinks in sensation, instinct, and growing unease. Avoid modern language or humor. Everything should feel ancient, inevitable, and earned.
 
 ## Known Issues
 
+- Share image clipboard copy requires HTTPS (secure context). Falls back to PNG download on file://. GitHub issue #1.
 - 8 terrains have `compatible` arrays referencing opportunity IDs that don't exist yet (pre-existing from V1 — `mouse_nest`, `hippo_territory`, `regrowth_shoots`, `aardvark_hole`, `bark_water`, `mosquito_swarm`, `frog_chorus`, `herd_distant`). The generator handles this gracefully by falling back to random compatible opportunities, but these should be added in a future content pass.
 
 ## Future Ideas (V2+)
