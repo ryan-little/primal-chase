@@ -143,7 +143,7 @@ const UI = {
 
     let charIndex = 0;
     let currentText = '';
-    const typeSpeed = 35;
+    const typeSpeed = (typeof CONFIG !== 'undefined' && CONFIG.typewriter) ? CONFIG.typewriter.introSpeed : 35;
 
     const typeNext = () => {
       if (this._typewriterSkipped) return;
@@ -574,6 +574,55 @@ const UI = {
   // renderOutcome is handled inline in renderGame
 
   /**
+   * General-purpose typewriter for any text element
+   * @param {HTMLElement} element - container to type into
+   * @param {string} text - HTML text to type out
+   * @param {number} speed - ms per character
+   * @param {Function} callback - called when typing finishes
+   */
+  typewriteText(element, text, speed, callback) {
+    const p = document.createElement('p');
+    element.appendChild(p);
+    p.style.opacity = '1';
+
+    let charIndex = 0;
+    let currentText = '';
+    this._situationTypewriterDone = false;
+    this._situationSkipped = false;
+
+    const typeNext = () => {
+      if (this._situationSkipped) {
+        p.innerHTML = text;
+        this._situationTypewriterDone = true;
+        if (callback) callback();
+        return;
+      }
+      if (charIndex >= text.length) {
+        this._situationTypewriterDone = true;
+        if (callback) callback();
+        return;
+      }
+      if (text[charIndex] === '<') {
+        const closeIndex = text.indexOf('>', charIndex);
+        if (closeIndex !== -1) {
+          currentText += text.substring(charIndex, closeIndex + 1);
+          charIndex = closeIndex + 1;
+        } else {
+          currentText += text[charIndex];
+          charIndex++;
+        }
+      } else {
+        currentText += text[charIndex];
+        charIndex++;
+      }
+      p.innerHTML = currentText;
+      setTimeout(typeNext, speed);
+    };
+
+    typeNext();
+  },
+
+  /**
    * Render the death screen
    * @param {Object} gameState - final game state
    */
@@ -581,11 +630,29 @@ const UI = {
     this.showScreen('screen-death');
     document.body.classList.remove('night-mode');
 
-    // Render death narrative
+    // Render death narrative (with optional typewriter)
     const narrativeElement = document.getElementById('death-narrative');
     if (narrativeElement) {
       const narrative = this.getDeathNarrative(gameState.deathCause);
-      narrativeElement.innerHTML = `<p>${narrative}</p>`;
+      if (Options.get('typewriterEffect')) {
+        narrativeElement.innerHTML = '';
+        this._situationSkipped = false;
+        this._situationTypewriterDone = false;
+        this.typewriteText(narrativeElement, narrative, CONFIG.typewriter.speed, null);
+
+        // Skip handler for death typewriter
+        const deathSkipHandler = (e) => {
+          if (e.type === 'keydown' && e.code !== 'Space') return;
+          if (e.type === 'keydown') e.preventDefault();
+          this._situationSkipped = true;
+          document.removeEventListener('keydown', deathSkipHandler);
+          document.getElementById('screen-death').removeEventListener('click', deathSkipHandler);
+        };
+        document.addEventListener('keydown', deathSkipHandler);
+        document.getElementById('screen-death').addEventListener('click', deathSkipHandler);
+      } else {
+        narrativeElement.innerHTML = `<p>${narrative}</p>`;
+      }
     }
 
     // Calculate and display score
@@ -758,6 +825,11 @@ const UI = {
           Game.newGame();
         }
       };
+    }
+
+    const btnReturnTitle = document.getElementById('btn-return-title');
+    if (btnReturnTitle) {
+      btnReturnTitle.onclick = () => this.renderTitle();
     }
 
     const btnShareText = document.getElementById('btn-share-text');

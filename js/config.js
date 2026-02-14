@@ -19,16 +19,17 @@ const CONFIG = {
 
   // Hunter system
   hunter: {
-    baseSpeed: 5,
+    baseSpeed: 5.5,
+    dailyEscalation: 0.1,     // hunters speed up +0.1 per day
     trackingSpeed: 2,          // speed while searching for trail
     trackingDuration: { min: 1, max: 3 },  // days in tracking mode
-    escalationPerLoss: 0.5,    // speed increase each time trail is re-found
+    escalationPerLoss: 0.8,    // speed increase each time trail is re-found
     waterBoost: 1.5,           // speed multiplier after player visits water
     waterBoostDuration: 1,     // days the water boost lasts
     mountainPenalty: 0.7,      // speed multiplier in mountains
     junglePenalty: 0.6,        // speed multiplier in jungle/dense
     plainBoost: 1.2,           // speed multiplier on open plains
-    nightGain: 0.5             // distance hunters gain at night (they camp)
+    nightGain: 0.8             // distance hunters gain at night (they camp)
   },
 
   // Day actions
@@ -71,5 +72,11 @@ const CONFIG = {
   // Score
   score: {
     maxLeaderboardEntries: 10
+  },
+
+  // Typewriter effect
+  typewriter: {
+    speed: 20,           // ms per character for situation/death text
+    introSpeed: 35       // ms per character for opening intro
   }
 };
