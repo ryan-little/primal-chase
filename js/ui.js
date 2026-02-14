@@ -156,15 +156,17 @@ const UI = {
       this._skipHandler = null;
     }
 
+    // Start the game BEFORE fading so the overlay reveals the game screen, not the title
+    if (this._typewriterCallback) {
+      this._typewriterCallback();
+      this._typewriterCallback = null;
+    }
+
     if (overlay) {
       overlay.classList.add('fading');
 
       setTimeout(() => {
         overlay.classList.remove('active', 'fading');
-        if (this._typewriterCallback) {
-          this._typewriterCallback();
-          this._typewriterCallback = null;
-        }
       }, 1500);
     }
   },
