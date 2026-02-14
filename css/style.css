@@ -1197,6 +1197,42 @@ body.night-mode .night-bg {
   }
 }
 
+/* ===== VERSION BADGE ===== */
+#version-badge {
+  position: fixed;
+  bottom: 6px;
+  right: 10px;
+  font-family: 'Courier New', monospace;
+  font-size: 0.7em;
+  color: var(--text-secondary);
+  opacity: 0.3;
+  z-index: 50;
+  pointer-events: none;
+}
+
+/* ===== FEEDBACK LINK ===== */
+.feedback-link {
+  font-family: Georgia, serif;
+  font-size: 0.8em;
+  color: rgba(184, 148, 79, 0.35);
+  margin-top: 1rem;
+  opacity: 0;
+}
+
+.feedback-link a {
+  color: var(--text-gold);
+  text-decoration: none;
+  transition: color 0.3s ease;
+}
+
+.feedback-link a:hover {
+  color: var(--text-primary);
+}
+
+.death-results-visible .feedback-link {
+  animation: death-fade-in 1s ease 0.3s forwards;
+}
+
 /* ===== UTILITY CLASSES ===== */
 .hidden {
   display: none !important;

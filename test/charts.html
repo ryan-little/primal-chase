@@ -433,6 +433,168 @@
       align-items: center;
     }
 
+    /* ===== TOC ===== */
+    .toc {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 0.5rem;
+      margin-bottom: 2.5rem;
+      padding: 1rem 1.25rem;
+      background: var(--bg-card);
+      border: 1px solid var(--border);
+    }
+
+    .toc-link {
+      font-size: 0.75rem;
+      color: var(--amber-dim);
+      cursor: pointer;
+      padding: 0.4rem 0.6rem;
+      border: 1px solid var(--border);
+      transition: all 0.2s;
+      text-decoration: none;
+      text-align: center;
+    }
+
+    .toc-link:hover {
+      color: var(--amber-bright);
+      border-color: var(--border-glow);
+      background: var(--bg-card-hover);
+    }
+
+    /* ===== DIFFICULTY CARDS ===== */
+    .diff-cards {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 1px;
+      background: var(--border);
+      border: 1px solid var(--border);
+      margin-bottom: 1.5rem;
+    }
+
+    .diff-card {
+      background: var(--bg-card);
+      padding: 1.25rem;
+      text-align: center;
+    }
+
+    .diff-card-title {
+      font-family: 'Cormorant Garamond', serif;
+      font-size: 1.3rem;
+      font-weight: 600;
+      color: var(--amber);
+      margin-bottom: 0.75rem;
+      text-transform: capitalize;
+    }
+
+    .diff-card-stat {
+      font-size: 0.8rem;
+      color: var(--text);
+      margin: 0.3rem 0;
+    }
+
+    .diff-card-stat .val {
+      color: var(--amber-bright);
+      font-weight: 500;
+    }
+
+    .diff-insights {
+      padding: 1rem 1.25rem;
+      background: var(--bg-card);
+      border: 1px solid var(--border);
+      margin-top: 1.5rem;
+    }
+
+    .diff-insights-title {
+      font-size: 0.7rem;
+      letter-spacing: 0.12em;
+      text-transform: uppercase;
+      color: var(--text-dim);
+      margin-bottom: 0.75rem;
+    }
+
+    .diff-insight {
+      font-size: 0.8rem;
+      color: var(--text);
+      margin: 0.4rem 0;
+      padding-left: 1rem;
+      position: relative;
+    }
+
+    .diff-insight::before {
+      content: '\2022';
+      position: absolute;
+      left: 0;
+      color: var(--amber-muted);
+    }
+
+    @media (max-width: 600px) {
+      .diff-cards { grid-template-columns: 1fr; }
+    }
+
+    /* ===== SUMMARY SELECTORS ===== */
+    .summary-filter-bar {
+      position: relative;
+      z-index: 10;
+    }
+
+    .sum-select {
+      position: relative;
+      display: inline-block;
+    }
+
+    .sum-select-current {
+      color: var(--amber);
+      cursor: pointer;
+      border-bottom: 1px dashed var(--amber-muted);
+      transition: color 0.2s, border-color 0.2s;
+    }
+
+    .sum-select-current:hover {
+      color: var(--amber-bright);
+      border-color: var(--amber);
+    }
+
+    .sum-select-current::after {
+      content: ' \25BE';
+      font-size: 0.6rem;
+    }
+
+    .sum-select-menu {
+      display: none;
+      position: absolute;
+      top: 100%;
+      left: 50%;
+      transform: translateX(-50%);
+      margin-top: 4px;
+      background: var(--bg-deep);
+      border: 1px solid var(--border-glow);
+      z-index: 50;
+      min-width: 120px;
+      box-shadow: 0 8px 24px rgba(0,0,0,0.5);
+    }
+
+    .sum-select-menu.open { display: block; }
+
+    .sum-select-option {
+      padding: 0.4rem 0.75rem;
+      cursor: pointer;
+      font-size: 0.7rem;
+      color: var(--text);
+      transition: background 0.15s, color 0.15s;
+      text-align: center;
+      white-space: nowrap;
+    }
+
+    .sum-select-option:hover {
+      background: var(--bg-card-hover);
+      color: var(--amber-bright);
+    }
+
+    .sum-select-option.active {
+      color: var(--amber);
+      font-weight: 500;
+    }
+
     /* ===== LOADING ===== */
     #loading {
       text-align: center;
@@ -479,6 +641,7 @@
       .shell { padding: 0 1rem 3rem; }
       .header h1 { font-size: 2rem; }
       .summary-strip { grid-template-columns: repeat(2, 1fr); }
+      .toc { grid-template-columns: repeat(2, 1fr); }
     }
   </style>
 </head>
@@ -503,14 +666,14 @@
       'balanced':   { color: '#e8a864', label: 'Balanced' },
       'rest-heavy': { color: '#4a9c4f', label: 'Rest Heavy' },
       'smart':      { color: '#6b9cc0', label: 'Smart' },
-      'gto':        { color: '#9b6bcc', label: 'GTO' }
+      'gto':        { color: '#9b6bcc', label: 'Game Theory Optimal' }
     },
     deaths: {
-      'caught':      '#c44536',
-      'dehydration': '#6b9cc0',
-      'exhaustion':  '#d4883a',
-      'starvation':  '#a08030',
-      'heatstroke':  '#e86040'
+      'caught':      { color: '#c44536', label: 'Caught' },
+      'dehydration': { color: '#6b9cc0', label: 'Dehydration' },
+      'exhaustion':  { color: '#d4883a', label: 'Exhaustion' },
+      'starvation':  { color: '#a08030', label: 'Starvation' },
+      'heatstroke':  { color: '#e86040', label: 'Heatstroke' }
     },
     stats: {
       'heat':    '#e86040',
@@ -519,6 +682,11 @@
       'hunger':  '#a08030'
     }
   };
+
+  // Helpers for death cause display
+  function deathColor(cause) { return P.deaths[cause]?.color || '#888'; }
+  function deathLabel(cause) { return P.deaths[cause]?.label || capitalize(cause); }
+  function capitalize(s) { return s ? s.charAt(0).toUpperCase() + s.slice(1) : s; }
 
   const BG = '#1e150e';
   const GRID_COLOR = 'rgba(74,53,38,0.5)';
@@ -1159,83 +1327,150 @@
   // BUILD THE ENTIRE DASHBOARD
   // ============================================================
 
-  function build(data) {
-    const app = document.getElementById('app');
-    const strategies = Object.keys(data);
-    let delayIdx = 0;
+  // Module-level state for re-rendering
+  let _fullData, _difficulties, _allStrategies, _hasMultiDifficulty;
+  let _currentDiff = 'normal', _currentStrat = '';
 
-    function delay() { return `animation-delay: ${(delayIdx++) * 0.06}s`; }
+  function build(diffKey, stratKey) {
+    const app = document.getElementById('app');
+    const fullData = _fullData;
+    const difficulties = _difficulties;
+    const hasMultiDifficulty = _hasMultiDifficulty;
+    const allStrategies = _allStrategies;
+
+    // ---- Filter data by selected difficulty and optional strategy ----
+    const diffData = fullData[diffKey];
+    const strategies = stratKey ? [stratKey] : allStrategies;
+    const data = {};
+    for (const s of strategies) data[s] = diffData[s];
+
+    const isRerender = app.dataset.rendered === '1';
+    let delayIdx = 0;
+    function delay() { return isRerender ? '' : `animation-delay: ${(delayIdx++) * 0.06}s`; }
+    function fade() { return isRerender ? '' : 'fade-in'; }
 
     // ---- Aggregate stats ----
-    let totalGames = 0, allDays = [], allDist = [];
-    const allDeaths = {};
-    for (const d of Object.values(data)) {
-      totalGames += d.n;
-      allDays.push(...d.days.sorted);
-      allDist.push(...d.distance.sorted);
-      for (const [c, v] of Object.entries(d.deathCauses)) allDeaths[c] = (allDeaths[c] || 0) + v;
+    function aggregate(dd, strats) {
+      let totalGames = 0;
+      const allDays = [], allDist = [];
+      const allDeaths = {};
+      for (const s of strats) {
+        const d = dd[s];
+        totalGames += d.n;
+        allDays.push(...d.days.sorted);
+        allDist.push(...d.distance.sorted);
+        for (const [c, v] of Object.entries(d.deathCauses)) allDeaths[c] = (allDeaths[c] || 0) + v;
+      }
+      allDays.sort((a, b) => a - b);
+      allDist.sort((a, b) => a - b);
+      const avgDays = (allDays.reduce((a, b) => a + b, 0) / allDays.length).toFixed(1);
+      const medDays = allDays[Math.floor(allDays.length / 2)];
+      const avgDist = Math.round(allDist.reduce((a, b) => a + b, 0) / allDist.length);
+      const topDeath = Object.entries(allDeaths).sort((a, b) => b[1] - a[1])[0];
+      const bestStrat = strats.reduce((best, s) => dd[s].days.avg > (dd[best]?.days.avg || 0) ? s : best, strats[0]);
+      const maxDays = allDays[allDays.length - 1];
+      const maxDist = allDist[allDist.length - 1];
+      return { totalGames, avgDays, medDays, maxDays, topDeath, avgDist, maxDist, bestStrat, allDays, allDist, allDeaths };
     }
-    allDays.sort((a, b) => a - b);
-    allDist.sort((a, b) => a - b);
-    const avgDays = (allDays.reduce((a, b) => a + b, 0) / allDays.length).toFixed(1);
-    const medDays = allDays[Math.floor(allDays.length / 2)];
-    const avgDist = Math.round(allDist.reduce((a, b) => a + b, 0) / allDist.length);
-    const topDeath = Object.entries(allDeaths).sort((a, b) => b[1] - a[1])[0];
-    const bestStrat = strategies.reduce((best, s) => data[s].days.avg > (data[best]?.days.avg || 0) ? s : best, strategies[0]);
 
-    // ---- HEADER ----
+    const agg = aggregate(diffData, strategies);
+    const { totalGames, avgDays, medDays, maxDays: longestRun, topDeath, avgDist, maxDist, bestStrat, allDays, allDist, allDeaths } = agg;
+    const singleStrat = strategies.length === 1;
+
+    // Header total across ALL difficulties and strategies
+    let headerTotalGames = 0;
+    for (const diff of difficulties) {
+      for (const d of Object.values(fullData[diff])) headerTotalGames += d.n;
+    }
+
+    // ---- Selector HTML ----
+    const diffSelectorHTML = hasMultiDifficulty
+      ? `<span class="sum-select">
+          <span class="sum-select-current" id="diff-trigger">${capitalize(diffKey)}</span>
+          <div class="sum-select-menu" id="diff-menu">
+            ${difficulties.map(d => `<div class="sum-select-option${d === diffKey ? ' active' : ''}" data-diff="${d}">${capitalize(d)}</div>`).join('')}
+          </div>
+        </span>`
+      : `<span style="color:var(--amber)">${capitalize(diffKey)}</span>`;
+
+    const stratLabel = stratKey ? (P.strategies[stratKey]?.label || stratKey) : 'All Strategies';
+    const stratSelectorHTML = `<span class="sum-select">
+        <span class="sum-select-current" id="strat-trigger">${stratLabel}</span>
+        <div class="sum-select-menu" id="strat-menu">
+          <div class="sum-select-option${!stratKey ? ' active' : ''}" data-strat="">All Strategies</div>
+          ${allStrategies.map(s => `<div class="sum-select-option${s === stratKey ? ' active' : ''}" data-strat="${s}">${P.strategies[s]?.label || s}</div>`).join('')}
+        </div>
+      </span>`;
+
+    // ---- HEADER + SUMMARY ----
     app.innerHTML = `
-      <header class="header fade-in" style="${delay()}">
+      <header class="header ${fade()}" style="${delay()}">
         <div class="header-eyebrow">Primal Chase</div>
         <h1>Game Analytics</h1>
         <div class="header-meta">
-          <span>${totalGames.toLocaleString()}</span> simulated games &middot;
-          <span>${strategies.length}</span> strategies &middot;
+          <span>${headerTotalGames.toLocaleString()}</span> simulated games &middot;
+          <span>${allStrategies.length}</span> strategies${hasMultiDifficulty ? ' &middot; <span>' + difficulties.length + '</span> difficulties' : ''} &middot;
           Generated ${new Date().toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}
         </div>
       </header>
 
-      <div class="summary-strip fade-in" style="${delay()}">
+      <div class="summary-strip ${fade()}" style="${delay()}">
         <div class="metric">
           <div class="metric-label">Total Games</div>
           <div class="metric-value">${totalGames.toLocaleString()}</div>
-          <div class="metric-detail">${strategies.length} strategies</div>
+          <div class="metric-detail">${strategies.length} ${singleStrat ? 'strategy' : 'strategies'}</div>
         </div>
         <div class="metric">
           <div class="metric-label">Avg Survival</div>
           <div class="metric-value">${avgDays}</div>
-          <div class="metric-detail">median ${medDays} days</div>
+          <div class="metric-detail">Median ${medDays} days</div>
         </div>
         <div class="metric">
           <div class="metric-label">Longest Run</div>
-          <div class="metric-value">${allDays[allDays.length - 1]}</div>
-          <div class="metric-detail">days survived</div>
+          <div class="metric-value">${longestRun}</div>
+          <div class="metric-detail">Days survived</div>
         </div>
         <div class="metric">
           <div class="metric-label">Top Killer</div>
-          <div class="metric-value text-val">${topDeath[0]}</div>
+          <div class="metric-value text-val">${deathLabel(topDeath[0])}</div>
           <div class="metric-detail">${Math.round(topDeath[1] / totalGames * 100)}% of deaths</div>
         </div>
         <div class="metric">
           <div class="metric-label">Avg Distance</div>
           <div class="metric-value">${avgDist}</div>
-          <div class="metric-detail">max ${allDist[allDist.length - 1]} mi</div>
+          <div class="metric-detail">Max ${maxDist} mi</div>
         </div>
-        <div class="metric">
+        ${singleStrat ? '' : `<div class="metric">
           <div class="metric-label">Best Strategy</div>
           <div class="metric-value text-val">${P.strategies[bestStrat]?.label || bestStrat}</div>
-          <div class="metric-detail">avg ${data[bestStrat].days.avg} days</div>
-        </div>
+          <div class="metric-detail">Avg ${data[bestStrat].days.avg} days</div>
+        </div>`}
+      </div>
+      <div class="summary-filter-bar ${fade()}" style="text-align:center;font-size:0.7rem;color:var(--text-dim);margin:-1.5rem 0 2rem;letter-spacing:0.05em;${delay()}">
+        Showing ${diffSelectorHTML} difficulty &middot; ${stratSelectorHTML}
       </div>
     `;
+    app.dataset.rendered = '1';
+
+    // ---- TOC ----
+    const tocNav = el('nav', `toc ${fade()}`, delay());
+    app.appendChild(tocNav);
+
+    const tocSections = [];
+    function makeSection(id, title) {
+      const sec = el('div', `section collapsed ${fade()}`, delay());
+      sec.id = id;
+      tocSections.push({ id, title });
+      return sec;
+    }
 
     // ---- STRATEGY TABLE ----
-    const tableSection = el('div', 'section fade-in', delay());
+    const tableSection = makeSection('sec-strategy', 'Strategy Comparison');
     tableSection.innerHTML = `
       <div class="section-header">
         <div class="section-title">Strategy Comparison</div>
-        <div class="section-subtitle">All strategies side by side</div>
-        <div class="section-toggle">collapse</div>
+        <div class="section-subtitle">${singleStrat ? P.strategies[stratKey]?.label || stratKey : 'All Strategies Side by Side'}</div>
+        <div class="section-toggle">expand</div>
       </div>
     `;
     const tableBody = el('div', 'section-body');
@@ -1269,68 +1504,60 @@
     app.appendChild(tableSection);
 
     // ---- SURVIVAL OVERVIEW ----
-    const survSection = el('div', 'section fade-in', delay());
+    const survSection = makeSection('sec-survival', 'Survival Overview');
     survSection.innerHTML = `
       <div class="section-header">
         <div class="section-title">Survival Overview</div>
-        <div class="section-subtitle">Days survived by strategy</div>
-        <div class="section-toggle">collapse</div>
+        <div class="section-subtitle">Days Survived${singleStrat ? '' : ' by Strategy'}</div>
+        <div class="section-toggle">expand</div>
       </div>
     `;
     const survBody = el('div', 'section-body');
-
     const survRow = el('div', 'chart-row cols-2-1');
 
-    // Grouped bars
     const barsCell = el('div', 'chart-cell');
-    barsCell.innerHTML = '<div class="chart-label">Days Survived <span class="tag">avg / median / max</span></div>';
+    barsCell.innerHTML = '<div class="chart-label">Days Survived <span class="tag">Avg / Median / Max</span></div>';
     const barsWrap = el('div', 'chart-wrap');
     barsCell.appendChild(barsWrap);
-    const barsLegend = makeLegend([
-      ['Average', '#6b9cc0'], ['Median', '#d4883a'], ['Max', '#4a3526']
-    ]);
-    barsCell.appendChild(barsLegend);
+    barsCell.appendChild(makeLegend([['Average', '#6b9cc0'], ['Median', '#d4883a'], ['Max', '#4a3526']]));
     survRow.appendChild(barsCell);
 
-    // Donut
     const donutCell = el('div', 'chart-cell');
-    donutCell.innerHTML = '<div class="chart-label">Death Causes <span class="tag">combined</span></div>';
+    donutCell.innerHTML = '<div class="chart-label">Death Causes <span class="tag">Combined</span></div>';
     const donutWrap = el('div', 'chart-wrap');
     donutCell.appendChild(donutWrap);
-    const deathLabels = Object.keys(allDeaths);
-    const deathValues = Object.values(allDeaths);
-    const deathColors = deathLabels.map(l => P.deaths[l] || '#888');
-    donutCell.appendChild(makeLegend(deathLabels.map((l, i) => [l, deathColors[i]])));
+    const deathLbls = Object.keys(allDeaths);
+    const deathVals = Object.values(allDeaths);
+    const deathCols = deathLbls.map(l => deathColor(l));
+    donutCell.appendChild(makeLegend(deathLbls.map((l, i) => [deathLabel(l), deathCols[i]])));
     survRow.appendChild(donutCell);
 
     survBody.appendChild(survRow);
     survSection.appendChild(survBody);
     app.appendChild(survSection);
 
-    // Render after layout
     requestAnimationFrame(() => {
       chartBars(barsWrap, strategies.map(s => P.strategies[s]?.label || s), [
         { color: '#6b9cc0', data: strategies.map(s => data[s].days.avg), label: 'Avg Days' },
         { color: '#d4883a', data: strategies.map(s => data[s].days.median), label: 'Median' },
         { color: '#4a3526', data: strategies.map(s => data[s].days.max), label: 'Max Days' }
       ]);
-      chartDonut(donutWrap, deathLabels, deathValues, deathColors);
+      chartDonut(donutWrap, deathLbls.map(l => deathLabel(l)), deathVals, deathCols);
     });
 
     // ---- HUNTER & STAT TRACKING ----
-    const trackSection = el('div', 'section fade-in', delay());
+    const trackSection = makeSection('sec-pursuit', 'Pursuit Dynamics');
     trackSection.innerHTML = `
       <div class="section-header">
         <div class="section-title">Pursuit Dynamics</div>
-        <div class="section-subtitle">How the gap closes over time</div>
-        <div class="section-toggle">collapse</div>
+        <div class="section-subtitle">How the Gap Closes Over Time</div>
+        <div class="section-toggle">expand</div>
       </div>
     `;
     const trackBody = el('div', 'section-body');
-
     const trackRow = el('div', 'chart-row cols-1');
     const hunterCell = el('div', 'chart-cell');
-    hunterCell.innerHTML = '<div class="chart-label">Hunter Distance Over Time <span class="tag">avg miles per day</span></div>';
+    hunterCell.innerHTML = '<div class="chart-label">Hunter Distance Over Time <span class="tag">Avg Miles Per Day</span></div>';
     const hunterWrap = el('div', 'chart-wrap');
     hunterCell.appendChild(hunterWrap);
     hunterCell.appendChild(makeLegend(strategies.map(s => [P.strategies[s]?.label || s, P.strategies[s]?.color || '#888']), 'line'));
@@ -1357,22 +1584,22 @@
     });
 
     // ---- STAT TRAJECTORIES ----
-    const statSection = el('div', 'section fade-in', delay());
+    const vitalsTarget = data.smart ? 'Smart' : (P.strategies[strategies[0]]?.label || strategies[0]);
+    const statSection = makeSection('sec-vitals', 'Vital Trajectories');
     statSection.innerHTML = `
       <div class="section-header">
         <div class="section-title">Vital Trajectories</div>
-        <div class="section-subtitle">Average stat values over time — Smart strategy</div>
-        <div class="section-toggle">collapse</div>
+        <div class="section-subtitle">Average Stat Values Over Time — ${vitalsTarget}</div>
+        <div class="section-toggle">expand</div>
       </div>
     `;
     const statBody = el('div', 'section-body');
-
     const statRow = el('div', 'chart-row cols-2');
     const stats = ['heat', 'stamina', 'thirst', 'hunger'];
 
     stats.forEach(stat => {
       const cell = el('div', 'chart-cell compact');
-      cell.innerHTML = `<div class="chart-label" style="text-transform:capitalize">${stat} <span class="tag">avg per day</span></div>`;
+      cell.innerHTML = `<div class="chart-label" style="text-transform:capitalize">${stat} <span class="tag">Avg Per Day</span></div>`;
       const wrap = el('div', 'chart-wrap');
       cell.appendChild(wrap);
       statRow.appendChild(cell);
@@ -1395,19 +1622,18 @@
     app.appendChild(statSection);
 
     // ---- HEATMAP ----
-    const hmSection = el('div', 'section fade-in', delay());
+    const hmSection = makeSection('sec-heatmap', 'Critical Stat Heatmap');
     hmSection.innerHTML = `
       <div class="section-header">
         <div class="section-title">Critical Stat Heatmap</div>
-        <div class="section-subtitle">When vitals become dangerous — Smart strategy</div>
-        <div class="section-toggle">collapse</div>
+        <div class="section-subtitle">When Vitals Become Dangerous — ${vitalsTarget}</div>
+        <div class="section-toggle">expand</div>
       </div>
     `;
     const hmBody = el('div', 'section-body');
-
     const hmRow = el('div', 'chart-row cols-1');
     const hmCell = el('div', 'chart-cell compact');
-    hmCell.innerHTML = '<div class="chart-label">Stat Values by Day <span class="tag">brighter = more dangerous</span></div>';
+    hmCell.innerHTML = '<div class="chart-label">Stat Values by Day <span class="tag">Brighter = More Dangerous</span></div>';
     const hmWrap = el('div', 'chart-wrap');
     hmCell.appendChild(hmWrap);
     hmRow.appendChild(hmCell);
@@ -1422,53 +1648,51 @@
       const hmData = stats.map(stat => days.map(d => target.avgStatsByDay[d][stat]));
       chartHeatmap(hmWrap, hmData, {
         xLabels: days.map(String),
-        yLabels: stats.map(s => s.charAt(0).toUpperCase() + s.slice(1))
+        yLabels: stats.map(s => capitalize(s))
       });
     });
 
     // ---- DISTRIBUTIONS ----
-    const distSection = el('div', 'section fade-in', delay());
+    const distSection = makeSection('sec-distributions', 'Distributions');
     distSection.innerHTML = `
       <div class="section-header">
         <div class="section-title">Distributions</div>
-        <div class="section-subtitle">Spread of survival and distance outcomes</div>
-        <div class="section-toggle">collapse</div>
+        <div class="section-subtitle">Spread of Survival and Distance Outcomes</div>
+        <div class="section-toggle">expand</div>
       </div>
     `;
     const distBody = el('div', 'section-body');
 
     const distRow = el('div', 'chart-row cols-2');
     const daysDistCell = el('div', 'chart-cell compact');
-    daysDistCell.innerHTML = '<div class="chart-label">Days Survived <span class="tag">all strategies</span></div>';
+    daysDistCell.innerHTML = `<div class="chart-label">Days Survived <span class="tag">${singleStrat ? stratLabel : 'All Strategies'}</span></div>`;
     const daysDistWrap = el('div', 'chart-wrap');
     daysDistCell.appendChild(daysDistWrap);
     distRow.appendChild(daysDistCell);
 
     const milesDistCell = el('div', 'chart-cell compact');
-    milesDistCell.innerHTML = '<div class="chart-label">Distance Covered <span class="tag">all strategies</span></div>';
+    milesDistCell.innerHTML = `<div class="chart-label">Distance Covered <span class="tag">${singleStrat ? stratLabel : 'All Strategies'}</span></div>`;
     const milesDistWrap = el('div', 'chart-wrap');
     milesDistCell.appendChild(milesDistWrap);
     distRow.appendChild(milesDistCell);
-
     distBody.appendChild(distRow);
 
-    // Per-strategy distributions
-    const distRow2 = el('div', 'chart-row cols-' + Math.min(strategies.length, 3));
-    strategies.forEach(s => {
-      const cell = el('div', 'chart-cell compact');
-      cell.innerHTML = `<div class="chart-label">${P.strategies[s]?.label || s} <span class="tag">days survived</span></div>`;
-      const wrap = el('div', 'chart-wrap');
-      cell.appendChild(wrap);
-      distRow2.appendChild(cell);
-      requestAnimationFrame(() => {
-        chartHistogram(wrap, data[s].days.sorted, {
-          color: P.strategies[s]?.color || '#888',
-          xLabel: 'Days'
+    // Per-strategy distributions (only when showing multiple)
+    if (!singleStrat) {
+      const distRow2 = el('div', 'chart-row cols-' + Math.min(strategies.length, 3));
+      strategies.forEach(s => {
+        const cell = el('div', 'chart-cell compact');
+        cell.innerHTML = `<div class="chart-label">${P.strategies[s]?.label || s} <span class="tag">Days Survived</span></div>`;
+        const wrap = el('div', 'chart-wrap');
+        cell.appendChild(wrap);
+        distRow2.appendChild(cell);
+        requestAnimationFrame(() => {
+          chartHistogram(wrap, data[s].days.sorted, { color: P.strategies[s]?.color || '#888', xLabel: 'Days' });
         });
       });
-    });
+      distBody.appendChild(distRow2);
+    }
 
-    distBody.appendChild(distRow2);
     distSection.appendChild(distBody);
     app.appendChild(distSection);
 
@@ -1478,78 +1702,90 @@
     });
 
     // ---- DEATH BREAKDOWN ----
-    const deathSection = el('div', 'section fade-in', delay());
+    const deathSection = makeSection('sec-death', 'Death Analysis');
     deathSection.innerHTML = `
       <div class="section-header">
         <div class="section-title">Death Analysis</div>
-        <div class="section-subtitle">How each strategy meets its end</div>
-        <div class="section-toggle">collapse</div>
+        <div class="section-subtitle">${singleStrat ? 'How ' + stratLabel + ' Meets Its End' : 'How Each Strategy Meets Its End'}</div>
+        <div class="section-toggle">expand</div>
       </div>
     `;
     const deathBody = el('div', 'section-body');
-
-    const deathRow = el('div', 'chart-row cols-2');
-
-    // Stacked bars
-    const stackedCell = el('div', 'chart-cell');
-    stackedCell.innerHTML = '<div class="chart-label">Death Distribution <span class="tag">% per strategy</span></div>';
-    const stackedWrap = el('div', 'chart-wrap');
-    stackedCell.appendChild(stackedWrap);
     const allCauses = [...new Set(strategies.flatMap(s => Object.keys(data[s].deathCauses)))];
-    const causeColors = allCauses.map(c => P.deaths[c] || '#888');
-    stackedCell.appendChild(makeLegend(allCauses.map((c, i) => [c, causeColors[i]])));
-    deathRow.appendChild(stackedCell);
+    const causeColors = allCauses.map(c => deathColor(c));
 
-    // Per-strategy detail (pick the most interesting one — smart)
-    const detailStrat = data.smart ? 'smart' : strategies[0];
-    const detailCell = el('div', 'chart-cell');
-    detailCell.innerHTML = `<div class="chart-label">${P.strategies[detailStrat]?.label || detailStrat} <span class="tag">death breakdown</span></div>`;
-    const detailWrap = el('div', 'chart-wrap');
-    detailCell.appendChild(detailWrap);
-    deathRow.appendChild(detailCell);
-
-    deathBody.appendChild(deathRow);
-
-    // Remaining strategies
-    const remainingStrats = strategies.filter(s => s !== detailStrat);
-    if (remainingStrats.length > 0) {
-      const deathRow2 = el('div', 'chart-row cols-' + Math.min(remainingStrats.length, 4));
-      remainingStrats.forEach(s => {
-        const cell = el('div', 'chart-cell compact');
-        cell.innerHTML = `<div class="chart-label">${P.strategies[s]?.label || s} <span class="tag">deaths</span></div>`;
-        const wrap = el('div', 'chart-wrap');
-        cell.appendChild(wrap);
-        deathRow2.appendChild(cell);
-        requestAnimationFrame(() => {
-          const causes = Object.keys(data[s].deathCauses);
-          const vals = causes.map(c => data[s].deathCauses[c]);
-          const cols = causes.map(c => P.deaths[c] || '#888');
-          chartHBars(wrap, causes, vals, cols);
-        });
+    if (singleStrat) {
+      // Single strategy: just show horizontal bars
+      const deathRow = el('div', 'chart-row cols-1');
+      const hbCell = el('div', 'chart-cell');
+      hbCell.innerHTML = `<div class="chart-label">${stratLabel} <span class="tag">Death Breakdown</span></div>`;
+      const hbWrap = el('div', 'chart-wrap');
+      hbCell.appendChild(hbWrap);
+      deathRow.appendChild(hbCell);
+      deathBody.appendChild(deathRow);
+      requestAnimationFrame(() => {
+        const causes = Object.keys(data[strategies[0]].deathCauses);
+        const vals = causes.map(c => data[strategies[0]].deathCauses[c]);
+        const cols = causes.map(c => deathColor(c));
+        chartHBars(hbWrap, causes.map(c => deathLabel(c)), vals, cols);
       });
-      deathBody.appendChild(deathRow2);
+    } else {
+      // Multi-strategy: stacked bars + detail per strategy
+      const deathRow = el('div', 'chart-row cols-2');
+      const stackedCell = el('div', 'chart-cell');
+      stackedCell.innerHTML = '<div class="chart-label">Death Distribution <span class="tag">% Per Strategy</span></div>';
+      const stackedWrap = el('div', 'chart-wrap');
+      stackedCell.appendChild(stackedWrap);
+      stackedCell.appendChild(makeLegend(allCauses.map((c, i) => [deathLabel(c), causeColors[i]])));
+      deathRow.appendChild(stackedCell);
+
+      const detailStrat = data.smart ? 'smart' : strategies[0];
+      const detailCell = el('div', 'chart-cell');
+      detailCell.innerHTML = `<div class="chart-label">${P.strategies[detailStrat]?.label || detailStrat} <span class="tag">Death Breakdown</span></div>`;
+      const detailWrap = el('div', 'chart-wrap');
+      detailCell.appendChild(detailWrap);
+      deathRow.appendChild(detailCell);
+      deathBody.appendChild(deathRow);
+
+      const remainingStrats = strategies.filter(s => s !== detailStrat);
+      if (remainingStrats.length > 0) {
+        const deathRow2 = el('div', 'chart-row cols-' + Math.min(remainingStrats.length, 4));
+        remainingStrats.forEach(s => {
+          const cell = el('div', 'chart-cell compact');
+          cell.innerHTML = `<div class="chart-label">${P.strategies[s]?.label || s} <span class="tag">Deaths</span></div>`;
+          const wrap = el('div', 'chart-wrap');
+          cell.appendChild(wrap);
+          deathRow2.appendChild(cell);
+          requestAnimationFrame(() => {
+            const causes = Object.keys(data[s].deathCauses);
+            const vals = causes.map(c => data[s].deathCauses[c]);
+            const cols = causes.map(c => deathColor(c));
+            chartHBars(wrap, causes.map(c => deathLabel(c)), vals, cols);
+          });
+        });
+        deathBody.appendChild(deathRow2);
+      }
+
+      requestAnimationFrame(() => {
+        const matrix = strategies.map(s => allCauses.map(c => data[s].deathCauses[c] || 0));
+        chartStackedBars(stackedWrap, strategies.map(s => P.strategies[s]?.label || s), allCauses.map(c => deathLabel(c)), matrix, causeColors);
+        const dCauses = Object.keys(data[detailStrat].deathCauses);
+        const dVals = dCauses.map(c => data[detailStrat].deathCauses[c]);
+        const dCols = dCauses.map(c => deathColor(c));
+        chartHBars(detailWrap, dCauses.map(c => deathLabel(c)), dVals, dCols);
+      });
     }
 
     deathSection.appendChild(deathBody);
     app.appendChild(deathSection);
 
-    requestAnimationFrame(() => {
-      const matrix = strategies.map(s => allCauses.map(c => data[s].deathCauses[c] || 0));
-      chartStackedBars(stackedWrap, strategies.map(s => P.strategies[s]?.label || s), allCauses, matrix, causeColors);
-
-      const dCauses = Object.keys(data[detailStrat].deathCauses);
-      const dVals = dCauses.map(c => data[detailStrat].deathCauses[c]);
-      const dCols = dCauses.map(c => P.deaths[c] || '#888');
-      chartHBars(detailWrap, dCauses, dVals, dCols);
-    });
-
     // ---- ENCOUNTER FREQUENCY ----
-    // Combine encounter frequency data across all strategies
     const combinedTerrains = {};
     const combinedOpps = {};
     const combinedPressures = {};
     let encTotal = 0;
-    for (const d of Object.values(data)) {
+    for (const s of strategies) {
+      const d = data[s];
       if (!d.encounterFrequency) continue;
       encTotal += d.encounterFrequency.totalEncounters;
       for (const [id, c] of Object.entries(d.encounterFrequency.terrains || {})) combinedTerrains[id] = (combinedTerrains[id] || 0) + c;
@@ -1558,16 +1794,15 @@
     }
 
     if (encTotal > 0) {
-      const encSection = el('div', 'section fade-in', delay());
+      const encSection = makeSection('sec-encounters', 'Encounter Frequency');
       encSection.innerHTML = `
         <div class="section-header">
           <div class="section-title">Encounter Frequency</div>
-          <div class="section-subtitle">${encTotal.toLocaleString()} total encounters across all strategies</div>
-          <div class="section-toggle">collapse</div>
+          <div class="section-subtitle">${encTotal.toLocaleString()} Total Encounters${singleStrat ? '' : ' Across All Strategies'}</div>
+          <div class="section-toggle">expand</div>
         </div>
       `;
       const encBody = el('div', 'section-body');
-
       const sortDesc = (obj) => Object.entries(obj).sort((a, b) => b[1] - a[1]);
 
       function prettifyId(id) {
@@ -1578,8 +1813,6 @@
         const group = el('div', 'freq-group');
         const maxVal = entries.length > 0 ? entries[0][1] : 1;
         const total = entries.reduce((sum, e) => sum + e[1], 0);
-
-        // Show top 10 most common + bottom 5 rarest
         const top = entries.slice(0, 10);
         const bottom = entries.slice(-5);
         const hasGap = entries.length > 15;
@@ -1587,17 +1820,15 @@
         group.innerHTML = `
           <div class="freq-group-title">
             ${title} <span style="font-size:0.65rem;color:var(--text-dim);font-weight:400;margin-left:0.5rem">${subtitle}</span>
-            <span class="tag">${entries.length} types</span>
+            <span class="tag">${entries.length} Types</span>
           </div>`;
 
         const list = el('div', 'freq-list');
-
         function addRow(name, count, idx) {
           const pct = ((count / total) * 100).toFixed(1);
           const barPct = ((count / maxVal) * 100).toFixed(1);
           const t = idx / entries.length;
           const color = `hsl(${hue + t * 15}, ${55 - t * 15}%, ${52 - t * 12}%)`;
-
           const row = el('div', 'freq-row');
           row.innerHTML = `
             <span class="freq-name" title="${name}">${prettifyId(name)}</span>
@@ -1610,7 +1841,6 @@
         }
 
         top.forEach(([name, count], i) => addRow(name, count, i));
-
         if (hasGap) {
           const gap = el('div', 'freq-row');
           gap.innerHTML = `<span class="freq-name" style="color:var(--text-dim);font-style:italic">... ${entries.length - 15} more ...</span><div></div><span></span>`;
@@ -1628,28 +1858,206 @@
       const encCard = el('div', 'chart-row cols-1');
       const encCell = el('div', 'chart-cell');
       encCell.style.minHeight = 'auto';
-
-      encCell.appendChild(buildFreqGroup(
-        'Terrains',
-        'The locations you encounter each phase',
-        sortDesc(combinedTerrains), 30
-      ));
-      encCell.appendChild(buildFreqGroup(
-        'Opportunities',
-        'Chances to drink, eat, lose hunters, or gain an edge',
-        sortDesc(combinedOpps), 200
-      ));
-      encCell.appendChild(buildFreqGroup(
-        'Pressures',
-        'Environmental dangers and complications each phase',
-        sortDesc(combinedPressures), 10
-      ));
-
+      encCell.appendChild(buildFreqGroup('Terrains', 'The Locations You Encounter Each Phase', sortDesc(combinedTerrains), 30));
+      encCell.appendChild(buildFreqGroup('Opportunities', 'Chances to Drink, Eat, Lose Hunters, or Gain an Edge', sortDesc(combinedOpps), 200));
+      encCell.appendChild(buildFreqGroup('Pressures', 'Environmental Dangers and Complications Each Phase', sortDesc(combinedPressures), 10));
       encCard.appendChild(encCell);
       encBody.appendChild(encCard);
       encSection.appendChild(encBody);
       app.appendChild(encSection);
     }
+
+    // ---- DIFFICULTY ANALYSIS (only when multi-difficulty, all-strategies view) ----
+    if (hasMultiDifficulty && !singleStrat) {
+      const diffSection = makeSection('sec-difficulty', 'Difficulty Analysis');
+      diffSection.innerHTML = `
+        <div class="section-header">
+          <div class="section-title">Difficulty Analysis</div>
+          <div class="section-subtitle">Easy / Normal / Hard comparison</div>
+          <div class="section-toggle">expand</div>
+        </div>
+      `;
+      const diffBody = el('div', 'section-body');
+
+      const cards = el('div', 'diff-cards');
+      for (const diff of difficulties) {
+        const dd = fullData[diff];
+        const strats = Object.keys(dd);
+        const gtoData = dd.gto || dd[strats[strats.length - 1]];
+        const allDeathsD = {};
+        let totalD = 0;
+        for (const s of Object.values(dd)) {
+          totalD += s.n;
+          for (const [c, v] of Object.entries(s.deathCauses)) allDeathsD[c] = (allDeathsD[c] || 0) + v;
+        }
+        const topKiller = Object.entries(allDeathsD).sort((a, b) => b[1] - a[1])[0];
+        const allDistD = [];
+        for (const s of Object.values(dd)) allDistD.push(...s.distance.sorted);
+
+        const card = el('div', 'diff-card');
+        card.innerHTML = `
+          <div class="diff-card-title">${capitalize(diff)}</div>
+          <div class="diff-card-stat">Optimal Avg: <span class="val">${gtoData.days.avg} days</span></div>
+          <div class="diff-card-stat">Optimal Median: <span class="val">${gtoData.days.median} days</span></div>
+          <div class="diff-card-stat">Optimal Max: <span class="val">${gtoData.days.max} days</span></div>
+          <div class="diff-card-stat">Top Killer: <span class="val">${deathLabel(topKiller[0])} (${Math.round(topKiller[1] / totalD * 100)}%)</span></div>
+          <div class="diff-card-stat">Avg Distance: <span class="val">${Math.round(allDistD.reduce((a,b) => a+b, 0) / allDistD.length)} mi</span></div>
+        `;
+        cards.appendChild(card);
+      }
+      diffBody.appendChild(cards);
+
+      const compRow = el('div', 'chart-row cols-1');
+      const compCell = el('div', 'chart-cell');
+      compCell.style.minHeight = 'auto';
+      let compHTML = '<table class="data-table"><thead><tr><th>Strategy</th>';
+      for (const diff of difficulties) {
+        compHTML += `<th class="num">${capitalize(diff)} Avg</th><th class="num">${capitalize(diff)} Killer</th>`;
+      }
+      compHTML += '</tr></thead><tbody>';
+      for (const s of allStrategies) {
+        const color = P.strategies[s]?.color || '#888';
+        compHTML += `<tr><td><span class="strategy-dot" style="background:${color}"></span>${P.strategies[s]?.label || s}</td>`;
+        for (const diff of difficulties) {
+          const dd = fullData[diff][s];
+          if (dd) {
+            const topCause = Object.entries(dd.deathCauses).sort((a, b) => b[1] - a[1])[0];
+            compHTML += `<td class="num">${dd.days.avg}</td><td class="num">${topCause ? deathLabel(topCause[0]) : '-'}</td>`;
+          } else {
+            compHTML += '<td class="num">-</td><td class="num">-</td>';
+          }
+        }
+        compHTML += '</tr>';
+      }
+      compHTML += '</tbody></table>';
+      compCell.innerHTML = compHTML;
+      compRow.appendChild(compCell);
+      diffBody.appendChild(compRow);
+
+      // Key Insights
+      const insights = el('div', 'diff-insights');
+      insights.innerHTML = '<div class="diff-insights-title">Key Insights</div>';
+      const bullets = [];
+      const easyGto = fullData.easy?.gto;
+      const normalGto = fullData.normal?.gto;
+      const hardGto = fullData.hard?.gto;
+      if (easyGto && normalGto) {
+        const d = (easyGto.days.avg - normalGto.days.avg).toFixed(1);
+        if (d > 0) bullets.push(`Easy mode Game Theory Optimal averages ${easyGto.days.avg} days — ${d} more than Normal`);
+      }
+      if (hardGto && normalGto) {
+        const d = (normalGto.days.avg - hardGto.days.avg).toFixed(1);
+        if (d > 0) bullets.push(`Hard mode Game Theory Optimal averages ${hardGto.days.avg} days — ${d} fewer than Normal`);
+      }
+      for (const diff of difficulties) {
+        if (diff === 'normal') continue;
+        const dd = fullData[diff];
+        const allD = {}; let totalD = 0;
+        for (const s of Object.values(dd)) { totalD += s.n; for (const [c, v] of Object.entries(s.deathCauses)) allD[c] = (allD[c] || 0) + v; }
+        const topK = Object.entries(allD).sort((a, b) => b[1] - a[1])[0];
+        const normalD = {}; let normalTotal = 0;
+        for (const s of Object.values(fullData.normal || {})) { normalTotal += s.n; for (const [c, v] of Object.entries(s.deathCauses)) normalD[c] = (normalD[c] || 0) + v; }
+        const normalTopK = Object.entries(normalD).sort((a, b) => b[1] - a[1])[0];
+        if (topK && normalTopK && topK[0] !== normalTopK[0]) bullets.push(`${capitalize(diff)}'s top killer shifts from ${deathLabel(normalTopK[0])} to ${deathLabel(topK[0])}`);
+        const heatPct = Math.round((allD.heatstroke || 0) / totalD * 100);
+        const normalHeatPct = normalTotal > 0 ? Math.round((normalD.heatstroke || 0) / normalTotal * 100) : 0;
+        if (heatPct !== normalHeatPct) bullets.push(`${deathLabel('heatstroke')} accounts for ${heatPct}% on ${capitalize(diff)} vs ${normalHeatPct}% on Normal`);
+      }
+      if (bullets.length === 0) bullets.push('Difficulty data loaded — expand sections above for detailed comparison');
+      bullets.forEach(b => { const p = el('div', 'diff-insight'); p.textContent = b; insights.appendChild(p); });
+      diffBody.appendChild(insights);
+
+      diffSection.appendChild(diffBody);
+      app.appendChild(diffSection);
+    }
+
+    // ---- BUILD TOC ----
+    tocNav.innerHTML = '';
+    for (const { id, title } of tocSections) {
+      const link = el('span', 'toc-link');
+      link.textContent = title;
+      link.dataset.target = id;
+      link.addEventListener('click', () => {
+        const target = document.getElementById(id);
+        if (!target) return;
+        target.classList.remove('collapsed');
+        const toggle = target.querySelector('.section-toggle');
+        if (toggle) toggle.textContent = 'collapse';
+        target.scrollIntoView({ behavior: 'smooth', block: 'start' });
+      });
+      tocNav.appendChild(link);
+    }
+  }
+
+  // ============================================================
+  // RENDER (re-callable wrapper)
+  // ============================================================
+  function render(diffKey, stratKey) {
+    // Save section collapse states
+    const collapsed = {};
+    document.querySelectorAll('.section').forEach(s => {
+      if (s.id) collapsed[s.id] = s.classList.contains('collapsed');
+    });
+
+    build(diffKey, stratKey);
+
+    // Restore collapse states
+    for (const [id, wasCollapsed] of Object.entries(collapsed)) {
+      const sec = document.getElementById(id);
+      if (!sec) continue;
+      if (wasCollapsed) {
+        sec.classList.add('collapsed');
+      } else {
+        sec.classList.remove('collapsed');
+      }
+      const toggle = sec.querySelector('.section-toggle');
+      if (toggle) toggle.textContent = wasCollapsed ? 'expand' : 'collapse';
+    }
+
+    // Attach handlers
+    attachHandlers();
+  }
+
+  function attachHandlers() {
+    // Section collapse/expand
+    document.querySelectorAll('.section-header').forEach(header => {
+      header.addEventListener('click', () => {
+        const section = header.parentElement;
+        const toggle = header.querySelector('.section-toggle');
+        if (!toggle) return;
+        section.classList.toggle('collapsed');
+        toggle.textContent = section.classList.contains('collapsed') ? 'expand' : 'collapse';
+      });
+    });
+
+    // Dropdown menus
+    function setupDropdown(triggerId, menuId, onSelect) {
+      const trigger = document.getElementById(triggerId);
+      const menu = document.getElementById(menuId);
+      if (!trigger || !menu) return;
+      trigger.addEventListener('click', (e) => {
+        e.stopPropagation();
+        document.querySelectorAll('.sum-select-menu.open').forEach(m => { if (m !== menu) m.classList.remove('open'); });
+        menu.classList.toggle('open');
+      });
+      menu.querySelectorAll('.sum-select-option').forEach(opt => {
+        opt.addEventListener('click', (e) => {
+          e.stopPropagation();
+          menu.classList.remove('open');
+          onSelect(opt);
+        });
+      });
+    }
+
+    setupDropdown('diff-trigger', 'diff-menu', (opt) => {
+      _currentDiff = opt.dataset.diff;
+      render(_currentDiff, _currentStrat);
+    });
+
+    setupDropdown('strat-trigger', 'strat-menu', (opt) => {
+      _currentStrat = opt.dataset.strat;
+      render(_currentDiff, _currentStrat);
+    });
   }
 
   // ============================================================
@@ -1679,11 +2087,11 @@
   // INIT
   // ============================================================
   async function init() {
-    let data;
+    let rawData;
     try {
       const resp = await fetch('results/latest.json');
       if (!resp.ok) throw new Error('HTTP ' + resp.status);
-      data = await resp.json();
+      rawData = await resp.json();
     } catch (e) {
       document.getElementById('loading').innerHTML =
         `<div style="color:#c44536">Could not load simulation data.</div>
@@ -1696,21 +2104,33 @@
       return;
     }
 
+    // Parse data shape and store at module level
+    const isNested = rawData.normal || rawData.easy || rawData.hard;
+    _fullData = isNested ? rawData : { normal: rawData };
+    _difficulties = Object.keys(_fullData);
+    _hasMultiDifficulty = _difficulties.length > 1;
+    _allStrategies = Object.keys(_fullData.normal || _fullData[_difficulties[0]]);
+    _currentDiff = 'normal' in _fullData ? 'normal' : _difficulties[0];
+
     document.getElementById('loading').style.display = 'none';
     document.getElementById('app').style.display = 'block';
-    build(data);
 
-    // Section collapse/expand toggle
-    document.querySelectorAll('.section-header').forEach(header => {
-      header.addEventListener('click', () => {
-        const section = header.parentElement;
-        const toggle = header.querySelector('.section-toggle');
-        if (!toggle) return;
-        section.classList.toggle('collapsed');
-        toggle.textContent = section.classList.contains('collapsed') ? 'expand' : 'collapse';
-      });
+    // Close menus on outside click
+    document.addEventListener('click', () => {
+      document.querySelectorAll('.sum-select-menu.open').forEach(m => m.classList.remove('open'));
     });
+
+    render(_currentDiff, _currentStrat);
   }
+
+  // ============================================================
+  // DIFFICULTY COLORS
+  // ============================================================
+  const DIFF_COLORS = {
+    easy: '#4a9c4f',
+    normal: '#d4883a',
+    hard: '#c44536'
+  };
 
   init();
   </script>

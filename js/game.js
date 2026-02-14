@@ -1,7 +1,43 @@
 const Game = {
   state: null,
 
+  /**
+   * Deep-merge source onto target (plain objects only, no arrays)
+   */
+  _deepMerge(target, source) {
+    for (const key of Object.keys(source)) {
+      if (source[key] && typeof source[key] === 'object' && !Array.isArray(source[key]) &&
+          target[key] && typeof target[key] === 'object' && !Array.isArray(target[key])) {
+        this._deepMerge(target[key], source[key]);
+      } else {
+        target[key] = source[key];
+      }
+    }
+  },
+
+  /**
+   * Apply difficulty settings to CONFIG
+   * @param {string} level - 'easy', 'normal', or 'hard'
+   */
+  applyDifficulty(level) {
+    if (!CONFIG._base) return;
+    // Restore CONFIG to base values
+    const base = JSON.parse(JSON.stringify(CONFIG._base));
+    for (const key of Object.keys(base)) {
+      if (key === '_base') continue;
+      CONFIG[key] = base[key];
+    }
+    // Apply difficulty overrides
+    if (level && level !== 'normal' && CONFIG.difficulty[level]) {
+      this._deepMerge(CONFIG, CONFIG.difficulty[level]);
+    }
+  },
+
   newGame() {
+    // Apply difficulty before reading CONFIG values
+    const difficulty = (typeof Options !== 'undefined') ? Options.get('difficulty') : 'normal';
+    this.applyDifficulty(difficulty);
+
     this.state = {
       day: 1,
       phase: 'day',
