@@ -1,0 +1,1581 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Primal Chase — Balance Lab</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,400;0,600;0,700;1,400&family=DM+Mono:wght@300;400;500&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --bg-void: #0d0806;
+      --bg-deep: #150e09;
+      --bg-dark: #1a110b;
+      --bg-card: #1e150e;
+      --bg-card-hover: #261b12;
+      --border: #2e2118;
+      --border-glow: #4a3526;
+      --amber: #d4883a;
+      --amber-bright: #e8a864;
+      --amber-dim: #b8944f;
+      --amber-muted: #8a6d3a;
+      --gold: #d4a574;
+      --red: #c44536;
+      --red-soft: #a63d30;
+      --blue: #6b8cae;
+      --blue-muted: #4a6a85;
+      --green: #4a7c3f;
+      --green-dim: #3a6030;
+      --ochre: #8b6914;
+      --flame: #e85d3a;
+      --cream: #f0dcc0;
+      --text: #c8a070;
+      --text-dim: #8a7058;
+      --text-bright: #e8c8a0;
+    }
+
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+
+    body {
+      font-family: 'DM Mono', monospace;
+      background: var(--bg-void);
+      color: var(--text);
+      min-height: 100vh;
+      line-height: 1.5;
+      font-size: 13px;
+      overflow-x: hidden;
+    }
+
+    /* ===== TEXTURE OVERLAY ===== */
+    body::before {
+      content: '';
+      position: fixed;
+      inset: 0;
+      background:
+        radial-gradient(ellipse 120% 80% at 50% 0%, rgba(212,136,58,0.04) 0%, transparent 60%),
+        radial-gradient(ellipse 80% 60% at 80% 100%, rgba(107,140,174,0.03) 0%, transparent 50%);
+      pointer-events: none;
+      z-index: 0;
+    }
+
+    body::after {
+      content: '';
+      position: fixed;
+      inset: 0;
+      opacity: 0.03;
+      background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noise'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noise)' opacity='1'/%3E%3C/svg%3E");
+      pointer-events: none;
+      z-index: 0;
+    }
+
+    /* ===== LAYOUT SHELL ===== */
+    .shell {
+      position: relative;
+      z-index: 1;
+      max-width: 1440px;
+      margin: 0 auto;
+      padding: 0 2rem 4rem;
+    }
+
+    /* ===== HEADER ===== */
+    .header {
+      padding: 3rem 0 2rem;
+      text-align: center;
+      border-bottom: 1px solid var(--border);
+      margin-bottom: 2rem;
+    }
+
+    .header-eyebrow {
+      font-family: 'DM Mono', monospace;
+      font-size: 0.7rem;
+      letter-spacing: 0.3em;
+      text-transform: uppercase;
+      color: var(--amber-muted);
+      margin-bottom: 0.5rem;
+    }
+
+    .header h1 {
+      font-family: 'Cormorant Garamond', serif;
+      font-size: 3rem;
+      font-weight: 700;
+      color: var(--amber-bright);
+      letter-spacing: 0.02em;
+      line-height: 1.1;
+      text-shadow: 0 0 60px rgba(212,136,58,0.15);
+    }
+
+    .header-meta {
+      margin-top: 0.75rem;
+      color: var(--text-dim);
+      font-size: 0.8rem;
+    }
+
+    .header-meta span {
+      color: var(--amber);
+    }
+
+    /* ===== SUMMARY STRIP ===== */
+    .summary-strip {
+      display: grid;
+      grid-template-columns: repeat(6, 1fr);
+      gap: 1px;
+      background: var(--border);
+      border: 1px solid var(--border);
+      margin-bottom: 2.5rem;
+      overflow: hidden;
+    }
+
+    .metric {
+      background: var(--bg-card);
+      padding: 1.25rem 1rem;
+      text-align: center;
+      transition: background 0.2s;
+    }
+
+    .metric:hover { background: var(--bg-card-hover); }
+
+    .metric-label {
+      font-size: 0.65rem;
+      letter-spacing: 0.15em;
+      text-transform: uppercase;
+      color: var(--text-dim);
+      margin-bottom: 0.4rem;
+    }
+
+    .metric-value {
+      font-family: 'Cormorant Garamond', serif;
+      font-size: 2rem;
+      font-weight: 700;
+      color: var(--amber-bright);
+      line-height: 1;
+    }
+
+    .metric-detail {
+      font-size: 0.7rem;
+      color: var(--text-dim);
+      margin-top: 0.3rem;
+    }
+
+    .metric-value.text-val {
+      font-size: 1.2rem;
+      text-transform: capitalize;
+    }
+
+    /* ===== SECTION ===== */
+    .section {
+      margin-bottom: 2.5rem;
+    }
+
+    .section-header {
+      display: flex;
+      align-items: baseline;
+      gap: 1rem;
+      margin-bottom: 1.25rem;
+      padding-bottom: 0.5rem;
+      border-bottom: 1px solid var(--border);
+    }
+
+    .section-title {
+      font-family: 'Cormorant Garamond', serif;
+      font-size: 1.5rem;
+      font-weight: 600;
+      color: var(--amber);
+    }
+
+    .section-subtitle {
+      font-size: 0.75rem;
+      color: var(--text-dim);
+      letter-spacing: 0.05em;
+    }
+
+    /* ===== CHART GRID ===== */
+    .chart-row {
+      display: grid;
+      gap: 1px;
+      background: var(--border);
+      border: 1px solid var(--border);
+      overflow: hidden;
+    }
+
+    .chart-row.cols-2 { grid-template-columns: 1fr 1fr; }
+    .chart-row.cols-3 { grid-template-columns: 1fr 1fr 1fr; }
+    .chart-row.cols-1 { grid-template-columns: 1fr; }
+    .chart-row.cols-2-1 { grid-template-columns: 2fr 1fr; }
+    .chart-row.cols-1-2 { grid-template-columns: 1fr 2fr; }
+
+    .chart-cell {
+      background: var(--bg-card);
+      padding: 1.5rem;
+      min-height: 320px;
+      display: flex;
+      flex-direction: column;
+    }
+
+    .chart-cell.compact { min-height: 260px; }
+
+    .chart-label {
+      font-size: 0.7rem;
+      letter-spacing: 0.12em;
+      text-transform: uppercase;
+      color: var(--text-dim);
+      margin-bottom: 1rem;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+
+    .chart-label .tag {
+      font-size: 0.6rem;
+      padding: 0.15rem 0.5rem;
+      border: 1px solid var(--border-glow);
+      color: var(--amber-muted);
+    }
+
+    .chart-wrap {
+      flex: 1;
+      position: relative;
+      min-height: 0;
+    }
+
+    .chart-wrap canvas {
+      display: block;
+      width: 100%;
+      height: 100%;
+    }
+
+    /* ===== LEGEND ===== */
+    .legend {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 0.6rem 1.2rem;
+      margin-top: 1rem;
+      font-size: 0.75rem;
+    }
+
+    .legend-item {
+      display: flex;
+      align-items: center;
+      gap: 0.35rem;
+      color: var(--text-dim);
+    }
+
+    .legend-dot {
+      width: 8px;
+      height: 8px;
+      border-radius: 50%;
+      flex-shrink: 0;
+    }
+
+    .legend-line {
+      width: 16px;
+      height: 2px;
+      flex-shrink: 0;
+      border-radius: 1px;
+    }
+
+    /* ===== STRATEGY TABLE ===== */
+    .data-table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 0.8rem;
+    }
+
+    .data-table th {
+      font-size: 0.65rem;
+      letter-spacing: 0.12em;
+      text-transform: uppercase;
+      color: var(--text-dim);
+      text-align: left;
+      padding: 0.75rem 1rem;
+      border-bottom: 1px solid var(--border-glow);
+      font-weight: 400;
+    }
+
+    .data-table td {
+      padding: 0.65rem 1rem;
+      border-bottom: 1px solid var(--border);
+      color: var(--text);
+    }
+
+    .data-table tr:hover td {
+      background: rgba(212,136,58,0.03);
+    }
+
+    .data-table .num {
+      font-variant-numeric: tabular-nums;
+      text-align: right;
+      color: var(--amber-dim);
+    }
+
+    .data-table .highlight {
+      color: var(--amber-bright);
+      font-weight: 500;
+    }
+
+    .data-table .strategy-dot {
+      display: inline-block;
+      width: 8px;
+      height: 8px;
+      border-radius: 50%;
+      margin-right: 0.5rem;
+      vertical-align: middle;
+    }
+
+    /* ===== TOOLTIP ===== */
+    .tooltip {
+      position: fixed;
+      pointer-events: none;
+      z-index: 100;
+      background: var(--bg-deep);
+      border: 1px solid var(--border-glow);
+      padding: 0.6rem 0.8rem;
+      font-size: 0.75rem;
+      color: var(--text-bright);
+      box-shadow: 0 8px 32px rgba(0,0,0,0.6);
+      opacity: 0;
+      transition: opacity 0.15s;
+      max-width: 220px;
+    }
+
+    .tooltip.visible { opacity: 1; }
+    .tooltip-title { color: var(--amber); font-weight: 500; margin-bottom: 0.2rem; }
+    .tooltip-row { display: flex; justify-content: space-between; gap: 1rem; }
+    .tooltip-row .val { color: var(--amber-bright); }
+
+    /* ===== LOADING ===== */
+    #loading {
+      text-align: center;
+      padding: 6rem 2rem;
+      font-family: 'Cormorant Garamond', serif;
+      font-size: 1.4rem;
+      color: var(--amber-muted);
+    }
+
+    .loading-spinner {
+      display: inline-block;
+      width: 20px;
+      height: 20px;
+      border: 2px solid var(--border);
+      border-top-color: var(--amber);
+      border-radius: 50%;
+      animation: spin 0.8s linear infinite;
+      margin-right: 0.75rem;
+      vertical-align: middle;
+    }
+
+    @keyframes spin { to { transform: rotate(360deg); } }
+
+    /* ===== FADE-IN ANIMATION ===== */
+    .fade-in {
+      opacity: 0;
+      transform: translateY(12px);
+      animation: fadeUp 0.5s ease forwards;
+    }
+
+    @keyframes fadeUp {
+      to { opacity: 1; transform: translateY(0); }
+    }
+
+    /* ===== RESPONSIVE ===== */
+    @media (max-width: 1024px) {
+      .chart-row.cols-2, .chart-row.cols-3, .chart-row.cols-2-1, .chart-row.cols-1-2 {
+        grid-template-columns: 1fr;
+      }
+      .summary-strip { grid-template-columns: repeat(3, 1fr); }
+    }
+
+    @media (max-width: 600px) {
+      .shell { padding: 0 1rem 3rem; }
+      .header h1 { font-size: 2rem; }
+      .summary-strip { grid-template-columns: repeat(2, 1fr); }
+    }
+  </style>
+</head>
+<body>
+  <div class="tooltip" id="tooltip"></div>
+
+  <div class="shell">
+    <div id="loading">
+      <span class="loading-spinner"></span>Loading simulation data...
+    </div>
+    <div id="app" style="display:none;"></div>
+  </div>
+
+  <script>
+  // ============================================================
+  // PALETTE
+  // ============================================================
+  const P = {
+    strategies: {
+      'push-heavy': { color: '#c44536', label: 'Push Heavy' },
+      'trot-heavy': { color: '#d4883a', label: 'Trot Heavy' },
+      'balanced':   { color: '#e8a864', label: 'Balanced' },
+      'rest-heavy': { color: '#4a9c4f', label: 'Rest Heavy' },
+      'smart':      { color: '#6b9cc0', label: 'Smart' },
+      'gto':        { color: '#9b6bcc', label: 'GTO' }
+    },
+    deaths: {
+      'caught':      '#c44536',
+      'dehydration': '#6b9cc0',
+      'exhaustion':  '#d4883a',
+      'starvation':  '#a08030',
+      'heatstroke':  '#e86040'
+    },
+    stats: {
+      'heat':    '#e86040',
+      'stamina': '#4a9c4f',
+      'thirst':  '#6b9cc0',
+      'hunger':  '#a08030'
+    }
+  };
+
+  const CSS = getComputedStyle(document.documentElement);
+  const BG = '#1e150e';
+  const GRID_COLOR = 'rgba(74,53,38,0.5)';
+  const AXIS_COLOR = '#8a7058';
+  const LABEL_FONT = '10px "DM Mono", monospace';
+  const TITLE_FONT = '11px "DM Mono", monospace';
+
+  // ============================================================
+  // TOOLTIP
+  // ============================================================
+  const tooltipEl = document.getElementById('tooltip');
+
+  function showTooltip(x, y, html) {
+    tooltipEl.innerHTML = html;
+    tooltipEl.classList.add('visible');
+    const r = tooltipEl.getBoundingClientRect();
+    const px = Math.min(x + 12, window.innerWidth - r.width - 12);
+    const py = y - r.height - 8 < 0 ? y + 16 : y - r.height - 8;
+    tooltipEl.style.left = px + 'px';
+    tooltipEl.style.top = py + 'px';
+  }
+
+  function hideTooltip() { tooltipEl.classList.remove('visible'); }
+
+  // ============================================================
+  // CANVAS HELPERS
+  // ============================================================
+  function makeCanvas(container) {
+    const canvas = document.createElement('canvas');
+    const rect = container.getBoundingClientRect();
+    const w = rect.width || 500;
+    const h = rect.height || 280;
+    const dpr = window.devicePixelRatio || 1;
+    canvas.width = w * dpr;
+    canvas.height = h * dpr;
+    canvas.style.width = w + 'px';
+    canvas.style.height = h + 'px';
+    const ctx = canvas.getContext('2d');
+    ctx.scale(dpr, dpr);
+    container.appendChild(canvas);
+    return { canvas, ctx, w, h, dpr };
+  }
+
+  function drawGrid(ctx, m, plotW, plotH, yMin, yMax, steps = 5) {
+    const range = yMax - yMin || 1;
+    ctx.strokeStyle = GRID_COLOR;
+    ctx.lineWidth = 0.5;
+    ctx.fillStyle = AXIS_COLOR;
+    ctx.font = LABEL_FONT;
+    ctx.textAlign = 'right';
+
+    for (let i = 0; i <= steps; i++) {
+      const y = m.top + plotH - (plotH * i / steps);
+      ctx.beginPath();
+      ctx.moveTo(m.left, y);
+      ctx.lineTo(m.left + plotW, y);
+      ctx.stroke();
+
+      const val = yMin + (range * i / steps);
+      ctx.fillText(Number.isInteger(val) ? val : val.toFixed(1), m.left - 8, y + 3);
+    }
+  }
+
+  function smoothLine(ctx, points) {
+    if (points.length < 2) return;
+    ctx.beginPath();
+    ctx.moveTo(points[0].x, points[0].y);
+
+    if (points.length === 2) {
+      ctx.lineTo(points[1].x, points[1].y);
+      return;
+    }
+
+    for (let i = 0; i < points.length - 1; i++) {
+      const p0 = points[Math.max(0, i - 1)];
+      const p1 = points[i];
+      const p2 = points[i + 1];
+      const p3 = points[Math.min(points.length - 1, i + 2)];
+
+      const cp1x = p1.x + (p2.x - p0.x) / 6;
+      const cp1y = p1.y + (p2.y - p0.y) / 6;
+      const cp2x = p2.x - (p3.x - p1.x) / 6;
+      const cp2y = p2.y - (p3.y - p1.y) / 6;
+
+      ctx.bezierCurveTo(cp1x, cp1y, cp2x, cp2y, p2.x, p2.y);
+    }
+  }
+
+  // ============================================================
+  // CHART: MULTI-LINE WITH AREA FILL
+  // ============================================================
+  function chartLine(container, datasets, opts = {}) {
+    const { xLabel, yLabel, yMin: forceYMin, yMax: forceYMax, areaFill = false, showDots = true } = opts;
+    const { canvas, ctx, w, h } = makeCanvas(container);
+    const m = { top: 16, right: 20, bottom: xLabel ? 38 : 28, left: yLabel ? 52 : 44 };
+    const plotW = w - m.left - m.right;
+    const plotH = h - m.top - m.bottom;
+
+    const allY = datasets.flatMap(d => d.data);
+    const yMin = forceYMin !== undefined ? forceYMin : Math.min(0, Math.floor(Math.min(...allY)));
+    const yMax = forceYMax !== undefined ? forceYMax : Math.ceil(Math.max(...allY) * 1.08);
+    const rangeY = yMax - yMin || 1;
+    const maxLen = Math.max(...datasets.map(d => d.data.length));
+
+    drawGrid(ctx, m, plotW, plotH, yMin, yMax);
+
+    // X labels
+    ctx.fillStyle = AXIS_COLOR;
+    ctx.font = LABEL_FONT;
+    ctx.textAlign = 'center';
+    const xStep = Math.max(1, Math.ceil(maxLen / 12));
+    for (let i = 0; i < maxLen; i += xStep) {
+      const x = m.left + (i / (maxLen - 1 || 1)) * plotW;
+      ctx.fillText(opts.xLabels ? opts.xLabels[i] : (i + 1), x, h - m.bottom + 16);
+    }
+
+    if (xLabel) {
+      ctx.fillStyle = AXIS_COLOR;
+      ctx.font = LABEL_FONT;
+      ctx.textAlign = 'center';
+      ctx.fillText(xLabel, m.left + plotW / 2, h - 4);
+    }
+
+    if (yLabel) {
+      ctx.save();
+      ctx.fillStyle = AXIS_COLOR;
+      ctx.font = LABEL_FONT;
+      ctx.textAlign = 'center';
+      ctx.translate(10, m.top + plotH / 2);
+      ctx.rotate(-Math.PI / 2);
+      ctx.fillText(yLabel, 0, 0);
+      ctx.restore();
+    }
+
+    // Draw each dataset
+    for (const ds of datasets) {
+      const points = ds.data.map((v, i) => ({
+        x: m.left + (i / (maxLen - 1 || 1)) * plotW,
+        y: m.top + plotH - ((v - yMin) / rangeY) * plotH,
+        v
+      }));
+
+      if (areaFill && points.length >= 2) {
+        ctx.save();
+        smoothLine(ctx, points);
+        ctx.lineTo(points[points.length - 1].x, m.top + plotH);
+        ctx.lineTo(points[0].x, m.top + plotH);
+        ctx.closePath();
+        const grad = ctx.createLinearGradient(0, m.top, 0, m.top + plotH);
+        grad.addColorStop(0, ds.color + '30');
+        grad.addColorStop(1, ds.color + '05');
+        ctx.fillStyle = grad;
+        ctx.fill();
+        ctx.restore();
+      }
+
+      ctx.strokeStyle = ds.color;
+      ctx.lineWidth = 2;
+      smoothLine(ctx, points);
+      ctx.stroke();
+
+      if (showDots && points.length <= 25) {
+        ctx.fillStyle = ds.color;
+        for (const p of points) {
+          ctx.beginPath();
+          ctx.arc(p.x, p.y, 3, 0, Math.PI * 2);
+          ctx.fill();
+        }
+      }
+    }
+
+    // Hover interaction
+    canvas.addEventListener('mousemove', (e) => {
+      const rect = canvas.getBoundingClientRect();
+      const mx = e.clientX - rect.left;
+      const my = e.clientY - rect.top;
+
+      if (mx < m.left || mx > m.left + plotW || my < m.top || my > m.top + plotH) {
+        hideTooltip();
+        return;
+      }
+
+      const idx = Math.round(((mx - m.left) / plotW) * (maxLen - 1));
+      const lines = datasets
+        .filter(d => d.data[idx] !== undefined)
+        .map(d => `<div class="tooltip-row"><span>${d.label}</span><span class="val">${d.data[idx]}</span></div>`)
+        .join('');
+
+      showTooltip(e.clientX, e.clientY,
+        `<div class="tooltip-title">${opts.xLabels ? opts.xLabels[idx] : 'Day ' + (idx + 1)}</div>${lines}`
+      );
+    });
+    canvas.addEventListener('mouseleave', hideTooltip);
+  }
+
+  // ============================================================
+  // CHART: VERTICAL BARS (grouped)
+  // ============================================================
+  function chartBars(container, labels, datasets, opts = {}) {
+    const { canvas, ctx, w, h } = makeCanvas(container);
+    const m = { top: 16, right: 16, bottom: 52, left: 44 };
+    const plotW = w - m.left - m.right;
+    const plotH = h - m.top - m.bottom;
+
+    const maxVal = Math.max(...datasets.flatMap(d => d.data)) * 1.1;
+    drawGrid(ctx, m, plotW, plotH, 0, maxVal);
+
+    const groupW = plotW / labels.length;
+    const barW = Math.min(28, (groupW - 6) / datasets.length - 2);
+    const totalBarsW = datasets.length * (barW + 2);
+
+    labels.forEach((label, i) => {
+      const cx = m.left + groupW * i + groupW / 2;
+
+      datasets.forEach((ds, di) => {
+        const x = cx - totalBarsW / 2 + di * (barW + 2);
+        const barH = (ds.data[i] / maxVal) * plotH;
+        const y = m.top + plotH - barH;
+
+        // Bar with gradient
+        const grad = ctx.createLinearGradient(0, y, 0, m.top + plotH);
+        grad.addColorStop(0, ds.color);
+        grad.addColorStop(1, ds.color + '60');
+        ctx.fillStyle = grad;
+
+        // Rounded top
+        const r = Math.min(3, barW / 2);
+        ctx.beginPath();
+        ctx.moveTo(x + r, y);
+        ctx.lineTo(x + barW - r, y);
+        ctx.quadraticCurveTo(x + barW, y, x + barW, y + r);
+        ctx.lineTo(x + barW, m.top + plotH);
+        ctx.lineTo(x, m.top + plotH);
+        ctx.lineTo(x, y + r);
+        ctx.quadraticCurveTo(x, y, x + r, y);
+        ctx.fill();
+      });
+
+      // X label
+      ctx.fillStyle = AXIS_COLOR;
+      ctx.font = LABEL_FONT;
+      ctx.textAlign = 'center';
+      ctx.save();
+      ctx.translate(cx, h - m.bottom + 12);
+      if (labels.length > 5) ctx.rotate(-0.4);
+      ctx.fillText(label, 0, 0);
+      ctx.restore();
+    });
+
+    // Hover
+    canvas.addEventListener('mousemove', (e) => {
+      const rect = canvas.getBoundingClientRect();
+      const mx = e.clientX - rect.left;
+      if (mx < m.left || mx > m.left + plotW) { hideTooltip(); return; }
+      const idx = Math.floor((mx - m.left) / groupW);
+      if (idx < 0 || idx >= labels.length) { hideTooltip(); return; }
+      const lines = datasets.map(d =>
+        `<div class="tooltip-row"><span>${d.label}</span><span class="val">${d.data[idx]}</span></div>`
+      ).join('');
+      showTooltip(e.clientX, e.clientY,
+        `<div class="tooltip-title">${labels[idx]}</div>${lines}`
+      );
+    });
+    canvas.addEventListener('mouseleave', hideTooltip);
+  }
+
+  // ============================================================
+  // CHART: HORIZONTAL BARS
+  // ============================================================
+  function chartHBars(container, labels, values, colors, opts = {}) {
+    const { canvas, ctx, w, h } = makeCanvas(container);
+    const labelW = Math.min(90, w * 0.22);
+    const m = { top: 8, right: 50, bottom: 8, left: labelW + 8 };
+    const plotW = w - m.left - m.right;
+    const plotH = h - m.top - m.bottom;
+
+    const maxVal = Math.max(...values) || 1;
+    const barH = Math.min(24, (plotH / labels.length) - 6);
+    const total = values.reduce((a, b) => a + b, 0);
+
+    labels.forEach((label, i) => {
+      const cy = m.top + (plotH / labels.length) * (i + 0.5);
+      const y = cy - barH / 2;
+      const barW = (values[i] / maxVal) * plotW;
+
+      // Bar
+      const grad = ctx.createLinearGradient(m.left, 0, m.left + barW, 0);
+      grad.addColorStop(0, colors[i] + 'cc');
+      grad.addColorStop(1, colors[i]);
+      ctx.fillStyle = grad;
+
+      const r = Math.min(3, barH / 2);
+      ctx.beginPath();
+      ctx.moveTo(m.left, y);
+      ctx.lineTo(m.left + barW - r, y);
+      ctx.quadraticCurveTo(m.left + barW, y, m.left + barW, y + r);
+      ctx.lineTo(m.left + barW, y + barH - r);
+      ctx.quadraticCurveTo(m.left + barW, y + barH, m.left + barW - r, y + barH);
+      ctx.lineTo(m.left, y + barH);
+      ctx.closePath();
+      ctx.fill();
+
+      // Label
+      ctx.fillStyle = AXIS_COLOR;
+      ctx.font = LABEL_FONT;
+      ctx.textAlign = 'right';
+      ctx.fillText(label, m.left - 10, cy + 3);
+
+      // Value
+      ctx.fillStyle = '#e8c8a0';
+      ctx.textAlign = 'left';
+      const pct = Math.round((values[i] / total) * 100);
+      ctx.fillText(`${values[i]}  (${pct}%)`, m.left + barW + 8, cy + 3);
+    });
+  }
+
+  // ============================================================
+  // CHART: DONUT
+  // ============================================================
+  function chartDonut(container, labels, values, colors) {
+    const { canvas, ctx, w, h } = makeCanvas(container);
+    const total = values.reduce((a, b) => a + b, 0);
+    const cx = w / 2;
+    const cy = h / 2;
+    const outerR = Math.min(cx, cy) - 24;
+    const innerR = outerR * 0.55;
+    let angle = -Math.PI / 2;
+
+    // Shadow
+    ctx.shadowColor = 'rgba(0,0,0,0.4)';
+    ctx.shadowBlur = 20;
+    ctx.beginPath();
+    ctx.arc(cx, cy, outerR, 0, Math.PI * 2);
+    ctx.fillStyle = BG;
+    ctx.fill();
+    ctx.shadowBlur = 0;
+
+    labels.forEach((label, i) => {
+      const sliceAngle = (values[i] / total) * Math.PI * 2;
+      const midAngle = angle + sliceAngle / 2;
+
+      // Slice
+      ctx.beginPath();
+      ctx.arc(cx, cy, outerR, angle, angle + sliceAngle);
+      ctx.arc(cx, cy, innerR, angle + sliceAngle, angle, true);
+      ctx.closePath();
+
+      const grad = ctx.createRadialGradient(cx, cy, innerR, cx, cy, outerR);
+      grad.addColorStop(0, colors[i] + 'aa');
+      grad.addColorStop(1, colors[i]);
+      ctx.fillStyle = grad;
+      ctx.fill();
+
+      // Gap lines
+      ctx.strokeStyle = BG;
+      ctx.lineWidth = 2;
+      ctx.stroke();
+
+      // Label on slice
+      const pct = Math.round((values[i] / total) * 100);
+      if (pct >= 5) {
+        const lr = (outerR + innerR) / 2;
+        const lx = cx + Math.cos(midAngle) * lr;
+        const ly = cy + Math.sin(midAngle) * lr;
+
+        ctx.fillStyle = '#fff';
+        ctx.font = 'bold 11px "DM Mono", monospace';
+        ctx.textAlign = 'center';
+        ctx.textBaseline = 'middle';
+        ctx.fillText(pct + '%', lx, ly);
+      }
+
+      angle += sliceAngle;
+    });
+
+    // Center label
+    ctx.fillStyle = '#e8c8a0';
+    ctx.font = '600 20px "Cormorant Garamond", serif';
+    ctx.textAlign = 'center';
+    ctx.textBaseline = 'middle';
+    ctx.fillText(total, cx, cy - 6);
+    ctx.fillStyle = AXIS_COLOR;
+    ctx.font = '10px "DM Mono", monospace';
+    ctx.fillText('total', cx, cy + 12);
+
+    // Hover
+    canvas.addEventListener('mousemove', (e) => {
+      const rect = canvas.getBoundingClientRect();
+      const mx = e.clientX - rect.left - cx;
+      const my = e.clientY - rect.top - cy;
+      const dist = Math.sqrt(mx * mx + my * my);
+      if (dist < innerR || dist > outerR) { hideTooltip(); return; }
+
+      let mouseAngle = Math.atan2(my, mx) + Math.PI / 2;
+      if (mouseAngle < 0) mouseAngle += Math.PI * 2;
+
+      let cumAngle = 0;
+      for (let i = 0; i < labels.length; i++) {
+        const sliceAngle = (values[i] / total) * Math.PI * 2;
+        if (mouseAngle <= cumAngle + sliceAngle) {
+          const pct = ((values[i] / total) * 100).toFixed(1);
+          showTooltip(e.clientX, e.clientY,
+            `<div class="tooltip-title">${labels[i]}</div>
+             <div class="tooltip-row"><span>Count</span><span class="val">${values[i]}</span></div>
+             <div class="tooltip-row"><span>Pct</span><span class="val">${pct}%</span></div>`
+          );
+          return;
+        }
+        cumAngle += sliceAngle;
+      }
+      hideTooltip();
+    });
+    canvas.addEventListener('mouseleave', hideTooltip);
+  }
+
+  // ============================================================
+  // CHART: HISTOGRAM
+  // ============================================================
+  function chartHistogram(container, sortedVals, opts = {}) {
+    const { color = '#d4883a', xLabel = 'Value' } = opts;
+    const { canvas, ctx, w, h } = makeCanvas(container);
+    const m = { top: 16, right: 16, bottom: xLabel ? 36 : 24, left: 40 };
+    const plotW = w - m.left - m.right;
+    const plotH = h - m.top - m.bottom;
+
+    const min = sortedVals[0];
+    const max = sortedVals[sortedVals.length - 1];
+    const binCount = Math.min(Math.max(8, max - min + 1), 22);
+    const binWidth = (max - min + 0.01) / binCount;
+    const bins = new Array(binCount).fill(0);
+    for (const v of sortedVals) {
+      const b = Math.min(binCount - 1, Math.floor((v - min) / binWidth));
+      bins[b]++;
+    }
+
+    const maxBin = Math.max(...bins);
+    drawGrid(ctx, m, plotW, plotH, 0, maxBin, 4);
+
+    const barW = plotW / binCount;
+    bins.forEach((count, i) => {
+      const x = m.left + barW * i;
+      const barH = (count / maxBin) * plotH;
+      const y = m.top + plotH - barH;
+
+      const grad = ctx.createLinearGradient(0, y, 0, m.top + plotH);
+      grad.addColorStop(0, color);
+      grad.addColorStop(1, color + '40');
+      ctx.fillStyle = grad;
+      ctx.fillRect(x + 1, y, barW - 2, barH);
+    });
+
+    // X labels
+    ctx.fillStyle = AXIS_COLOR;
+    ctx.font = LABEL_FONT;
+    ctx.textAlign = 'center';
+    const labelStep = Math.max(1, Math.floor(binCount / 8));
+    for (let i = 0; i <= binCount; i += labelStep) {
+      const x = m.left + barW * i;
+      ctx.fillText(Math.round(min + i * binWidth), x, h - m.bottom + 14);
+    }
+
+    if (xLabel) {
+      ctx.fillText(xLabel, m.left + plotW / 2, h - 4);
+    }
+
+    // Hover
+    canvas.addEventListener('mousemove', (e) => {
+      const rect = canvas.getBoundingClientRect();
+      const mx = e.clientX - rect.left;
+      if (mx < m.left || mx > m.left + plotW) { hideTooltip(); return; }
+      const idx = Math.floor((mx - m.left) / barW);
+      if (idx < 0 || idx >= binCount) { hideTooltip(); return; }
+      const lo = Math.round((min + idx * binWidth) * 10) / 10;
+      const hi = Math.round((min + (idx + 1) * binWidth) * 10) / 10;
+      showTooltip(e.clientX, e.clientY,
+        `<div class="tooltip-title">${lo} - ${hi}</div>
+         <div class="tooltip-row"><span>Count</span><span class="val">${bins[idx]}</span></div>
+         <div class="tooltip-row"><span>Pct</span><span class="val">${((bins[idx]/sortedVals.length)*100).toFixed(1)}%</span></div>`
+      );
+    });
+    canvas.addEventListener('mouseleave', hideTooltip);
+  }
+
+  // ============================================================
+  // CHART: HEATMAP
+  // ============================================================
+  function chartHeatmap(container, data, opts = {}) {
+    const { xLabels, yLabels, colorScale = ['#1e150e', '#4a3526', '#8b5e30', '#d4883a', '#e8a864', '#f0dcc0'] } = opts;
+    const { canvas, ctx, w, h } = makeCanvas(container);
+    const m = { top: 8, right: 16, bottom: 24, left: 60 };
+    const plotW = w - m.left - m.right;
+    const plotH = h - m.top - m.bottom;
+
+    const cols = data[0].length;
+    const rows = data.length;
+    const cellW = plotW / cols;
+    const cellH = plotH / rows;
+
+    const allVals = data.flat();
+    const vMin = Math.min(...allVals);
+    const vMax = Math.max(...allVals);
+    const range = vMax - vMin || 1;
+
+    function interpolateHeatColor(val) {
+      const t = (val - vMin) / range;
+      const idx = t * (colorScale.length - 1);
+      const lo = Math.floor(idx);
+      const hi = Math.min(lo + 1, colorScale.length - 1);
+      const f = idx - lo;
+      const c1 = hexRgb(colorScale[lo]);
+      const c2 = hexRgb(colorScale[hi]);
+      const r = Math.round(c1.r + (c2.r - c1.r) * f);
+      const g = Math.round(c1.g + (c2.g - c1.g) * f);
+      const b = Math.round(c1.b + (c2.b - c1.b) * f);
+      return `rgb(${r},${g},${b})`;
+    }
+
+    data.forEach((row, ri) => {
+      row.forEach((val, ci) => {
+        const x = m.left + ci * cellW;
+        const y = m.top + ri * cellH;
+        ctx.fillStyle = interpolateHeatColor(val);
+        ctx.fillRect(x, y, cellW - 1, cellH - 1);
+      });
+    });
+
+    // Y labels
+    ctx.fillStyle = AXIS_COLOR;
+    ctx.font = LABEL_FONT;
+    ctx.textAlign = 'right';
+    yLabels.forEach((label, i) => {
+      ctx.fillText(label, m.left - 8, m.top + i * cellH + cellH / 2 + 3);
+    });
+
+    // X labels
+    ctx.textAlign = 'center';
+    const xStep = Math.max(1, Math.floor(cols / 12));
+    xLabels.forEach((label, i) => {
+      if (i % xStep === 0) {
+        ctx.fillText(label, m.left + i * cellW + cellW / 2, h - m.bottom + 14);
+      }
+    });
+
+    // Hover
+    canvas.addEventListener('mousemove', (e) => {
+      const rect = canvas.getBoundingClientRect();
+      const mx = e.clientX - rect.left;
+      const my = e.clientY - rect.top;
+      const ci = Math.floor((mx - m.left) / cellW);
+      const ri = Math.floor((my - m.top) / cellH);
+      if (ci < 0 || ci >= cols || ri < 0 || ri >= rows) { hideTooltip(); return; }
+      showTooltip(e.clientX, e.clientY,
+        `<div class="tooltip-title">${yLabels[ri]} — Day ${xLabels[ci]}</div>
+         <div class="tooltip-row"><span>Value</span><span class="val">${data[ri][ci]}</span></div>`
+      );
+    });
+    canvas.addEventListener('mouseleave', hideTooltip);
+  }
+
+  function hexRgb(hex) {
+    const m = /^#?([a-f\d]{2})([a-f\d]{2})([a-f\d]{2})$/i.exec(hex);
+    return m ? { r: parseInt(m[1],16), g: parseInt(m[2],16), b: parseInt(m[3],16) } : { r:0, g:0, b:0 };
+  }
+
+  // ============================================================
+  // CHART: STACKED BAR (per-strategy death breakdown)
+  // ============================================================
+  function chartStackedBars(container, strategyLabels, causes, dataMatrix, causeColors) {
+    const { canvas, ctx, w, h } = makeCanvas(container);
+    const m = { top: 16, right: 16, bottom: 48, left: 44 };
+    const plotW = w - m.left - m.right;
+    const plotH = h - m.top - m.bottom;
+
+    // dataMatrix[stratIdx][causeIdx] = count
+    const maxTotal = Math.max(...dataMatrix.map(row => row.reduce((a, b) => a + b, 0)));
+    drawGrid(ctx, m, plotW, plotH, 0, 100, 4);
+
+    // Override grid labels to show %
+    ctx.fillStyle = BG;
+    ctx.fillRect(0, 0, m.left, h);
+    ctx.fillStyle = AXIS_COLOR;
+    ctx.font = LABEL_FONT;
+    ctx.textAlign = 'right';
+    for (let i = 0; i <= 4; i++) {
+      const y = m.top + plotH - (plotH * i / 4);
+      ctx.fillText(i * 25 + '%', m.left - 8, y + 3);
+    }
+
+    const groupW = plotW / strategyLabels.length;
+    const barW = Math.min(36, groupW - 16);
+
+    strategyLabels.forEach((label, si) => {
+      const cx = m.left + groupW * si + groupW / 2;
+      const x = cx - barW / 2;
+      const rowTotal = dataMatrix[si].reduce((a, b) => a + b, 0);
+      let yOff = 0;
+
+      causes.forEach((cause, ci) => {
+        const pct = (dataMatrix[si][ci] / rowTotal) * 100;
+        const segH = (pct / 100) * plotH;
+        const y = m.top + plotH - yOff - segH;
+
+        ctx.fillStyle = causeColors[ci];
+        ctx.fillRect(x, y, barW, segH);
+        yOff += segH;
+      });
+
+      // Label
+      ctx.fillStyle = AXIS_COLOR;
+      ctx.font = LABEL_FONT;
+      ctx.textAlign = 'center';
+      ctx.save();
+      ctx.translate(cx, h - m.bottom + 14);
+      ctx.rotate(-0.35);
+      ctx.fillText(label, 0, 0);
+      ctx.restore();
+    });
+
+    // Hover
+    canvas.addEventListener('mousemove', (e) => {
+      const rect = canvas.getBoundingClientRect();
+      const mx = e.clientX - rect.left;
+      const idx = Math.floor((mx - m.left) / groupW);
+      if (idx < 0 || idx >= strategyLabels.length) { hideTooltip(); return; }
+      const rowTotal = dataMatrix[idx].reduce((a, b) => a + b, 0);
+      const lines = causes.map((c, ci) => {
+        const pct = ((dataMatrix[idx][ci] / rowTotal) * 100).toFixed(1);
+        return `<div class="tooltip-row"><span>${c}</span><span class="val">${pct}%</span></div>`;
+      }).join('');
+      showTooltip(e.clientX, e.clientY,
+        `<div class="tooltip-title">${strategyLabels[idx]}</div>${lines}`
+      );
+    });
+    canvas.addEventListener('mouseleave', hideTooltip);
+  }
+
+  // ============================================================
+  // BUILD THE ENTIRE DASHBOARD
+  // ============================================================
+
+  function build(data) {
+    const app = document.getElementById('app');
+    const strategies = Object.keys(data);
+    let delayIdx = 0;
+
+    function delay() { return `animation-delay: ${(delayIdx++) * 0.06}s`; }
+
+    // ---- Aggregate stats ----
+    let totalGames = 0, allDays = [], allDist = [];
+    const allDeaths = {};
+    for (const d of Object.values(data)) {
+      totalGames += d.n;
+      allDays.push(...d.days.sorted);
+      allDist.push(...d.distance.sorted);
+      for (const [c, v] of Object.entries(d.deathCauses)) allDeaths[c] = (allDeaths[c] || 0) + v;
+    }
+    allDays.sort((a, b) => a - b);
+    allDist.sort((a, b) => a - b);
+    const avgDays = (allDays.reduce((a, b) => a + b, 0) / allDays.length).toFixed(1);
+    const medDays = allDays[Math.floor(allDays.length / 2)];
+    const avgDist = Math.round(allDist.reduce((a, b) => a + b, 0) / allDist.length);
+    const topDeath = Object.entries(allDeaths).sort((a, b) => b[1] - a[1])[0];
+    const bestStrat = strategies.reduce((best, s) => data[s].days.avg > (data[best]?.days.avg || 0) ? s : best, strategies[0]);
+
+    // ---- HEADER ----
+    app.innerHTML = `
+      <header class="header fade-in" style="${delay()}">
+        <div class="header-eyebrow">Simulation Analytics</div>
+        <h1>Balance Lab</h1>
+        <div class="header-meta">
+          <span>${totalGames.toLocaleString()}</span> simulated games &middot;
+          <span>${strategies.length}</span> strategies &middot;
+          Generated ${new Date().toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}
+        </div>
+      </header>
+
+      <div class="summary-strip fade-in" style="${delay()}">
+        <div class="metric">
+          <div class="metric-label">Total Games</div>
+          <div class="metric-value">${totalGames.toLocaleString()}</div>
+          <div class="metric-detail">${strategies.length} strategies</div>
+        </div>
+        <div class="metric">
+          <div class="metric-label">Avg Survival</div>
+          <div class="metric-value">${avgDays}</div>
+          <div class="metric-detail">median ${medDays} days</div>
+        </div>
+        <div class="metric">
+          <div class="metric-label">Longest Run</div>
+          <div class="metric-value">${allDays[allDays.length - 1]}</div>
+          <div class="metric-detail">days survived</div>
+        </div>
+        <div class="metric">
+          <div class="metric-label">Top Killer</div>
+          <div class="metric-value text-val">${topDeath[0]}</div>
+          <div class="metric-detail">${Math.round(topDeath[1] / totalGames * 100)}% of deaths</div>
+        </div>
+        <div class="metric">
+          <div class="metric-label">Avg Distance</div>
+          <div class="metric-value">${avgDist}</div>
+          <div class="metric-detail">max ${allDist[allDist.length - 1]} mi</div>
+        </div>
+        <div class="metric">
+          <div class="metric-label">Best Strategy</div>
+          <div class="metric-value text-val">${bestStrat}</div>
+          <div class="metric-detail">avg ${data[bestStrat].days.avg} days</div>
+        </div>
+      </div>
+    `;
+
+    // ---- STRATEGY TABLE ----
+    const tableSection = el('div', 'section fade-in', delay());
+    tableSection.innerHTML = `
+      <div class="section-header">
+        <div class="section-title">Strategy Comparison</div>
+        <div class="section-subtitle">All strategies side by side</div>
+      </div>
+    `;
+    const tableWrap = el('div', 'chart-row cols-1');
+    const tableCell = el('div', 'chart-cell compact');
+    let tableHTML = `<table class="data-table"><thead><tr>
+      <th>Strategy</th><th class="num">Games</th><th class="num">Avg Days</th>
+      <th class="num">Median</th><th class="num">Max</th><th class="num">Avg Dist</th>
+      <th class="num">Lost Hunters</th><th class="num">Encounters</th>
+    </tr></thead><tbody>`;
+    for (const s of strategies) {
+      const d = data[s];
+      const color = P.strategies[s]?.color || '#888';
+      const isTop = s === bestStrat;
+      tableHTML += `<tr>
+        <td><span class="strategy-dot" style="background:${color}"></span>${P.strategies[s]?.label || s}</td>
+        <td class="num">${d.n}</td>
+        <td class="num ${isTop ? 'highlight' : ''}">${d.days.avg}</td>
+        <td class="num">${d.days.median}</td>
+        <td class="num">${d.days.max}</td>
+        <td class="num">${d.distance.avg} mi</td>
+        <td class="num">${d.lostHunters.avg}</td>
+        <td class="num">${d.uniqueEncountersAvg}</td>
+      </tr>`;
+    }
+    tableHTML += '</tbody></table>';
+    tableCell.innerHTML = tableHTML;
+    tableWrap.appendChild(tableCell);
+    tableSection.appendChild(tableWrap);
+    app.appendChild(tableSection);
+
+    // ---- SURVIVAL OVERVIEW ----
+    const survSection = el('div', 'section fade-in', delay());
+    survSection.innerHTML = `
+      <div class="section-header">
+        <div class="section-title">Survival Overview</div>
+        <div class="section-subtitle">Days survived by strategy</div>
+      </div>
+    `;
+
+    const survRow = el('div', 'chart-row cols-2-1');
+
+    // Grouped bars
+    const barsCell = el('div', 'chart-cell');
+    barsCell.innerHTML = '<div class="chart-label">Days Survived <span class="tag">avg / median / max</span></div>';
+    const barsWrap = el('div', 'chart-wrap');
+    barsCell.appendChild(barsWrap);
+    const barsLegend = makeLegend([
+      ['Average', '#6b9cc0'], ['Median', '#d4883a'], ['Max', '#4a3526']
+    ]);
+    barsCell.appendChild(barsLegend);
+    survRow.appendChild(barsCell);
+
+    // Donut
+    const donutCell = el('div', 'chart-cell');
+    donutCell.innerHTML = '<div class="chart-label">Death Causes <span class="tag">combined</span></div>';
+    const donutWrap = el('div', 'chart-wrap');
+    donutCell.appendChild(donutWrap);
+    const deathLabels = Object.keys(allDeaths);
+    const deathValues = Object.values(allDeaths);
+    const deathColors = deathLabels.map(l => P.deaths[l] || '#888');
+    donutCell.appendChild(makeLegend(deathLabels.map((l, i) => [l, deathColors[i]])));
+    survRow.appendChild(donutCell);
+
+    survSection.appendChild(survRow);
+    app.appendChild(survSection);
+
+    // Render after layout
+    requestAnimationFrame(() => {
+      chartBars(barsWrap, strategies.map(s => P.strategies[s]?.label || s), [
+        { color: '#6b9cc0', data: strategies.map(s => data[s].days.avg), label: 'Avg Days' },
+        { color: '#d4883a', data: strategies.map(s => data[s].days.median), label: 'Median' },
+        { color: '#4a3526', data: strategies.map(s => data[s].days.max), label: 'Max Days' }
+      ]);
+      chartDonut(donutWrap, deathLabels, deathValues, deathColors);
+    });
+
+    // ---- HUNTER & STAT TRACKING ----
+    const trackSection = el('div', 'section fade-in', delay());
+    trackSection.innerHTML = `
+      <div class="section-header">
+        <div class="section-title">Pursuit Dynamics</div>
+        <div class="section-subtitle">How the gap closes over time</div>
+      </div>
+    `;
+
+    const trackRow = el('div', 'chart-row cols-1');
+    const hunterCell = el('div', 'chart-cell');
+    hunterCell.innerHTML = '<div class="chart-label">Hunter Distance Over Time <span class="tag">avg miles per day</span></div>';
+    const hunterWrap = el('div', 'chart-wrap');
+    hunterCell.appendChild(hunterWrap);
+    hunterCell.appendChild(makeLegend(strategies.map(s => [P.strategies[s]?.label || s, P.strategies[s]?.color || '#888']), 'line'));
+    trackRow.appendChild(hunterCell);
+    trackSection.appendChild(trackRow);
+    app.appendChild(trackSection);
+
+    requestAnimationFrame(() => {
+      const maxDay = Math.max(...strategies.map(s => {
+        const days = Object.keys(data[s].avgHunterDistByDay).map(Number);
+        return days.length > 0 ? Math.max(...days) : 0;
+      }));
+      const xLabels = Array.from({ length: maxDay }, (_, i) => String(i + 1));
+      const hunterDS = strategies.map(s => {
+        const days = Object.keys(data[s].avgHunterDistByDay).map(Number).sort((a, b) => a - b);
+        return {
+          color: P.strategies[s]?.color || '#888',
+          data: days.map(d => data[s].avgHunterDistByDay[d]),
+          label: P.strategies[s]?.label || s
+        };
+      });
+      chartLine(hunterWrap, hunterDS, { xLabel: 'Day', yLabel: 'Miles', areaFill: true, xLabels });
+    });
+
+    // ---- STAT TRAJECTORIES ----
+    const statSection = el('div', 'section fade-in', delay());
+    statSection.innerHTML = `
+      <div class="section-header">
+        <div class="section-title">Vital Trajectories</div>
+        <div class="section-subtitle">Average stat values over time — Smart strategy</div>
+      </div>
+    `;
+
+    const statRow = el('div', 'chart-row cols-2');
+    const stats = ['heat', 'stamina', 'thirst', 'hunger'];
+
+    stats.forEach(stat => {
+      const cell = el('div', 'chart-cell compact');
+      cell.innerHTML = `<div class="chart-label" style="text-transform:capitalize">${stat} <span class="tag">avg per day</span></div>`;
+      const wrap = el('div', 'chart-wrap');
+      cell.appendChild(wrap);
+      statRow.appendChild(cell);
+
+      requestAnimationFrame(() => {
+        const target = data.smart || data[strategies[0]];
+        if (!target?.avgStatsByDay) return;
+        const days = Object.keys(target.avgStatsByDay).map(Number).sort((a, b) => a - b);
+        const xLabels = days.map(String);
+        chartLine(wrap, [{
+          color: P.stats[stat],
+          data: days.map(d => target.avgStatsByDay[d][stat]),
+          label: stat
+        }], { xLabel: 'Day', yLabel: '', yMin: 0, yMax: 100, areaFill: true, xLabels });
+      });
+    });
+
+    statSection.appendChild(statRow);
+    app.appendChild(statSection);
+
+    // ---- HEATMAP ----
+    const hmSection = el('div', 'section fade-in', delay());
+    hmSection.innerHTML = `
+      <div class="section-header">
+        <div class="section-title">Critical Stat Heatmap</div>
+        <div class="section-subtitle">When vitals become dangerous — Smart strategy</div>
+      </div>
+    `;
+
+    const hmRow = el('div', 'chart-row cols-1');
+    const hmCell = el('div', 'chart-cell compact');
+    hmCell.innerHTML = '<div class="chart-label">Stat Values by Day <span class="tag">brighter = more dangerous</span></div>';
+    const hmWrap = el('div', 'chart-wrap');
+    hmCell.appendChild(hmWrap);
+    hmRow.appendChild(hmCell);
+    hmSection.appendChild(hmRow);
+    app.appendChild(hmSection);
+
+    requestAnimationFrame(() => {
+      const target = data.smart || data[strategies[0]];
+      if (!target?.avgStatsByDay) return;
+      const days = Object.keys(target.avgStatsByDay).map(Number).sort((a, b) => a - b);
+      const hmData = stats.map(stat => days.map(d => target.avgStatsByDay[d][stat]));
+      chartHeatmap(hmWrap, hmData, {
+        xLabels: days.map(String),
+        yLabels: stats.map(s => s.charAt(0).toUpperCase() + s.slice(1))
+      });
+    });
+
+    // ---- DISTRIBUTIONS ----
+    const distSection = el('div', 'section fade-in', delay());
+    distSection.innerHTML = `
+      <div class="section-header">
+        <div class="section-title">Distributions</div>
+        <div class="section-subtitle">Spread of survival and distance outcomes</div>
+      </div>
+    `;
+
+    const distRow = el('div', 'chart-row cols-2');
+    const daysDistCell = el('div', 'chart-cell compact');
+    daysDistCell.innerHTML = '<div class="chart-label">Days Survived <span class="tag">all strategies</span></div>';
+    const daysDistWrap = el('div', 'chart-wrap');
+    daysDistCell.appendChild(daysDistWrap);
+    distRow.appendChild(daysDistCell);
+
+    const milesDistCell = el('div', 'chart-cell compact');
+    milesDistCell.innerHTML = '<div class="chart-label">Distance Covered <span class="tag">all strategies</span></div>';
+    const milesDistWrap = el('div', 'chart-wrap');
+    milesDistCell.appendChild(milesDistWrap);
+    distRow.appendChild(milesDistCell);
+
+    distSection.appendChild(distRow);
+
+    // Per-strategy distributions
+    const distRow2 = el('div', 'chart-row cols-' + Math.min(strategies.length, 3));
+    strategies.forEach(s => {
+      const cell = el('div', 'chart-cell compact');
+      cell.innerHTML = `<div class="chart-label">${P.strategies[s]?.label || s} <span class="tag">days survived</span></div>`;
+      const wrap = el('div', 'chart-wrap');
+      cell.appendChild(wrap);
+      distRow2.appendChild(cell);
+      requestAnimationFrame(() => {
+        chartHistogram(wrap, data[s].days.sorted, {
+          color: P.strategies[s]?.color || '#888',
+          xLabel: 'Days'
+        });
+      });
+    });
+
+    distSection.appendChild(distRow2);
+    app.appendChild(distSection);
+
+    requestAnimationFrame(() => {
+      chartHistogram(daysDistWrap, allDays, { color: '#d4883a', xLabel: 'Days' });
+      chartHistogram(milesDistWrap, allDist, { color: '#6b9cc0', xLabel: 'Miles' });
+    });
+
+    // ---- DEATH BREAKDOWN ----
+    const deathSection = el('div', 'section fade-in', delay());
+    deathSection.innerHTML = `
+      <div class="section-header">
+        <div class="section-title">Death Analysis</div>
+        <div class="section-subtitle">How each strategy meets its end</div>
+      </div>
+    `;
+
+    const deathRow = el('div', 'chart-row cols-2');
+
+    // Stacked bars
+    const stackedCell = el('div', 'chart-cell');
+    stackedCell.innerHTML = '<div class="chart-label">Death Distribution <span class="tag">% per strategy</span></div>';
+    const stackedWrap = el('div', 'chart-wrap');
+    stackedCell.appendChild(stackedWrap);
+    const allCauses = [...new Set(strategies.flatMap(s => Object.keys(data[s].deathCauses)))];
+    const causeColors = allCauses.map(c => P.deaths[c] || '#888');
+    stackedCell.appendChild(makeLegend(allCauses.map((c, i) => [c, causeColors[i]])));
+    deathRow.appendChild(stackedCell);
+
+    // Per-strategy detail (pick the most interesting one — smart)
+    const detailStrat = data.smart ? 'smart' : strategies[0];
+    const detailCell = el('div', 'chart-cell');
+    detailCell.innerHTML = `<div class="chart-label">${P.strategies[detailStrat]?.label || detailStrat} <span class="tag">death breakdown</span></div>`;
+    const detailWrap = el('div', 'chart-wrap');
+    detailCell.appendChild(detailWrap);
+    deathRow.appendChild(detailCell);
+
+    deathSection.appendChild(deathRow);
+
+    // Remaining strategies
+    const remainingStrats = strategies.filter(s => s !== detailStrat);
+    if (remainingStrats.length > 0) {
+      const deathRow2 = el('div', 'chart-row cols-' + Math.min(remainingStrats.length, 4));
+      remainingStrats.forEach(s => {
+        const cell = el('div', 'chart-cell compact');
+        cell.innerHTML = `<div class="chart-label">${P.strategies[s]?.label || s} <span class="tag">deaths</span></div>`;
+        const wrap = el('div', 'chart-wrap');
+        cell.appendChild(wrap);
+        deathRow2.appendChild(cell);
+        requestAnimationFrame(() => {
+          const causes = Object.keys(data[s].deathCauses);
+          const vals = causes.map(c => data[s].deathCauses[c]);
+          const cols = causes.map(c => P.deaths[c] || '#888');
+          chartHBars(wrap, causes, vals, cols);
+        });
+      });
+      deathSection.appendChild(deathRow2);
+    }
+
+    app.appendChild(deathSection);
+
+    requestAnimationFrame(() => {
+      const matrix = strategies.map(s => allCauses.map(c => data[s].deathCauses[c] || 0));
+      chartStackedBars(stackedWrap, strategies.map(s => P.strategies[s]?.label || s), allCauses, matrix, causeColors);
+
+      const dCauses = Object.keys(data[detailStrat].deathCauses);
+      const dVals = dCauses.map(c => data[detailStrat].deathCauses[c]);
+      const dCols = dCauses.map(c => P.deaths[c] || '#888');
+      chartHBars(detailWrap, dCauses, dVals, dCols);
+    });
+
+    // ---- ENCOUNTER FREQUENCY ----
+    // Combine encounter frequency data across all strategies
+    const combinedTerrains = {};
+    const combinedOpps = {};
+    const combinedPressures = {};
+    let encTotal = 0;
+    for (const d of Object.values(data)) {
+      if (!d.encounterFrequency) continue;
+      encTotal += d.encounterFrequency.totalEncounters;
+      for (const [id, c] of Object.entries(d.encounterFrequency.terrains || {})) combinedTerrains[id] = (combinedTerrains[id] || 0) + c;
+      for (const [id, c] of Object.entries(d.encounterFrequency.opportunities || {})) combinedOpps[id] = (combinedOpps[id] || 0) + c;
+      for (const [id, c] of Object.entries(d.encounterFrequency.pressures || {})) combinedPressures[id] = (combinedPressures[id] || 0) + c;
+    }
+
+    if (encTotal > 0) {
+      const encSection = el('div', 'section fade-in', delay());
+      encSection.innerHTML = `
+        <div class="section-header">
+          <div class="section-title">Encounter Frequency</div>
+          <div class="section-subtitle">${encTotal.toLocaleString()} total encounters across all strategies</div>
+        </div>
+      `;
+
+      const sortDesc = (obj) => Object.entries(obj).sort((a, b) => b[1] - a[1]);
+
+      // Terrains
+      const encRow1 = el('div', 'chart-row cols-2');
+      const terrainCell = el('div', 'chart-cell');
+      terrainCell.innerHTML = '<div class="chart-label">Terrains <span class="tag">% of encounters</span></div>';
+      const terrainWrap = el('div', 'chart-wrap');
+      terrainCell.appendChild(terrainWrap);
+      encRow1.appendChild(terrainCell);
+
+      // Opportunities
+      const oppCell = el('div', 'chart-cell');
+      oppCell.innerHTML = '<div class="chart-label">Opportunities <span class="tag">% of encounters</span></div>';
+      const oppWrap = el('div', 'chart-wrap');
+      oppCell.appendChild(oppWrap);
+      encRow1.appendChild(oppCell);
+      encSection.appendChild(encRow1);
+
+      // Pressures
+      const encRow2 = el('div', 'chart-row cols-2');
+      const pressCell = el('div', 'chart-cell');
+      pressCell.innerHTML = '<div class="chart-label">Pressures <span class="tag">% of encounters</span></div>';
+      const pressWrap = el('div', 'chart-wrap');
+      pressCell.appendChild(pressWrap);
+      encRow2.appendChild(pressCell);
+
+      // Empty cell for balance
+      const emptyCell = el('div', 'chart-cell compact');
+      emptyCell.innerHTML = `<div class="chart-label">Summary</div>
+        <div style="color:var(--text-dim);font-size:0.85rem;line-height:1.8;padding-top:0.5rem">
+          <div>Terrains: <span style="color:var(--amber-bright)">${Object.keys(combinedTerrains).length}</span> unique</div>
+          <div>Opportunities: <span style="color:var(--amber-bright)">${Object.keys(combinedOpps).length}</span> unique</div>
+          <div>Pressures: <span style="color:var(--amber-bright)">${Object.keys(combinedPressures).length}</span> unique</div>
+          <div>Total encounters: <span style="color:var(--amber-bright)">${encTotal.toLocaleString()}</span></div>
+        </div>`;
+      encRow2.appendChild(emptyCell);
+      encSection.appendChild(encRow2);
+      app.appendChild(encSection);
+
+      requestAnimationFrame(() => {
+        const tSorted = sortDesc(combinedTerrains);
+        const tLabels = tSorted.map(e => e[0]);
+        const tVals = tSorted.map(e => e[1]);
+        const tColors = tLabels.map((_, i) => {
+          const t = i / tLabels.length;
+          return `hsl(${30 + t * 15}, ${60 - t * 20}%, ${55 - t * 15}%)`;
+        });
+        chartHBars(terrainWrap, tLabels, tVals, tColors);
+
+        const oSorted = sortDesc(combinedOpps);
+        const oLabels = oSorted.map(e => e[0]);
+        const oVals = oSorted.map(e => e[1]);
+        const oColors = oLabels.map((_, i) => {
+          const t = i / oLabels.length;
+          return `hsl(${200 + t * 20}, ${50 - t * 15}%, ${55 - t * 15}%)`;
+        });
+        chartHBars(oppWrap, oLabels, oVals, oColors);
+
+        const pSorted = sortDesc(combinedPressures);
+        const pLabels = pSorted.map(e => e[0]);
+        const pVals = pSorted.map(e => e[1]);
+        const pColors = pLabels.map((_, i) => {
+          const t = i / pLabels.length;
+          return `hsl(${10 + t * 10}, ${55 - t * 15}%, ${50 - t * 12}%)`;
+        });
+        chartHBars(pressWrap, pLabels, pVals, pColors);
+      });
+    }
+  }
+
+  // ============================================================
+  // HELPERS
+  // ============================================================
+  function el(tag, cls, style) {
+    const e = document.createElement(tag);
+    if (cls) e.className = cls;
+    if (style) e.style.cssText = style;
+    return e;
+  }
+
+  function makeLegend(items, shape = 'dot') {
+    const div = el('div', 'legend');
+    for (const [label, color] of items) {
+      const item = el('div', 'legend-item');
+      const swatch = el('span', shape === 'line' ? 'legend-line' : 'legend-dot');
+      swatch.style.background = color;
+      item.appendChild(swatch);
+      item.appendChild(document.createTextNode(label));
+      div.appendChild(item);
+    }
+    return div;
+  }
+
+  // ============================================================
+  // INIT
+  // ============================================================
+  async function init() {
+    let data;
+    try {
+      const resp = await fetch('results/latest.json');
+      if (!resp.ok) throw new Error('HTTP ' + resp.status);
+      data = await resp.json();
+    } catch (e) {
+      document.getElementById('loading').innerHTML =
+        `<div style="color:#c44536">Could not load simulation data.</div>
+         <div style="margin-top:1rem;font-size:0.9rem;color:#8a7058">
+           Run the simulation first:<br>
+           <code style="color:#d4883a">node test/simulate.js --games=500 --strategy=all</code><br><br>
+           Then serve this directory:<br>
+           <code style="color:#d4883a">python3 -m http.server 8080 --directory test/</code>
+         </div>`;
+      return;
+    }
+
+    document.getElementById('loading').style.display = 'none';
+    document.getElementById('app').style.display = 'block';
+    build(data);
+  }
+
+  init();
+  </script>
+</body>
+</html>
