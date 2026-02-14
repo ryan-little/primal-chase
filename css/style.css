@@ -272,6 +272,37 @@ body.night-mode .night-bg {
     0 6px 16px rgba(0, 0, 0, 0.6);
 }
 
+/* ===== CREATOR CREDIT ===== */
+.creator-credit {
+  font-family: Georgia, serif;
+  font-size: 0.8em;
+  color: rgba(184, 148, 79, 0.35);
+  margin-top: 1.5rem;
+  letter-spacing: 0.5px;
+  opacity: 0;
+  animation: fade-in 1s ease 1.5s forwards;
+}
+
+.creator-credit a {
+  color: rgba(184, 148, 79, 0.5);
+  text-decoration: none;
+  transition: color 0.3s ease;
+}
+
+.creator-credit a:hover {
+  color: var(--text-primary);
+}
+
+.death-container .creator-credit {
+  margin-top: 1.2rem;
+  animation-delay: 0s;
+  opacity: 0;
+}
+
+.death-results-visible .creator-credit {
+  animation: death-fade-in 1s ease 0.5s forwards;
+}
+
 /* ===== GAME SCREEN ===== */
 #screen-game.active {
   justify-content: flex-start;
