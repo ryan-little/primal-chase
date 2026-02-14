@@ -603,6 +603,62 @@ const Encounters = {
       text: 'A massive skull rests half-buried in the soil, horns curving outward like a crown. The bone is polished by sun and wind to the color of old ivory.',
       actions: [],
       modifiers: {}
+    },
+    {
+      id: 'mouse_nest',
+      name: 'a nest of field mice',
+      text: 'A small mound of woven grass hides a nest alive with movement. Tiny shapes scatter at your approach, but not all of them escape.',
+      actions: [{ key: 'eat', name: 'Raid Nest', description: 'Dig into the nest for an easy meal', chance: 0.8 }],
+      modifiers: {}
+    },
+    {
+      id: 'hippo_territory',
+      name: 'hippo territory',
+      text: 'Massive shapes loom in the shallows, ears twitching, eyes just above the waterline. The mud is carved with their trails. This water belongs to them.',
+      actions: [],
+      modifiers: { push: { stamina: -5 }, trot: { stamina: -3 }, rest: { heat: 4 } }
+    },
+    {
+      id: 'regrowth_shoots',
+      name: 'new green shoots',
+      text: 'Bright green pushes through the blackened earth — life returning already, impossibly quick. Small creatures have come to graze on the new growth.',
+      actions: [{ key: 'eat', name: 'Hunt Grazers', description: 'Stalk the small animals feeding on new growth', chance: 0.6 }],
+      modifiers: { rest: { heat: -3 } }
+    },
+    {
+      id: 'aardvark_hole',
+      name: 'an aardvark burrow',
+      text: 'A deep hole opens in the red clay, its edges polished smooth by nightly use. Cool air rises from the darkness below.',
+      actions: [],
+      modifiers: { rest: { heat: -8, stamina: 5 } }
+    },
+    {
+      id: 'bark_water',
+      name: 'water pooled in bark',
+      text: 'Rainwater has gathered in the deep folds of the trunk, a cupped palm of clear water held high above the ground. A small, private gift.',
+      actions: [{ key: 'drink', name: 'Drink', description: 'Lap water from the bark hollow', chance: 1.0 }],
+      modifiers: {}
+    },
+    {
+      id: 'mosquito_swarm',
+      name: 'a cloud of mosquitoes',
+      text: 'They rise from the damp ground in a whining curtain, finding every fold of skin, every soft place. There is no fighting them — only enduring.',
+      actions: [],
+      modifiers: { rest: { stamina: -4 }, trot: { stamina: -2 }, push: { stamina: -2 } }
+    },
+    {
+      id: 'frog_chorus',
+      name: 'a chorus of frogs',
+      text: 'Dozens of voices rise from the water\'s edge in overlapping song, a sound older than anything with legs. Where frogs sing, the water runs clean.',
+      actions: [],
+      modifiers: { rest: { stamina: 3 } }
+    },
+    {
+      id: 'herd_distant',
+      name: 'a distant herd',
+      text: 'Dark shapes move across the far plain like a slow river — wildebeest or zebra, too far to tell. They drift with the grass, unconcerned.',
+      actions: [{ key: 'eat', name: 'Stalk', description: 'Close the distance and attempt a hunt', chance: 0.35 }],
+      modifiers: { push: { stamina: 3 } }
     }
   ],
 

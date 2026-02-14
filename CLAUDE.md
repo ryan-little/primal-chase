@@ -37,7 +37,7 @@ PrimalChase/
 │   └── style.css       ← atmospheric styling, savannah textures, night mode, animations
 ├── js/
 │   ├── config.js       ← ALL balance numbers and tunable constants (LOAD FIRST)
-│   ├── encounters.js   ← combinatorial generator (32 terrains, 42 opportunities, 22 pressures) + signature + rare
+│   ├── encounters.js   ← combinatorial generator (32 terrains, 52 opportunities, 22 pressures) + signature + rare
 │   ├── monologue.js    ← internal monologue system (182 fragments, mood/event/day/nightOnly-tagged)
 │   ├── hunters.js      ← hunter pursuit/tracking/escalation logic + flavor text (6 per tier per phase)
 │   ├── game.js         ← core game loop, state machine, phase transitions, action history tracking
@@ -161,7 +161,7 @@ Each turn = 1 day with DAY phase then NIGHT phase. Player makes one action per p
 
 ### Encounter System (Hybrid)
 
-**Layer 1 — Combinatorial:** Terrain (32) + Opportunity (42) + Pressure (22) = unique situation with contextual actions. Each terrain has `text` and `nightText` variants. Pressures include night-only and condition-gated variants. Recent buffers: terrains=10, opportunities=12, pressures=7.
+**Layer 1 — Combinatorial:** Terrain (32) + Opportunity (52) + Pressure (22) = unique situation with contextual actions. Each terrain has `text` and `nightText` variants. Pressures include night-only and condition-gated variants. Recent buffers: terrains=10, opportunities=12, pressures=7.
 
 **Layer 2 — Signature:** ~50 hand-crafted encounters that override the generator. Max once per run. Some day-gated.
 
@@ -216,7 +216,7 @@ Local only (localStorage). Top 10 runs. Displayed on "The Longest Strides" scree
 The simulation engine (`test/simulate.js`) is a reusable tool for balance testing:
 
 ```bash
-# Run full simulation (500 games x 5 strategies)
+# Run full simulation (500 games x 6 strategies)
 node test/simulate.js --games=500 --strategy=all
 
 # Generate ASCII report
@@ -280,7 +280,7 @@ The writing tone is atmospheric and primal. Think Cormac McCarthy meets nature d
 ## Known Issues
 
 - Share image clipboard copy requires HTTPS (secure context). Falls back to PNG download on file://. GitHub issue #1.
-- 8 terrains have `compatible` arrays referencing opportunity IDs that don't exist yet (pre-existing from V1 — `mouse_nest`, `hippo_territory`, `regrowth_shoots`, `aardvark_hole`, `bark_water`, `mosquito_swarm`, `frog_chorus`, `herd_distant`). The generator handles this gracefully by falling back to random compatible opportunities, but these should be added in a future content pass.
+- (Resolved) All 8 previously missing opportunity IDs have been added: `mouse_nest`, `hippo_territory`, `regrowth_shoots`, `aardvark_hole`, `bark_water`, `mosquito_swarm`, `frog_chorus`, `herd_distant`.
 
 ## Future Ideas (V2+)
 
@@ -290,4 +290,4 @@ The writing tone is atmospheric and primal. Think Cormac McCarthy meets nature d
 - Actual map/territory system
 - Sound design / ambient audio
 - Web-hosted percentile comparison (not just local sim data)
-- Add the missing opportunity IDs referenced by existing terrains
+- Encounter frequency analytics in Balance Lab dashboard
