@@ -6,11 +6,11 @@ A text-based, browser-playable survival strategy game. You play as an apex preda
 
 **Tech stack:** Vanilla HTML/CSS/JS. No frameworks, no build step, no dependencies. Single `index.html` entry point.
 
-**Hosting:** GitHub Pages via `ryan-little/primal-chase`. Custom domain `primalchase.com` (purchased on Cloudflare).
+**Hosting:** GitHub Pages via `ryan-little/primal-chase`. Custom domain `primalchase.com` (Cloudflare DNS). Game Analytics dashboard at `primalchase.com/stats/`.
 
-**Git workflow:** `main` branch for deployment (GitHub Pages). `v1` branch for development. V1.4 is the first shippable version.
+**Git workflow:** `main` branch for deployment (GitHub Pages). `v1` branch for development.
 
-**Current status:** V1.4 — first shippable version. Ready for real-world testing and GitHub Pages deployment.
+**Current status:** V1.5 — live at primalchase.com. Game analytics dashboard deployed at /stats/.
 
 ## Critical Rules
 
@@ -47,10 +47,14 @@ PrimalChase/
 │   ├── primalchaselogo.png       ← randomly selected on title screen
 │   ├── primalchaselogoout.png    ← randomly selected on title screen
 │   └── primalchaselogoreign.png  ← randomly selected on title screen
+├── stats/
+│   ├── index.html      ← Game Analytics dashboard (deployed at /stats/)
+│   └── results/
+│       └── latest.json ← simulation data for the dashboard
 ├── test/
 │   ├── simulate.js     ← reusable simulation engine (runs N games with configurable strategies)
 │   ├── report.js       ← ASCII report generator with charts
-│   ├── charts.html     ← Balance Lab web dashboard for visualizing simulation data
+│   ├── charts.html     ← Game Analytics dashboard (dev copy, same as stats/index.html)
 │   ├── baseline-stats.json ← sorted arrays from 3000 sim runs (used for percentile calculations)
 │   └── results/        ← timestamped simulation outputs and latest-report.txt
 ├── docs/               ← reference docs, not deployed
@@ -222,17 +226,21 @@ node test/simulate.js --games=500 --strategy=all
 # Generate ASCII report
 node test/report.js
 
-# Open charts dashboard
+# Open charts dashboard locally
 open test/charts.html
+
+# After sim: copy updated data to deployed stats page
+cp test/results/latest.json stats/results/latest.json
+cp test/charts.html stats/index.html
 ```
 
-**Strategies:** push-heavy, trot-heavy, balanced, rest-heavy, smart (stat-urgency heuristic), gto (expected-value optimizer)
+**Strategies:** push-heavy, trot-heavy, balanced, rest-heavy, smart (stat-urgency heuristic), GTO (expected-value optimizer)
 
 **Current balance (from latest sim — 3000 games, 6 strategies):**
-- GTO strategy: avg 10.4 days, median 10, max 23, avg distance 56.7 mi
-- Smart strategy: avg 8.8 days, median 9, max 15
-- Overall average: 7.1 days across all strategies
-- Death distribution: dehydration 36%, caught 31%, exhaustion 22%, starvation 10%, heatstroke 2%
+- GTO strategy: avg 10.4-10.8 days, median 10-11, max 23
+- Smart strategy: avg 8.7-8.8 days, median 9
+- Overall average: ~7.1 days across all strategies
+- Death distribution: dehydration ~36%, caught ~31%, exhaustion ~22%, starvation ~10%, heatstroke ~2%
 
 **After balance changes:** Re-run simulation, compute new percentile breakpoints, and update `BASELINE_PERCENTILES` in score.js.
 
@@ -273,6 +281,14 @@ All 8 implementation phases complete: simulation engine, stat display honesty, e
 - GTO simulation strategy added (expected-value optimizer, avg 10.4 days)
 - Percentile breakpoints refreshed from 3000-game simulation dataset
 
+### V1.5 — Analytics Dashboard & Creator Credit
+- "A game by Ryan Little" credit on title screen, "Made by Ryan Little" on death screen (links to ryan-little.com)
+- Game Analytics dashboard: renamed from Balance Lab, collapsible sections, deployed at primalchase.com/stats/
+- Encounter frequency analysis: HTML/CSS bar charts showing terrain, opportunity, and pressure distribution
+- All 8 missing opportunity IDs filled in (mouse_nest, hippo_territory, regrowth_shoots, aardvark_hole, bark_water, mosquito_swarm, frog_chorus, herd_distant)
+- Encounter frequency tracking added to simulation engine, ASCII report, and dashboard
+- GTO label properly capitalized throughout
+
 ## Content Guidelines
 
 The writing tone is atmospheric and primal. Think Cormac McCarthy meets nature documentary. The animal is intelligent but not human — it thinks in sensation, instinct, and growing unease. Avoid modern language or humor. Everything should feel ancient, inevitable, and earned.
@@ -280,8 +296,6 @@ The writing tone is atmospheric and primal. Think Cormac McCarthy meets nature d
 ## Known Issues
 
 - Share image clipboard copy requires HTTPS (secure context). Falls back to PNG download on file://. GitHub issue #1.
-- (Resolved) All 8 previously missing opportunity IDs have been added: `mouse_nest`, `hippo_territory`, `regrowth_shoots`, `aardvark_hole`, `bark_water`, `mosquito_swarm`, `frog_chorus`, `herd_distant`.
-
 ## Future Ideas (V2+)
 
 - Personalized death tips based on narrativeLog
@@ -290,4 +304,4 @@ The writing tone is atmospheric and primal. Think Cormac McCarthy meets nature d
 - Actual map/territory system
 - Sound design / ambient audio
 - Web-hosted percentile comparison (not just local sim data)
-- Encounter frequency analytics in Balance Lab dashboard
+- stats.primalchase.com subdomain for analytics (currently at /stats/)
