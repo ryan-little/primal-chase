@@ -39,12 +39,28 @@ const Options = {
   }
 };
 
-const INTRO_PARAGRAPHS = [
-  "You stand at the crest of a ridge, the savanna golden and endless beneath you. The air is still. The land is yours.",
-  "But today, something is different. On the far horizon, where the heat bends the light — shapes. Upright. Moving.",
-  "They do not run. They do not crouch or stalk. They just walk. Steady. Patient. Toward you.",
-  "Something deeper than thought tells you what this means. Something old. Something the body knows before the mind can name it.",
-  "You turn. You run. The chase begins."
+const INTRO_SETS = [
+  [
+    "You stand at the crest of a ridge, the savanna golden and endless beneath you. The air is still. The land is yours.",
+    "But today, something is different. On the far horizon, where the heat bends the light — shapes. Upright. Moving.",
+    "They do not run. They do not crouch or stalk. They just walk. Steady. Patient. Toward you.",
+    "Something deeper than thought tells you what this means. Something old. Something the body knows before the mind can name it.",
+    "You turn. You run. The chase begins."
+  ],
+  [
+    "The morning is warm and the grass is high and the world belongs to you. You have eaten well. You are strong.",
+    "Then the wind shifts. A scent — strange, sharp, wrong. And beneath it, the faintest vibration in the earth. Footsteps. Many of them.",
+    "You see them now. Distant figures, moving in a line across the open plain. They carry no fear. They carry no hurry.",
+    "Every instinct screams at once. Not to fight. Not to hide. To run. To run and never stop.",
+    "The savanna stretches ahead. You choose distance. The chase begins."
+  ],
+  [
+    "Dawn breaks over the thornwood and you drink from a still pool, unhurried. Nothing here can threaten you. You are the reason other creatures run.",
+    "A bird screams. Then another. The acacia grove goes silent in a wave, spreading outward from a point behind you.",
+    "You turn and see them. Small against the vastness, but unmistakable. Walking. Two legs. Steady as the sun's arc.",
+    "You have never seen anything walk toward you like that. Without hesitation. Without fear. The wrongness of it settles in your chest like a stone.",
+    "You do not understand what is happening. But your legs do. The chase begins."
+  ]
 ];
 
 const UI = {
@@ -98,8 +114,11 @@ const UI = {
     this._typewriterSkipped = false;
     this._typewriterFinished = false;
 
+    // Pick a random intro set
+    const introParagraphs = INTRO_SETS[Math.floor(Math.random() * INTRO_SETS.length)];
+
     // Create paragraph elements
-    INTRO_PARAGRAPHS.forEach(text => {
+    introParagraphs.forEach(text => {
       const p = document.createElement('p');
       p.innerHTML = text;
       content.appendChild(p);
