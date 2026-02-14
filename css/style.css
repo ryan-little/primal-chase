@@ -453,6 +453,7 @@ body.night-mode::after {
   line-height: 1.7;
   color: var(--text-secondary);
   margin-bottom: 0.8rem;
+  text-align: center;
 }
 
 .situation-text p {
@@ -468,13 +469,12 @@ body.night-mode::after {
 }
 
 .monologue {
-  padding-left: 1.2rem;
-  border-left: 2px solid var(--text-gold);
   font-style: italic;
   color: var(--text-gold);
   font-size: 1em;
   line-height: 1.6;
   margin-bottom: 0.5rem;
+  text-align: center;
 }
 
 .monologue-label {
@@ -486,6 +486,7 @@ body.night-mode::after {
   letter-spacing: 1.5px;
   color: rgba(212, 165, 116, 0.5);
   margin-bottom: 0.3rem;
+  text-align: center;
 }
 
 /* ===== ACTION BUTTONS (ALWAYS VISIBLE) ===== */
