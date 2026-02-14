@@ -2,7 +2,8 @@ const Options = {
   _defaults: {
     difficulty: 'normal',
     showOpening: true,
-    typewriterEffect: true
+    typewriterEffect: true,
+    typewriterSpeed: 20
   },
 
   _values: null,
@@ -876,6 +877,21 @@ const UI = {
       typewriterBtn.textContent = on ? 'ON' : 'OFF';
       typewriterBtn.classList.toggle('off', !on);
     }
+    // Sync speed slider visibility and value
+    this._syncSpeedSlider();
+  },
+
+  _syncSpeedSlider() {
+    const speedRow = document.getElementById('typewriter-speed-row');
+    const speedSlider = document.getElementById('opt-typewriter-speed');
+    const on = Options.get('typewriterEffect');
+    if (speedRow) {
+      speedRow.classList.toggle('visible', on);
+    }
+    if (speedSlider) {
+      const speed = Options.get('typewriterSpeed') || CONFIG.typewriter.speed;
+      speedSlider.value = speed;
+    }
   },
 
   /**
@@ -1014,8 +1030,22 @@ const UI = {
         const newVal = Options.toggle(key);
         btn.textContent = newVal ? 'ON' : 'OFF';
         btn.classList.toggle('off', !newVal);
+        // Show/hide speed slider when typewriter toggled
+        if (key === 'typewriterEffect') {
+          this._syncSpeedSlider();
+        }
       };
     });
+
+    // Typewriter speed slider
+    const speedSlider = document.getElementById('opt-typewriter-speed');
+    if (speedSlider) {
+      speedSlider.oninput = () => {
+        const speed = parseInt(speedSlider.value, 10);
+        Options.set('typewriterSpeed', speed);
+        CONFIG.typewriter.speed = speed;
+      };
+    }
   },
 
   /**
@@ -1023,6 +1053,11 @@ const UI = {
    */
   init() {
     Options.load();
+    // Apply saved typewriter speed
+    const savedSpeed = Options.get('typewriterSpeed');
+    if (savedSpeed && typeof CONFIG !== 'undefined') {
+      CONFIG.typewriter.speed = savedSpeed;
+    }
     this.bindEvents();
     this.renderTitle();
   }

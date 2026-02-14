@@ -24,7 +24,7 @@
         <button id="btn-start" class="title-btn title-btn-primary">Start the Hunt</button>
         <button id="btn-leaderboard" class="title-btn">The Longest Strides</button>
       </div>
-      <a id="btn-options" class="options-link">Options</a>
+      <button id="btn-options" class="title-btn title-btn-options">Options</button>
     </div>
   </div>
 
@@ -231,10 +231,10 @@
       <div class="options-content">
         <div class="option-row">
           <span class="option-label">Difficulty</span>
-          <div class="option-control">
+          <div class="option-control difficulty-control">
+            <button class="option-btn disabled" data-option="difficulty" data-value="easy" disabled>Easy</button>
             <button class="option-btn active" data-option="difficulty" data-value="normal">Normal</button>
-            <button class="option-btn disabled" data-option="difficulty" data-value="easy" disabled>Easy (Coming Soon)</button>
-            <button class="option-btn disabled" data-option="difficulty" data-value="hard" disabled>Hard (Coming Soon)</button>
+            <button class="option-btn disabled" data-option="difficulty" data-value="hard" disabled>Hard</button>
           </div>
         </div>
         <div class="option-row">
@@ -247,6 +247,14 @@
           <span class="option-label">Typewriter Effect</span>
           <div class="option-control">
             <button class="option-toggle active" id="opt-typewriter" data-option="typewriterEffect">ON</button>
+          </div>
+        </div>
+        <div class="option-row option-row-slider" id="typewriter-speed-row">
+          <span class="option-label">Typewriter Speed</span>
+          <div class="option-control slider-control">
+            <span class="slider-label">Fast</span>
+            <input type="range" id="opt-typewriter-speed" class="option-slider" min="5" max="50" value="20">
+            <span class="slider-label">Slow</span>
           </div>
         </div>
       </div>

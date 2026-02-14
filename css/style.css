@@ -910,24 +910,20 @@ body.night-mode::after {
   transform: translateY(0);
 }
 
-/* ===== OPTIONS SCREEN ===== */
-.options-link {
-  color: var(--text-secondary);
-  font-family: Georgia, serif;
-  font-size: 0.9em;
-  cursor: pointer;
-  opacity: 0.6;
-  transition: opacity 0.2s ease, color 0.2s ease;
-  letter-spacing: 0.5px;
+/* ===== OPTIONS BUTTON (styled like title buttons) ===== */
+.title-btn-options {
+  font-size: 0.85em;
+  padding: 0.7rem 1.5rem;
   margin-top: 0.8rem;
-  text-align: center;
+  opacity: 0.7;
+  animation: fade-in 0.8s ease 1.2s forwards;
 }
 
-.options-link:hover {
+.title-btn-options:hover {
   opacity: 1;
-  color: var(--text-primary);
 }
 
+/* ===== OPTIONS SCREEN ===== */
 .options-container {
   max-width: 600px;
   width: 100%;
@@ -969,17 +965,24 @@ body.night-mode::after {
 .option-control {
   display: flex;
   gap: 0.5rem;
+  align-items: center;
+}
+
+.difficulty-control {
+  gap: 0;
 }
 
 .option-btn {
   background: rgba(42, 26, 14, 0.6);
   color: var(--text-secondary);
   border: 1px solid var(--border-color);
-  padding: 0.5rem 1rem;
+  padding: 0.6rem 1.4rem;
   font-family: 'Courier New', monospace;
   font-size: 0.85em;
   cursor: pointer;
   transition: all 0.2s ease;
+  min-width: 5rem;
+  text-align: center;
 }
 
 .option-btn.active {
@@ -1011,6 +1014,63 @@ body.night-mode::after {
   color: var(--text-danger);
   border-color: var(--text-danger);
   background: rgba(42, 26, 14, 0.6);
+}
+
+/* Typewriter speed slider */
+.option-row-slider {
+  display: none;
+}
+
+.option-row-slider.visible {
+  display: flex;
+}
+
+.slider-control {
+  gap: 0.8rem;
+}
+
+.slider-label {
+  color: var(--text-secondary);
+  font-family: 'Courier New', monospace;
+  font-size: 0.75em;
+  opacity: 0.7;
+}
+
+.option-slider {
+  -webkit-appearance: none;
+  appearance: none;
+  width: 120px;
+  height: 6px;
+  background: rgba(42, 26, 14, 0.8);
+  border: 1px solid var(--border-color);
+  border-radius: 3px;
+  outline: none;
+  cursor: pointer;
+}
+
+.option-slider::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  appearance: none;
+  width: 16px;
+  height: 16px;
+  background: var(--text-primary);
+  border: 2px solid var(--border-color);
+  border-radius: 50%;
+  cursor: pointer;
+  transition: background 0.2s ease;
+}
+
+.option-slider::-webkit-slider-thumb:hover {
+  background: var(--text-gold);
+}
+
+.option-slider::-moz-range-thumb {
+  width: 16px;
+  height: 16px;
+  background: var(--text-primary);
+  border: 2px solid var(--border-color);
+  border-radius: 50%;
+  cursor: pointer;
 }
 
 /* ===== RESPONSIVE: TABLET ===== */
