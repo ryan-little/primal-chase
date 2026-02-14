@@ -129,6 +129,7 @@
         <button id="btn-submit-score" class="death-btn">Submit to Longest Strides</button>
         <button id="btn-return-title" class="death-btn">Return to Title</button>
       </div>
+      <div class="feedback-link">Have an idea or found a bug? <a href="mailto:ryan@ryanpdlittle.com">Let me know!</a></div>
       <div class="creator-credit">Made by <a href="https://ryan-little.com" target="_blank" rel="noopener">Ryan Little</a></div>
     </div>
   </div>
@@ -247,9 +248,9 @@
         <div class="option-row">
           <span class="option-label">Difficulty</span>
           <div class="option-control difficulty-control">
-            <button class="option-btn disabled" data-option="difficulty" data-value="easy" disabled>Easy</button>
+            <button class="option-btn" data-option="difficulty" data-value="easy">Easy</button>
             <button class="option-btn active" data-option="difficulty" data-value="normal">Normal</button>
-            <button class="option-btn disabled" data-option="difficulty" data-value="hard" disabled>Hard</button>
+            <button class="option-btn" data-option="difficulty" data-value="hard">Hard</button>
           </div>
         </div>
         <div class="option-row">
@@ -282,6 +283,9 @@
       <button id="btn-options-back" class="back-btn">Return to Title</button>
     </div>
   </div>
+
+  <!-- Version badge (visible on all screens) -->
+  <div id="version-badge">v1.7</div>
 
   <!-- Hidden canvas for share image generation -->
   <canvas id="share-canvas" style="display: none;"></canvas>

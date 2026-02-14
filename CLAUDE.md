@@ -10,7 +10,7 @@ A text-based, browser-playable survival strategy game. You play as an apex preda
 
 **Git workflow:** `main` branch for deployment (GitHub Pages). `v1` branch for development.
 
-**Current status:** V1.6 — live at primalchase.com. Game analytics dashboard deployed at /stats/.
+**Current status:** V1.7 — live at primalchase.com. Game analytics dashboard deployed at /stats/.
 
 ## Critical Rules
 
@@ -220,7 +220,10 @@ Local only (localStorage). Top 10 runs. Displayed on "The Longest Strides" scree
 The simulation engine (`test/simulate.js`) is a reusable tool for balance testing:
 
 ```bash
-# Run full simulation (500 games x 6 strategies)
+# Run full simulation (1000 games x 6 strategies x 3 difficulties)
+node test/simulate.js --games=1000 --strategy=all --difficulty=all
+
+# Run normal-only simulation
 node test/simulate.js --games=500 --strategy=all
 
 # Generate ASCII report
@@ -236,11 +239,13 @@ cp test/charts.html stats/index.html
 
 **Strategies:** push-heavy, trot-heavy, balanced, rest-heavy, smart (stat-urgency heuristic), GTO (expected-value optimizer)
 
-**Current balance (from latest sim — 3000 games, 6 strategies):**
-- GTO strategy: avg 10.4-10.8 days, median 10-11, max 23
-- Smart strategy: avg 8.7-8.8 days, median 9
-- Overall average: ~7.1 days across all strategies
-- Death distribution: dehydration ~36%, caught ~31%, exhaustion ~22%, starvation ~10%, heatstroke ~2%
+**Difficulty flag:** `--difficulty=all|easy|normal|hard` (default: `normal`). Output is always nested by difficulty: `{ "normal": { ... }, "easy": { ... }, "hard": { ... } }`. Baseline stats for percentiles computed from normal data only.
+
+**Current balance (from latest sim — Normal difficulty):**
+- Balance tweaks in V1.7: eat thirst reset reduced (-50→-30), night heat drain reduced (-10→-8), day rest heat reduced (-25→-20)
+- GTO strategy: avg ~10-11 days, median 10-11, max ~23
+- Smart strategy: avg ~8-9 days, median 9
+- Death distribution: dehydration dominant, caught ~30%, exhaustion ~20%, starvation ~10%, heatstroke ~2-3%
 
 **After balance changes:** Re-run simulation, compute new percentile breakpoints, and update `BASELINE_PERCENTILES` in score.js.
 
@@ -302,6 +307,25 @@ All 8 implementation phases complete: simulation engine, stat display honesty, e
 - Removed unused sparkline() function from report.js
 - Removed unused variables from charts.html dashboard (CSS, shown)
 - GitHub issue #1 closed (share image clipboard works on HTTPS)
+
+### V1.7 — Difficulty System, Balance Tweaks, Situation-Aware Monologues & Dashboard Overhaul
+- **Difficulty system**: Easy / Normal / Hard modes with CONFIG overrides applied at game start
+  - `CONFIG.difficulty.easy` and `CONFIG.difficulty.hard` override starting distance, hunter speed, escalation, passive drains
+  - `CONFIG._base` snapshot at load time; `Game.applyDifficulty(level)` restores base then deep-merges overrides
+  - Options screen: all 3 difficulty buttons now functional, selection persists in localStorage
+- **Balance tweaks** (Normal mode): night heat drain -10→-8, day rest heat -25→-20, eat thirst -50→-30 (day+night)
+  - Removed vestigial `drinkAvailableChance`, `eatAvailableChance`, `loseHuntersChance` from CONFIG.encounters
+- **Simulation**: `--difficulty` flag (`all|easy|normal|hard`), output nested by difficulty level
+  - Baseline stats computed from normal-difficulty data only
+- **Dashboard overhaul**: TOC nav, collapsed-by-default sections, difficulty analysis section with summary cards + comparison table + auto-generated insights
+- Internal monologue system now terrain-aware and pressure-aware (~100 new fragments, ~280 total)
+- Terrain categories in CONFIG: water, open, dense, rocky, shelter — mapped to terrain IDs
+- Pressure categories in CONFIG: injury, weather, hunter_sign, decay — mapped to pressure IDs
+- getTriggers() extended: generates `terrain_*` and `pressure_*` triggers from current encounter
+- New fragment types: terrain-reactive, pressure-reactive, combined triggers (e.g. open+hunters_close), extra general mood
+- Combined trigger fragments fire on specific terrain+state combos (e.g. water+high_thirst, shelter+near_death)
+- Version badge (v1.7): fixed bottom-right corner, visible on all screens, subtle/unobtrusive
+- Feedback email link on death screen: "Have an idea or found a bug? Let me know!" above creator credit
 
 ## Content Guidelines
 

@@ -845,6 +845,11 @@ const UI = {
    */
   renderOptions() {
     this.showScreen('screen-options');
+    // Sync difficulty button active state
+    const currentDifficulty = Options.get('difficulty');
+    document.querySelectorAll('.option-btn[data-option="difficulty"]').forEach(btn => {
+      btn.classList.toggle('active', btn.dataset.value === currentDifficulty);
+    });
     // Sync toggle states
     const openingBtn = document.getElementById('opt-opening');
     const typewriterBtn = document.getElementById('opt-typewriter');
@@ -1013,6 +1018,15 @@ const UI = {
     if (btnOptionsBack) {
       btnOptionsBack.onclick = () => this.renderTitle();
     }
+
+    // Difficulty buttons
+    document.querySelectorAll('.option-btn[data-option="difficulty"]').forEach(btn => {
+      btn.onclick = () => {
+        Options.set('difficulty', btn.dataset.value);
+        document.querySelectorAll('.option-btn[data-option="difficulty"]').forEach(b => b.classList.remove('active'));
+        btn.classList.add('active');
+      };
+    });
 
     // Toggle buttons
     document.querySelectorAll('.option-toggle').forEach(btn => {

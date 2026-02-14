@@ -2,7 +2,7 @@
 // ============================================================
 // SIMULATE.JS — Primal Chase Simulation Engine
 // Plays N games with configurable strategies and records stats.
-// Usage: node test/simulate.js [--games=500] [--strategy=all|push-heavy|...]
+// Usage: node test/simulate.js [--games=500] [--strategy=all|push-heavy|...] [--difficulty=all|easy|normal|hard]
 // ============================================================
 
 const vm = require('vm');
@@ -582,12 +582,43 @@ function aggregateResults(results) {
 // ============================================================
 
 function parseArgs() {
-  const args = { games: 500, strategy: 'all' };
+  const args = { games: 500, strategy: 'all', difficulty: 'normal' };
   for (const arg of process.argv.slice(2)) {
     if (arg.startsWith('--games=')) args.games = parseInt(arg.split('=')[1], 10);
     if (arg.startsWith('--strategy=')) args.strategy = arg.split('=')[1];
+    if (arg.startsWith('--difficulty=')) args.difficulty = arg.split('=')[1];
   }
   return args;
+}
+
+/**
+ * Deep-merge source onto target (plain objects only)
+ */
+function deepMerge(target, source) {
+  for (const key of Object.keys(source)) {
+    if (source[key] && typeof source[key] === 'object' && !Array.isArray(source[key]) &&
+        target[key] && typeof target[key] === 'object' && !Array.isArray(target[key])) {
+      deepMerge(target[key], source[key]);
+    } else {
+      target[key] = source[key];
+    }
+  }
+}
+
+/**
+ * Apply difficulty overrides to a sandbox's CONFIG
+ */
+function applyDifficultyToSandbox(sandbox, level) {
+  // Restore from _base
+  const base = JSON.parse(JSON.stringify(sandbox.CONFIG._base));
+  for (const key of Object.keys(base)) {
+    if (key === '_base') continue;
+    sandbox.CONFIG[key] = base[key];
+  }
+  // Apply overrides
+  if (level && level !== 'normal' && sandbox.CONFIG.difficulty[level]) {
+    deepMerge(sandbox.CONFIG, sandbox.CONFIG.difficulty[level]);
+  }
 }
 
 function run() {
@@ -596,48 +627,60 @@ function run() {
     ? Object.keys(STRATEGIES)
     : [args.strategy];
 
+  const difficulties = args.difficulty === 'all'
+    ? ['easy', 'normal', 'hard']
+    : [args.difficulty];
+
   console.log(`\nPRIMAL CHASE SIMULATION ENGINE`);
   console.log(`${'='.repeat(50)}`);
   console.log(`Games per strategy: ${args.games}`);
   console.log(`Strategies: ${strategies.join(', ')}`);
+  console.log(`Difficulties: ${difficulties.join(', ')}`);
   console.log();
 
   const allResults = {};
 
-  for (const strategy of strategies) {
-    if (!STRATEGIES.hasOwnProperty(strategy)) {
-      console.error(`Unknown strategy: ${strategy}`);
-      continue;
+  for (const difficulty of difficulties) {
+    console.log(`--- ${difficulty.toUpperCase()} difficulty ---`);
+    allResults[difficulty] = {};
+
+    for (const strategy of strategies) {
+      if (!STRATEGIES.hasOwnProperty(strategy)) {
+        console.error(`Unknown strategy: ${strategy}`);
+        continue;
+      }
+
+      process.stdout.write(`  Running ${strategy}... `);
+
+      // Create fresh sandbox and apply difficulty
+      const sandbox = createGameSandbox();
+      applyDifficultyToSandbox(sandbox, difficulty);
+      const results = [];
+
+      for (let i = 0; i < args.games; i++) {
+        results.push(simulateOneGame(sandbox, strategy));
+      }
+
+      const summary = aggregateResults(results);
+      allResults[difficulty][strategy] = summary;
+
+      console.log(`done (avg ${summary.days.avg} days, median ${summary.days.median})`);
     }
-
-    process.stdout.write(`Running ${strategy}... `);
-
-    // Create fresh sandbox for each strategy
-    const sandbox = createGameSandbox();
-    const results = [];
-
-    for (let i = 0; i < args.games; i++) {
-      results.push(simulateOneGame(sandbox, strategy));
-    }
-
-    const summary = aggregateResults(results);
-    allResults[strategy] = summary;
-
-    console.log(`done (avg ${summary.days.avg} days, median ${summary.days.median})`);
+    console.log();
   }
 
   // Save full results
   const timestamp = new Date().toISOString().replace(/[:.]/g, '-').slice(0, 19);
   const outputPath = path.join(__dirname, 'results', `sim-${timestamp}.json`);
   fs.writeFileSync(outputPath, JSON.stringify(allResults, null, 2));
-  console.log(`\nResults saved to: ${outputPath}`);
+  console.log(`Results saved to: ${outputPath}`);
 
   // Also save as latest
   const latestPath = path.join(__dirname, 'results', 'latest.json');
   fs.writeFileSync(latestPath, JSON.stringify(allResults, null, 2));
 
-  // Generate baseline stats for percentile system
-  generateBaselineStats(allResults);
+  // Generate baseline stats from normal-difficulty data only
+  generateBaselineStats(allResults.normal || allResults[difficulties[0]]);
 
   return allResults;
 }
