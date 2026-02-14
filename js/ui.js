@@ -185,15 +185,17 @@ const UI = {
     // Render situation: outcome from last action + current encounter
     const situationElement = document.getElementById('situation-text');
     if (situationElement) {
-      let html = '';
+      let html = '<span class="situation-label">The Land</span>';
       if (gameState.lastOutcome) {
         html += `<p class="outcome-text">${gameState.lastOutcome}</p>`;
         gameState.lastOutcome = null;
       }
       if (gameState.currentEncounter && gameState.currentEncounter.text) {
         html += `<p>${gameState.currentEncounter.text}</p>`;
+      } else {
+        html += '<p>The land stretches endlessly before you. Heat shimmers on the horizon.</p>';
       }
-      situationElement.innerHTML = html || '<p>The land stretches endlessly before you. Heat shimmers on the horizon.</p>';
+      situationElement.innerHTML = html;
     }
 
     // Render internal monologue

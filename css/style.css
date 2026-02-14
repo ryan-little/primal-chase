@@ -287,15 +287,15 @@ body.night-mode::after {
 
 .game-header {
   text-align: center;
-  padding: 0.8rem 1.5rem;
+  padding: 1.2rem 1.5rem;
   border-bottom: 2px solid var(--border-color);
   flex-shrink: 0;
 }
 
 .phase-indicator {
-  font-size: 1.6em;
+  font-size: 2.2em;
   font-weight: bold;
-  letter-spacing: 2px;
+  letter-spacing: 3px;
   text-shadow: 0 2px 4px rgba(0, 0, 0, 0.8);
 }
 
@@ -327,8 +327,8 @@ body.night-mode::after {
 .vitals-grid {
   display: grid;
   grid-template-columns: 1fr 1fr;
-  gap: 0.5rem;
-  padding: 0.8rem 1rem;
+  gap: 0.8rem;
+  padding: 1.2rem 1.5rem;
   border-right: 1px solid var(--border-color);
 }
 
@@ -343,7 +343,7 @@ body.night-mode::after {
   font-family: 'Courier New', monospace;
   font-weight: bold;
   color: var(--text-secondary);
-  font-size: 0.8em;
+  font-size: 0.95em;
   display: flex;
   justify-content: space-between;
 }
@@ -351,11 +351,11 @@ body.night-mode::after {
 .status-value {
   font-family: 'Courier New', monospace;
   font-weight: bold;
-  font-size: 0.8em;
+  font-size: 0.95em;
 }
 
 .status-bar-track {
-  height: 14px;
+  height: 18px;
   background: rgba(0, 0, 0, 0.5);
   border: 1px solid var(--border-color);
   border-radius: 2px;
@@ -369,46 +369,47 @@ body.night-mode::after {
 
 /* ===== GAME SIDEBAR ===== */
 .game-sidebar {
-  padding: 0.8rem 1rem;
+  padding: 1.2rem 1.5rem;
   display: flex;
   flex-direction: column;
-  gap: 0.6rem;
+  gap: 0.8rem;
 }
 
 /* ===== HUNT INFO ===== */
 .hunt-info {
   font-family: 'Courier New', monospace;
-  font-size: 0.85em;
+  font-size: 1em;
 }
 
 .hunt-distance {
   font-weight: bold;
   color: var(--text-danger);
-  margin-bottom: 0.2rem;
+  margin-bottom: 0.3rem;
+  font-size: 1.1em;
 }
 
 .hunt-flavor {
   color: var(--text-secondary);
   font-style: italic;
-  font-size: 0.9em;
-  margin-bottom: 0.3rem;
+  font-size: 0.95em;
+  margin-bottom: 0.4rem;
 }
 
 .distance-covered {
   color: var(--text-safe);
-  font-size: 0.85em;
+  font-size: 1em;
 }
 
 /* ===== ACTION HISTORY ===== */
 .action-history {
   font-family: 'Courier New', monospace;
-  font-size: 0.75em;
+  font-size: 0.85em;
 }
 
 .history-title {
   color: var(--text-gold);
   font-weight: bold;
-  font-size: 0.9em;
+  font-size: 1em;
   margin-bottom: 0.3rem;
   border-bottom: 1px solid var(--border-color);
   padding-bottom: 0.2rem;
@@ -444,35 +445,50 @@ body.night-mode::after {
 .situation-scroll {
   flex: 1;
   overflow-y: auto;
-  padding: 1rem 1.5rem;
+  padding: 2rem 3rem;
   min-height: 0;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+}
+
+.situation-label {
+  display: block;
+  font-style: normal;
+  font-size: 0.8em;
+  font-family: 'Courier New', monospace;
+  text-transform: uppercase;
+  letter-spacing: 1.5px;
+  color: rgba(184, 148, 79, 0.4);
+  margin-bottom: 0.5rem;
+  text-align: center;
 }
 
 .situation-text {
-  font-size: 1.05em;
-  line-height: 1.7;
+  font-size: 1.2em;
+  line-height: 1.8;
   color: var(--text-secondary);
-  margin-bottom: 0.8rem;
+  margin-bottom: 1.2rem;
   text-align: center;
 }
 
 .situation-text p {
-  margin-bottom: 0.8em;
+  margin-bottom: 1em;
 }
 
 .outcome-text {
   color: var(--text-primary);
   font-weight: bold;
   border-bottom: 1px solid var(--border-color);
-  padding-bottom: 0.8em;
-  margin-bottom: 0.8em;
+  padding-bottom: 1em;
+  margin-bottom: 1em;
 }
 
 .monologue {
   font-style: italic;
   color: var(--text-gold);
-  font-size: 1em;
-  line-height: 1.6;
+  font-size: 1.15em;
+  line-height: 1.7;
   margin-bottom: 0.5rem;
   text-align: center;
 }
@@ -493,8 +509,8 @@ body.night-mode::after {
 .action-buttons {
   display: flex;
   flex-direction: column;
-  gap: 0.5rem;
-  padding: 0.8rem 1.5rem 1rem;
+  gap: 0.6rem;
+  padding: 1rem 2rem 1.2rem;
   border-top: 2px solid var(--border-color);
   background: rgba(10, 6, 3, 0.9);
   flex-shrink: 0;
@@ -504,8 +520,8 @@ body.night-mode::after {
   background: rgba(42, 26, 14, 0.9);
   color: var(--text-primary);
   border: 2px solid var(--border-color);
-  padding: 0.7rem 1rem;
-  font-size: 1em;
+  padding: 0.8rem 1.2rem;
+  font-size: 1.05em;
   font-family: Georgia, serif;
   cursor: pointer;
   transition: all 0.2s ease;
