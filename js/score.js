@@ -295,206 +295,122 @@ const Score = {
    */
   generateShareImage(scoreData) {
     const canvas = document.getElementById('share-canvas');
-    if (!canvas) {
-      console.error('Share canvas not found');
-      return;
-    }
+    if (!canvas) return;
 
     const ctx = canvas.getContext('2d');
-
-    // Set canvas size
     canvas.width = 600;
-    canvas.height = 800;
+    canvas.height = 600;
 
-    // Load logo image
-    const logo = new Image();
-    logo.onload = () => {
-      // Draw logo covering full canvas
-      ctx.drawImage(logo, 0, 0, canvas.width, canvas.height);
-
-      // Apply dark overlay
-      ctx.fillStyle = 'rgba(26, 15, 8, 0.85)';
-      ctx.fillRect(0, 0, canvas.width, canvas.height);
-
-      // Set up text styling
-      const amber = '#d4883a';
-      const lightAmber = '#e8a864';
-      ctx.textAlign = 'center';
-
-      // Title
-      ctx.fillStyle = lightAmber;
-      ctx.font = 'bold 48px serif';
-      ctx.fillText('PRIMAL CHASE', canvas.width / 2, 80);
-
-      // Main death line
-      ctx.fillStyle = amber;
-      ctx.font = 'bold 32px serif';
-      const deathLine = `DAY ${scoreData.days} — ${this.formatDeathCauseUpper(scoreData.deathCause)}`;
-      ctx.fillText(deathLine, canvas.width / 2, 150);
-
-      // Separator line
-      ctx.strokeStyle = amber;
-      ctx.lineWidth = 2;
-      ctx.beginPath();
-      ctx.moveTo(100, 180);
-      ctx.lineTo(500, 180);
-      ctx.stroke();
-
-      // Distance
-      ctx.font = '28px serif';
-      ctx.fillText(`${scoreData.distance} miles covered`, canvas.width / 2, 230);
-
-      // Times lost hunters (if any)
-      let yOffset = 270;
-      if (scoreData.timesLostHunters > 0) {
-        ctx.font = '24px serif';
-        ctx.fillText(
-          `Lost hunters ${scoreData.timesLostHunters} time${scoreData.timesLostHunters > 1 ? 's' : ''}`,
-          canvas.width / 2,
-          yOffset
-        );
-        yOffset += 40;
-      }
-
-      // Achievements
-      if (scoreData.achievements && scoreData.achievements.length > 0) {
-        yOffset += 20;
-        ctx.font = 'bold 22px serif';
-        ctx.fillStyle = lightAmber;
-        ctx.fillText('Achievements', canvas.width / 2, yOffset);
-        yOffset += 35;
-
-        ctx.font = '20px serif';
-        ctx.fillStyle = amber;
-
-        // Show up to 5 achievements
-        const displayAchievements = scoreData.achievements.slice(0, 5);
-        displayAchievements.forEach(achievement => {
-          // Wrap text if too long
-          const maxWidth = 500;
-          const words = achievement.split(' ');
-          let line = '';
-          let lines = [];
-
-          words.forEach(word => {
-            const testLine = line + (line ? ' ' : '') + word;
-            const metrics = ctx.measureText(testLine);
-            if (metrics.width > maxWidth && line) {
-              lines.push(line);
-              line = word;
-            } else {
-              line = testLine;
-            }
-          });
-          if (line) lines.push(line);
-
-          lines.forEach(textLine => {
-            ctx.fillText(textLine, canvas.width / 2, yOffset);
-            yOffset += 28;
-          });
-        });
-      }
-
-      // Tagline at bottom
-      ctx.fillStyle = lightAmber;
-      ctx.font = 'italic 22px serif';
-      ctx.fillText('How long can a King outrun a shadow?', canvas.width / 2, canvas.height - 80);
-
-      ctx.font = '20px serif';
-      ctx.fillText('primalchase.com', canvas.width / 2, canvas.height - 40);
-
-      // Convert to blob and download
-      canvas.toBlob(blob => {
-        if (blob) {
-          const url = URL.createObjectURL(blob);
-          const link = document.createElement('a');
-          link.href = url;
-          link.download = 'primal-chase-score.png';
-          link.click();
-          URL.revokeObjectURL(url);
-        }
-      }, 'image/png');
-    };
-
-    logo.onerror = () => {
-      console.error('Failed to load logo image');
-      // Generate without logo
-      this.generateShareImageNoLogo(canvas, ctx, scoreData);
-    };
-
-    logo.src = 'assets/primalchaselogoout.png';
-  },
-
-  /**
-   * Generate share image without logo (fallback)
-   * @param {HTMLCanvasElement} canvas
-   * @param {CanvasRenderingContext2D} ctx
-   * @param {Object} scoreData
-   */
-  generateShareImageNoLogo(canvas, ctx, scoreData) {
-    // Fill with dark background
-    ctx.fillStyle = '#1a0f08';
-    ctx.fillRect(0, 0, canvas.width, canvas.height);
-
-    // Add subtle gradient
+    // Dark gradient background (no logo — avoids canvas tainting on file://)
     const gradient = ctx.createLinearGradient(0, 0, 0, canvas.height);
     gradient.addColorStop(0, '#2a1a0e');
     gradient.addColorStop(1, '#1a0f08');
     ctx.fillStyle = gradient;
     ctx.fillRect(0, 0, canvas.width, canvas.height);
 
-    // Continue with text rendering (same as above)
     const amber = '#d4883a';
     const lightAmber = '#e8a864';
     ctx.textAlign = 'center';
 
+    // Title
     ctx.fillStyle = lightAmber;
-    ctx.font = 'bold 48px serif';
-    ctx.fillText('PRIMAL CHASE', canvas.width / 2, 80);
+    ctx.font = 'bold 44px serif';
+    ctx.fillText('PRIMAL CHASE', canvas.width / 2, 70);
 
+    // Death line
     ctx.fillStyle = amber;
-    ctx.font = 'bold 32px serif';
-    const deathLine = `DAY ${scoreData.days} — ${this.formatDeathCauseUpper(scoreData.deathCause)}`;
-    ctx.fillText(deathLine, canvas.width / 2, 150);
+    ctx.font = 'bold 30px serif';
+    ctx.fillText(`DAY ${scoreData.days} — ${this.formatDeathCauseUpper(scoreData.deathCause)}`, canvas.width / 2, 130);
 
+    // Separator
     ctx.strokeStyle = amber;
     ctx.lineWidth = 2;
     ctx.beginPath();
-    ctx.moveTo(100, 180);
-    ctx.lineTo(500, 180);
+    ctx.moveTo(100, 160);
+    ctx.lineTo(500, 160);
     ctx.stroke();
 
-    ctx.font = '28px serif';
-    ctx.fillText(`${scoreData.distance} miles covered`, canvas.width / 2, 230);
+    // Distance
+    ctx.font = '26px serif';
+    ctx.fillText(`${scoreData.distance} miles covered`, canvas.width / 2, 205);
 
-    let yOffset = 270;
-    if (scoreData.timesLostHunters > 0) {
-      ctx.font = '24px serif';
-      ctx.fillText(
-        `Lost hunters ${scoreData.timesLostHunters} time${scoreData.timesLostHunters > 1 ? 's' : ''}`,
-        canvas.width / 2,
-        yOffset
-      );
-      yOffset += 40;
+    // Achievements
+    let yOffset = 250;
+    if (scoreData.achievements && scoreData.achievements.length > 0) {
+      ctx.font = 'bold 20px serif';
+      ctx.fillStyle = lightAmber;
+      ctx.fillText('Achievements', canvas.width / 2, yOffset);
+      yOffset += 30;
+
+      ctx.font = '18px serif';
+      ctx.fillStyle = amber;
+      scoreData.achievements.slice(0, 5).forEach(achievement => {
+        const maxWidth = 480;
+        const words = achievement.split(' ');
+        let line = '';
+        const lines = [];
+        words.forEach(word => {
+          const testLine = line + (line ? ' ' : '') + word;
+          if (ctx.measureText(testLine).width > maxWidth && line) {
+            lines.push(line);
+            line = word;
+          } else {
+            line = testLine;
+          }
+        });
+        if (line) lines.push(line);
+        lines.forEach(textLine => {
+          ctx.fillText(textLine, canvas.width / 2, yOffset);
+          yOffset += 24;
+        });
+      });
     }
 
+    // Tagline
     ctx.fillStyle = lightAmber;
-    ctx.font = 'italic 22px serif';
-    ctx.fillText('How long can a King outrun a shadow?', canvas.width / 2, canvas.height - 80);
+    ctx.font = 'italic 20px serif';
+    ctx.fillText('How long can a King outrun a shadow?', canvas.width / 2, canvas.height - 60);
+    ctx.font = '18px serif';
+    ctx.fillText('primalchase.com', canvas.width / 2, canvas.height - 30);
 
-    ctx.font = '20px serif';
-    ctx.fillText('primalchase.com', canvas.width / 2, canvas.height - 40);
+    // Copy image to clipboard (requires HTTPS — falls back to download on file://)
+    const button = document.getElementById('btn-share-image');
+    const feedback = (msg) => {
+      if (!button) return;
+      const orig = button.textContent;
+      button.textContent = msg;
+      setTimeout(() => { button.textContent = orig; }, 2000);
+    };
 
-    // Download
     canvas.toBlob(blob => {
-      if (blob) {
-        const url = URL.createObjectURL(blob);
-        const link = document.createElement('a');
-        link.href = url;
-        link.download = 'primal-chase-score.png';
-        link.click();
-        URL.revokeObjectURL(url);
+      if (!blob) { feedback('Failed'); return; }
+
+      // Try clipboard (only works on HTTPS / secure contexts)
+      if (navigator.clipboard && typeof ClipboardItem !== 'undefined' && window.isSecureContext) {
+        navigator.clipboard.write([new ClipboardItem({ 'image/png': blob })])
+          .then(() => feedback('Copied!'))
+          .catch(() => {
+            this._downloadBlob(blob);
+            feedback('Saved!');
+          });
+      } else {
+        this._downloadBlob(blob);
+        feedback('Saved!');
       }
     }, 'image/png');
+  },
+
+  /**
+   * Download a blob as a PNG file
+   */
+  _downloadBlob(blob) {
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.href = url;
+    link.download = 'primal-chase-score.png';
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    URL.revokeObjectURL(url);
   }
 };

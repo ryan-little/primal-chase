@@ -420,12 +420,17 @@ body.night-mode .night-bg {
 /* ===== SITUATION & MONOLOGUE (SCROLLABLE) ===== */
 .situation-scroll {
   flex: 1;
-  overflow-y: hidden;
-  padding: 2rem 3rem;
+  overflow-y: auto;
+  scrollbar-width: none;
+  padding: 1.5rem 3rem;
   min-height: 0;
   display: flex;
   flex-direction: column;
   justify-content: center;
+}
+
+.situation-scroll::-webkit-scrollbar {
+  display: none;
 }
 
 .situation-label {
@@ -595,9 +600,9 @@ body.night-mode .night-bg {
 }
 
 .death-narrative {
-  font-size: 1.2em;
-  line-height: 1.8;
-  margin-bottom: 2rem;
+  font-size: 1.15em;
+  line-height: 1.7;
+  margin-bottom: 1.2rem;
   color: var(--text-secondary);
   text-align: center;
 }
@@ -611,36 +616,20 @@ body.night-mode .night-bg {
 }
 
 .score-summary {
-  margin-bottom: 2rem;
-  padding: 1.5rem;
+  margin-bottom: 1.5rem;
+  padding: 1.2rem;
   background: rgba(0, 0, 0, 0.4);
   border: 2px solid var(--border-color);
   opacity: 0;
-  animation: death-fade-in 1s ease 2.5s forwards;
-}
-
-.score-summary h2 {
-  color: var(--text-primary);
-  margin-bottom: 1rem;
-  font-size: 1.5em;
-  text-shadow: 0 2px 4px rgba(0, 0, 0, 0.8);
 }
 
 .score-stats {
   display: flex;
-  flex-direction: column;
-  gap: 0.8rem;
-  margin-bottom: 1rem;
-}
-
-.score-stat {
-  display: flex;
-  justify-content: space-between;
+  justify-content: center;
+  gap: 2rem;
+  margin-bottom: 0.8rem;
   font-family: 'Courier New', monospace;
-  font-size: 1.1em;
-}
-
-.score-label {
+  font-size: 1em;
   color: var(--text-secondary);
 }
 
@@ -651,48 +640,46 @@ body.night-mode .night-bg {
 
 /* Percentile stats */
 .percentile-stats {
-  margin-bottom: 1rem;
-  padding-top: 1rem;
+  margin-bottom: 0.6rem;
+  padding-top: 0.6rem;
   border-top: 1px solid var(--border-color);
+  display: flex;
+  justify-content: center;
+  gap: 1.5rem;
+  flex-wrap: wrap;
 }
 
 .percentile-stat {
   color: var(--text-gold);
   font-family: 'Courier New', monospace;
-  font-size: 0.95em;
-  margin-bottom: 0.4rem;
+  font-size: 0.9em;
 }
 
 .achievements-list {
-  margin-top: 1rem;
-  padding-top: 1rem;
+  margin-top: 0.6rem;
+  padding-top: 0.6rem;
   border-top: 1px solid var(--border-color);
-  text-align: left;
+  text-align: center;
 }
 
 .achievements-list h3 {
   color: var(--text-gold);
-  font-size: 1.1em;
-  margin-bottom: 0.5rem;
+  font-size: 1em;
+  margin-bottom: 0.4rem;
 }
 
 .achievements-list ul {
   list-style: none;
   padding-left: 0;
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 0.3rem 1rem;
 }
 
 .achievements-list li {
   color: var(--text-secondary);
-  margin-bottom: 0.3rem;
-  padding-left: 1.5rem;
-  position: relative;
-}
-
-.achievements-list li::before {
-  content: "\2192";
-  position: absolute;
-  left: 0;
-  color: var(--text-gold);
+  font-size: 0.9em;
 }
 
 .death-buttons-row {
@@ -709,7 +696,11 @@ body.night-mode .night-bg {
   flex-direction: column;
   gap: 0.8rem;
   opacity: 0;
-  animation: death-fade-in 1s ease 3.5s forwards;
+}
+
+.death-results-visible .score-summary,
+.death-results-visible .death-buttons {
+  animation: death-fade-in 1s ease forwards;
 }
 
 .death-btn {
@@ -799,18 +790,18 @@ body.night-mode .night-bg {
 
 /* ===== HOW TO PLAY SCREEN ===== */
 .howto-container {
-  max-width: 800px;
+  max-width: 900px;
   width: 100%;
   background: rgba(10, 6, 3, 0.85);
-  padding: 2rem;
+  padding: 1.5rem 2rem;
   border: 1px solid var(--border-color);
   border-radius: 2px;
 }
 
 .howto-container h1 {
   text-align: center;
-  font-size: 2em;
-  margin-bottom: 2rem;
+  font-size: 1.8em;
+  margin-bottom: 1rem;
   color: var(--text-primary);
   text-shadow: 0 2px 6px rgba(0, 0, 0, 0.8);
 }
@@ -818,29 +809,41 @@ body.night-mode .night-bg {
 .howto-content {
   background: rgba(26, 15, 8, 0.7);
   border: 2px solid var(--border-color);
-  padding: 2rem;
-  margin-bottom: 2rem;
+  padding: 1.2rem 1.5rem;
+  margin-bottom: 1.2rem;
+}
+
+.howto-intro {
+  color: var(--text-secondary);
+  text-align: center;
+  font-size: 1.05em;
+  line-height: 1.6;
+  margin-bottom: 1rem;
+  padding-bottom: 0.8rem;
+  border-bottom: 1px solid var(--border-color);
+}
+
+.howto-columns {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 0.8rem 1.5rem;
 }
 
 .howto-content section {
-  margin-bottom: 2rem;
-}
-
-.howto-content section:last-child {
   margin-bottom: 0;
 }
 
 .howto-content h2 {
   color: var(--text-primary);
-  font-size: 1.4em;
-  margin-bottom: 0.8rem;
+  font-size: 1.15em;
+  margin-bottom: 0.4rem;
   text-shadow: 0 1px 3px rgba(0, 0, 0, 0.8);
 }
 
 .howto-content p {
   color: var(--text-secondary);
-  line-height: 1.7;
-  margin-bottom: 0.8em;
+  line-height: 1.5;
+  font-size: 0.92em;
 }
 
 .howto-content ul {
@@ -850,18 +853,18 @@ body.night-mode .night-bg {
 
 .howto-content li {
   color: var(--text-secondary);
-  margin-bottom: 0.8rem;
-  padding-left: 1.5rem;
-  position: relative;
-  line-height: 1.6;
+  margin-bottom: 0.3rem;
+  font-size: 0.92em;
+  line-height: 1.5;
 }
 
-.howto-content li::before {
-  content: "\2022";
-  position: absolute;
-  left: 0;
+.howto-content strong {
   color: var(--text-primary);
-  font-size: 1.2em;
+}
+
+.howto-achievements li {
+  margin-bottom: 0.15rem;
+  font-size: 0.88em;
 }
 
 .howto-content strong {
@@ -1085,8 +1088,12 @@ body.night-mode .night-bg {
     font-size: 1.4em;
   }
 
+  .howto-columns {
+    grid-template-columns: 1fr;
+  }
+
   .howto-content {
-    padding: 1.5rem;
+    padding: 1rem;
   }
 }
 
@@ -1157,11 +1164,7 @@ body.night-mode .night-bg {
   }
 
   .howto-content {
-    padding: 1rem;
-  }
-
-  .howto-content h2 {
-    font-size: 1.2em;
+    padding: 0.8rem;
   }
 
   .leaderboard-table th,
@@ -1180,20 +1183,3 @@ body.night-mode .night-bg {
   text-align: center;
 }
 
-/* Scrollbar styling for situation-scroll */
-.situation-scroll::-webkit-scrollbar {
-  width: 6px;
-}
-
-.situation-scroll::-webkit-scrollbar-track {
-  background: rgba(0, 0, 0, 0.2);
-}
-
-.situation-scroll::-webkit-scrollbar-thumb {
-  background: var(--border-color);
-  border-radius: 3px;
-}
-
-.situation-scroll::-webkit-scrollbar-thumb:hover {
-  background: var(--text-secondary);
-}

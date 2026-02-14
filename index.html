@@ -106,20 +106,9 @@
       </div>
 
       <div class="score-summary">
-        <h2>Your Chase</h2>
         <div class="score-stats">
-          <div class="score-stat">
-            <span class="score-label">Days Survived:</span>
-            <span id="score-days" class="score-number">0</span>
-          </div>
-          <div class="score-stat">
-            <span class="score-label">Distance Covered:</span>
-            <span id="score-distance" class="score-number">0 mi</span>
-          </div>
-          <div class="score-stat">
-            <span class="score-label">Times Lost Hunters:</span>
-            <span id="score-lost" class="score-number">0</span>
-          </div>
+          <div class="score-stat">Days Survived: <span id="score-days" class="score-number">0</span></div>
+          <div class="score-stat">Distance: <span id="score-distance" class="score-number">0 mi</span></div>
         </div>
 
         <div id="percentile-stats" class="percentile-stats">
@@ -132,12 +121,12 @@
       </div>
 
       <div class="death-buttons">
+        <button id="btn-try-again" class="death-btn primary">Try Again</button>
         <div class="death-buttons-row">
           <button id="btn-share-text" class="death-btn">Share Text</button>
           <button id="btn-share-image" class="death-btn">Share Image</button>
         </div>
         <button id="btn-submit-score" class="death-btn">Submit to Longest Strides</button>
-        <button id="btn-try-again" class="death-btn primary">Try Again</button>
         <button id="btn-return-title" class="death-btn">Return to Title</button>
       </div>
     </div>
@@ -172,51 +161,78 @@
     <div class="howto-container">
       <h1>Learn to Run</h1>
       <div class="howto-content">
-        <section>
-          <h2>The Chase</h2>
-          <p>You are an apex predator—a big cat, built for short bursts of devastating speed. But the humans hunting you do not play by your rules. They track. They follow. They never stop. This is persistence hunting, and you cannot win. You can only survive one more day.</p>
-        </section>
+        <p class="howto-intro">You are an apex predator — a big cat built for explosive speed. But the humans hunting you don't play by your rules. They track. They follow. They never stop. This is persistence hunting, and you cannot win. You can only survive one more day.</p>
 
-        <section>
-          <h2>How to Play</h2>
-          <p>Each turn represents one day, split into two phases: <strong class="day-text">DAY</strong> and <strong class="night-text">NIGHT</strong>. Each phase, you choose one action. Your stats will change based on what you do, and the hunters will either gain ground or fall back.</p>
-        </section>
+        <div class="howto-columns">
+          <section>
+            <h2>THE DAY</h2>
+            <p>Each day is split into two phases: <strong class="day-text">DAY</strong> and <strong class="night-text">NIGHT</strong>. You choose one action per phase. During the day, the sun is brutal — heat builds fast, thirst climbs, and every move costs more. But you cover the most ground in daylight.</p>
+          </section>
 
-        <section>
-          <h2>Your Vitals</h2>
-          <ul>
-            <li><strong>Heat:</strong> Running under the sun builds heat. Too much, and you collapse from heatstroke. Rest in shade to cool down.</li>
-            <li><strong>Stamina:</strong> Your energy reserves. Push too hard without resting, and exhaustion will claim you.</li>
-            <li><strong>Thirst:</strong> The savanna is merciless. Find water when you can, or dehydration will kill you before the hunters do.</li>
-            <li><strong>Hunger:</strong> You need to eat. Scavenge when the opportunity arises, or starve slowly.</li>
-          </ul>
-        </section>
+          <section>
+            <h2>THE NIGHT</h2>
+            <p>At night, heat is no longer a threat and thirst rises more slowly. You move less distance, but the hunters make camp — they barely gain ground. Use the darkness to rest, recover, and prepare for the next day.</p>
+          </section>
 
-        <section>
-          <h2>Actions</h2>
-          <ul>
-            <li><strong>Push:</strong> Sprint at full speed. Covers the most ground, but drains stamina and builds dangerous heat.</li>
-            <li><strong>Trot:</strong> A sustainable pace. Moderate distance, moderate costs.</li>
-            <li><strong>Rest:</strong> Stop moving. Recover heat and stamina, but the hunters gain ground.</li>
-            <li><strong>Drink:</strong> Appears when water is near. Resets thirst but costs time.</li>
-            <li><strong>Eat:</strong> Appears when food is available. Resets hunger, reduces thirst, but costs time.</li>
-          </ul>
-        </section>
+          <section>
+            <h2>YOUR VITALS</h2>
+            <ul>
+              <li><strong>Heat</strong> — Builds when you run under the sun. Too much and you collapse from heatstroke. Rest to cool down.</li>
+              <li><strong>Stamina</strong> — Your energy reserves. Push too hard without resting and exhaustion will claim you.</li>
+              <li><strong>Thirst</strong> — Rises every phase. Find water when you can, or dehydration will kill you before the hunters do.</li>
+              <li><strong>Hunger</strong> — Rises slowly but relentlessly. Scavenge when you can, or starve.</li>
+            </ul>
+          </section>
 
-        <section>
-          <h2>The Hunters</h2>
-          <p>They start 25 miles behind. They move at a steady pace, but their speed increases every time you manage to lose them. Water sources, rough terrain, and rare events can slow them down—or help you slip away temporarily. But they always return. And they are always faster than before.</p>
-        </section>
+          <section>
+            <h2>YOUR ACTIONS</h2>
+            <ul>
+              <li><strong>Push</strong> — Sprint at full speed. Covers the most ground, but drains stamina and builds dangerous heat.</li>
+              <li><strong>Trot</strong> — A sustainable pace. Moderate distance, moderate costs.</li>
+              <li><strong>Rest</strong> — Stop moving. Recover heat and stamina, but the hunters close in. Since you haven't moved, the situation stays the same — you must at least Trot to find new opportunities.</li>
+              <li><strong>Drink / Eat</strong> — Appear when the land offers water or food. Reset thirst or hunger, but cost precious time.</li>
+            </ul>
+            <p>Action buttons show the <strong>total real effect</strong> on your stats — including passive drains — so what you see is what happens.</p>
+          </section>
 
-        <section>
-          <h2>Night</h2>
-          <p>At night, heat is no longer a threat. Thirst costs are reduced. But you cannot see as well, so you move slower. The hunters camp at night—they gain almost no ground. Use the darkness to rest, recover, and prepare for the next day.</p>
-        </section>
+          <section>
+            <h2>THE SITUATIONS</h2>
+            <p>Each phase, the terrain shifts around you. Fever trees, dry riverbeds, rocky escarpments — every location is different, and some offer unique opportunities: a hidden water source, a scavenging chance, or a way to throw the hunters off your trail. Rare encounters can change the course of a run entirely. If you Rest, you stay in the same situation — you must at least Trot to find new terrain and new opportunities.</p>
+          </section>
 
-        <section>
-          <h2>Death</h2>
-          <p>You will die. The only question is how far you get. When it ends, your run is scored and added to <strong>The Longest Strides</strong>—the local leaderboard of those who ran the farthest.</p>
-        </section>
+          <section>
+            <h2>THE HUNTERS</h2>
+            <p>They start 25 miles behind, moving at a steady pace. Some encounters let you lose them temporarily — but every time they pick up your trail again, they come back faster. Water sources can give them a boost if they find where you drank. The gap between you and them is the only thing keeping you alive.</p>
+          </section>
+
+          <section class="howto-achievements">
+            <h2>ACHIEVEMENTS</h2>
+            <ul>
+              <li><strong>Week of Running</strong> — Survive 7 days</li>
+              <li><strong>Into the Unknown</strong> — Survive 10 days</li>
+              <li><strong>The Long Road</strong> — Survive 15 days</li>
+              <li><strong>Legend</strong> — Survive 20 days</li>
+              <li><strong>Myth</strong> — Survive 30 days</li>
+              <li><strong>Distance Master</strong> — Cover 50+ miles</li>
+              <li><strong>Long Strider</strong> — Cover 75+ miles</li>
+              <li><strong>Century Runner</strong> — Cover 100+ miles</li>
+            </ul>
+          </section>
+
+          <section class="howto-achievements">
+            <h2>&nbsp;</h2>
+            <ul>
+              <li><strong>Shadow Walker</strong> — Lose the hunters 3+ times</li>
+              <li><strong>Ghost</strong> — Lose the hunters 5+ times</li>
+              <li><strong>Night Runner</strong> — Push through darkness 3+ times</li>
+              <li><strong>Iron Will</strong> — Never rest (survive 3+ days)</li>
+              <li><strong>Desert Crosser</strong> — Survive extreme thirst</li>
+              <li><strong>On the Edge</strong> — Dance with death repeatedly</li>
+              <li><strong>Perfect Balance</strong> — Master the chase (5+ days)</li>
+              <li><strong>Too Fast, Too Soon</strong> — Die on Day 1</li>
+            </ul>
+          </section>
+        </div>
       </div>
       <button id="btn-howto-back" class="back-btn">Return to Title</button>
     </div>

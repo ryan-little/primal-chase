@@ -661,6 +661,14 @@ const UI = {
     this.showScreen('screen-death');
     document.body.classList.remove('night-mode');
 
+    // Remove results-visible class from previous death screen
+    const deathContainer = document.querySelector('.death-container');
+    if (deathContainer) deathContainer.classList.remove('death-results-visible');
+
+    const showResults = () => {
+      if (deathContainer) deathContainer.classList.add('death-results-visible');
+    };
+
     // Render death narrative (with optional typewriter)
     const narrativeElement = document.getElementById('death-narrative');
     if (narrativeElement) {
@@ -685,19 +693,22 @@ const UI = {
         document.addEventListener('keydown', deathSkipHandler);
         document.getElementById('screen-death').addEventListener('click', deathSkipHandler);
 
-        this.typewriteText(narrativeElement, narrative, CONFIG.typewriter.speed, cleanupSkipHandlers);
+        this.typewriteText(narrativeElement, narrative, CONFIG.typewriter.speed, () => {
+          cleanupSkipHandlers();
+          showResults();
+        });
       } else {
         narrativeElement.innerHTML = `<p>${narrative}</p>`;
+        showResults();
       }
     }
 
-    // Calculate and display score
+    // Calculate and display score (populate data immediately, but CSS hides until showResults)
     if (typeof Score !== 'undefined' && Score.calculate) {
       const scoreData = Score.calculate(gameState);
 
       document.getElementById('score-days').textContent = scoreData.days;
       document.getElementById('score-distance').textContent = `${scoreData.distance} mi`;
-      document.getElementById('score-lost').textContent = scoreData.timesLostHunters;
 
       // Render percentile comparisons
       const percentileContainer = document.getElementById('percentile-stats');
