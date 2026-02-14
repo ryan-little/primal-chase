@@ -6,9 +6,11 @@ A text-based, browser-playable survival strategy game. You play as an apex preda
 
 **Tech stack:** Vanilla HTML/CSS/JS. No frameworks, no build step, no dependencies. Single `index.html` entry point.
 
-**Hosting:** GitHub Pages via `ryan-little/primal-chase`. Custom domain `primalchase.com` planned.
+**Hosting:** GitHub Pages via `ryan-little/primal-chase`. Custom domain `primalchase.com` (purchased on Cloudflare).
 
 **Git workflow:** `main` branch holds docs/context. `v1` branch for development. Merge to main when V1 is complete.
+
+**Current status:** V1.3 implementation complete. Options screen, typewriter effects, phase transitions, tutorial Day 1, and death screen improvements all implemented. Ready for playtesting.
 
 ## Critical Rules
 
@@ -32,20 +34,28 @@ All actions must be clickable buttons, not text input. The game should work on m
 PrimalChase/
 ├── index.html          ← single entry point, loads all scripts
 ├── css/
-│   └── style.css       ← atmospheric styling, status bars, layout
+│   └── style.css       ← atmospheric styling, savannah textures, night mode, animations
 ├── js/
 │   ├── config.js       ← ALL balance numbers and tunable constants (LOAD FIRST)
-│   ├── game.js         ← core game loop, state machine, phase transitions
-│   ├── encounters.js   ← combinatorial generator + signature encounters + rare events
-│   ├── monologue.js    ← internal monologue system (mood/event/day-tagged fragments)
-│   ├── hunters.js      ← hunter pursuit/tracking/escalation logic
-│   ├── ui.js           ← DOM rendering, screen transitions, status bar updates
-│   └── score.js        ← scoring, localStorage leaderboard, share card generation
+│   ├── encounters.js   ← combinatorial generator (32 terrains, 42 opportunities, 22 pressures) + signature + rare
+│   ├── monologue.js    ← internal monologue system (182 fragments, mood/event/day/nightOnly-tagged)
+│   ├── hunters.js      ← hunter pursuit/tracking/escalation logic + flavor text (6 per tier per phase)
+│   ├── game.js         ← core game loop, state machine, phase transitions, action history tracking
+│   ├── ui.js           ← DOM rendering, Options system, typewriter engine, screen transitions, phase animations
+│   └── score.js        ← scoring, localStorage leaderboard, share card generation, percentile stats
 ├── assets/
-│   ├── primalchaselogo.png
-│   ├── primalchaselogoout.png    ← used on title screen
-│   └── primalchaselogoreign.png
+│   ├── primalchaselogo.png       ← randomly selected on title screen
+│   ├── primalchaselogoout.png    ← randomly selected on title screen
+│   └── primalchaselogoreign.png  ← randomly selected on title screen
+├── test/
+│   ├── simulate.js     ← reusable simulation engine (runs N games with configurable strategies)
+│   ├── report.js       ← ASCII report generator with charts
+│   ├── charts.html     ← Balance Lab web dashboard for visualizing simulation data
+│   ├── baseline-stats.json ← sorted arrays from 2500 sim runs (used for percentile calculations)
+│   └── results/        ← timestamped simulation outputs and latest-report.txt
 ├── docs/               ← reference docs, not deployed
+│   └── plans/
+│       └── 2026-02-13-primal-chase-v1-design.md
 └── CLAUDE.md           ← this file
 ```
 
@@ -75,14 +85,40 @@ The game state is a single object managed in `game.js`:
   hunterDistance: 25,
   hunterSpeed: CONFIG.hunter.baseSpeed,
   hunterState: 'pursuit' | 'tracking',
+  hunterWaterBoostDays: 0,
   trackingDaysLeft: 0,
   timesLostHunters: 0,
   distanceCovered: 0,
   currentEncounter: null,
   monologue: null,
+  lastAction: null,
+  lastOutcome: null,
   isAlive: true,
-  deathCause: null
+  deathCause: null,
+  achievementStats: { nightPushes, timesRested, phasesWithHighThirst, phasesNearDeath },
+  actionHistory: [],    // last 5 actions: { day, phase, action, statChanges, hunterGap }
+  narrativeLog: []      // full log of all actions (for future personalized death messages)
 }
+```
+
+### HTML Layout Structure
+
+```
+┌──────────────────────────────────────────┐
+│ Phase transition overlay (sun/moon arc)  │ ← fixed, z-100, CSS animation
+├──────────────────────────────────────────┤
+│ Game start transition ("The chase...")   │ ← fixed, z-200, fade overlay
+├──────────────────────────────────────────┤
+│ PHASE HEADER (DAY X / NIGHT X)          │
+├──────────────┬───────────────────────────┤
+│ VITALS 2x2   │ HUNT INFO + HISTORY       │ ← .game-top grid
+│ Heat|Stamina │ Distance, flavor text     │
+│ Thirst|Hunger│ Last 5 actions            │
+├──────────────┴───────────────────────────┤
+│ SITUATION + MONOLOGUE (scrollable)       │ ← .situation-scroll, flex:1
+├──────────────────────────────────────────┤
+│ ACTION BUTTONS (always visible)          │ ← flex-shrink:0, sticky on mobile
+└──────────────────────────────────────────┘
 ```
 
 ## Game Design Reference
@@ -101,31 +137,41 @@ Each turn = 1 day with DAY phase then NIGHT phase. Player makes one action per p
 | Drink/Dig | 0 | Situational | Reset thirst, hunters gain |
 | Eat/Scavenge | 0 | Situational | Reset hunger + half thirst, hunters gain |
 
+**Action buttons show TOTAL real effect** (action effects + passive drains combined) so what the player sees is what actually happens.
+
 ### Night Phase Differences
 
 - Reduced heat costs (CONFIG.nightMultipliers.heat)
 - Reduced thirst costs (CONFIG.nightMultipliers.thirst)
 - Hunters only gain passively (they camp at night) — much less distance gain
-- No situational eat/drink actions at night (for V1)
+- Background shifts to dark blue/indigo with star dots (body.night-mode CSS class)
+- Terrains show `nightText` variant instead of `text`
+- Night-only monologue fragments and pressures can appear
 
 ### Hunter System
 
-- Base speed with terrain/situation modifiers
+- Base speed 5.5 with terrain/situation modifiers
+- **Daily escalation**: +0.1 speed per day (hunters learn and adapt)
 - Can be "lost" via specific encounters → enter tracking mode (1-3 days, reduced speed)
-- On trail recovery: speed escalates by CONFIG.hunter.escalationPerLoss
+- On trail recovery: speed escalates by CONFIG.hunter.escalationPerLoss (0.8)
+- Night gain: 0.8 (hunters camp but still close gap slightly)
+- Water boost: hunters speed up when player drinks (they find the water source)
 - The game is guaranteed unwinnable long-term due to escalation
+- Flavor text: 6 variants per distance tier per phase (far/medium/close/very close/critical + tracking)
 
 ### Encounter System (Hybrid)
 
-**Layer 1 — Combinatorial:** Terrain feature + Opportunity + Pressure modifier = unique situation with contextual actions. Data lives in `encounters.js`.
+**Layer 1 — Combinatorial:** Terrain (32) + Opportunity (42) + Pressure (22) = unique situation with contextual actions. Each terrain has `text` and `nightText` variants. Pressures include night-only and condition-gated variants. Recent buffers: terrains=10, opportunities=12, pressures=7.
 
 **Layer 2 — Signature:** ~50 hand-crafted encounters that override the generator. Max once per run. Some day-gated.
 
 **Layer 3 — Rare:** <1% chance legendary events.
 
+**Rest mechanic:** Resting keeps the same terrain but re-rolls opportunity and pressure (via `Encounters.regenerateSameLocation()`). For signature/rare encounters, the same encounter is re-presented.
+
 ### Internal Monologue
 
-Tagged fragments selected by: mood (confident/concerned/desperate/haunted), day range, trigger event, current vitals. Displayed between action result and next decision.
+182 tagged fragments selected by: mood (confident/concerned/desperate/haunted), day range, trigger event, current vitals, nightOnly flag. Displayed between action result and next decision. Recent buffer prevents repeats.
 
 ### Death Conditions
 
@@ -135,14 +181,23 @@ Tagged fragments selected by: mood (confident/concerned/desperate/haunted), day 
 - Dehydration: thirst >= 100%
 - Starvation: hunger >= 100%
 
-Each has unique narrative death screen text.
+Each has 3 unique narrative death screen texts (in DEATH_NARRATIVES in ui.js).
 
 ### Visual Style
 
-- Dark earthy palette: deep brown background (#2a1a0e), amber/orange text (#d4883a)
+- Dark earthy palette: deep brown background (#1a0f08), amber/orange text (#d4883a)
+- Savannah texture: SVG noise grain + warm gradient base + grass-like repeating lines
+- Night mode: dark blue/indigo gradient with star-like radial dots
 - Status bars with color transitions (green → amber → red)
-- Atmospheric, dusty, primal feel matching the pixel-art logos
-- Three screens: Title, Game, Death
+- Sun/moon celestial arc animation on phase transitions (1.5s CSS animation)
+- "The chase begins..." fade-in/out game start transition
+- Death screen: red overlay, staggered fade-in (narrative → scores → buttons)
+- Title screen: random logo selection from 3 variants, staggered fade-in
+- Five screens: Title, Game, Death, Leaderboard, How-to-Play
+
+### Percentile Stats
+
+On death, the player sees "You survived longer than X% of runs" and "Your distance was farther than X% of runs". Pre-computed breakpoints from 2500 simulation runs are embedded in `BASELINE_PERCENTILES` in score.js. Update by re-running `node test/simulate.js --games=500 --strategy=all` and computing new breakpoints.
 
 ### Share Card
 
@@ -154,10 +209,68 @@ Two formats:
 
 Local only (localStorage). Top 10 runs. Displayed on "The Longest Strides" screen.
 
-## Design Doc
+## Simulation & Testing
 
-Full design document with all details: `docs/plans/2026-02-13-primal-chase-v1-design.md`
+The simulation engine (`test/simulate.js`) is a reusable tool for balance testing:
+
+```bash
+# Run full simulation (500 games x 5 strategies)
+node test/simulate.js --games=500 --strategy=all
+
+# Generate ASCII report
+node test/report.js
+
+# Open charts dashboard
+open test/charts.html
+```
+
+**Strategies:** push-heavy, trot-heavy, balanced, rest-heavy, smart (picks based on stat urgency)
+
+**Current balance (from latest sim — 2500 games):**
+- Smart strategy: avg 8.7 days, median 9, max 14
+- Overall average: 6.4 days across all strategies
+- Death distribution: dehydration 36%, caught 31%, exhaustion 25%, starvation 7%, heatstroke 2%
+
+**After balance changes:** Re-run simulation, compute new percentile breakpoints, and update `BASELINE_PERCENTILES` in score.js.
+
+## Version History
+
+### V1.1 — Core Game Complete
+All 8 implementation phases complete: simulation engine, stat display honesty, encounter text, UI/layout overhaul, visual polish, content additions, hunter balance tuning, percentile stats.
+
+### V1.2 — Visual Refresh
+- Full-width layout (1200px max, no border/shadow)
+- Title screen redesign: horizontal buttons (Learn to Run | Start the Hunt | The Longest Strides) with weathered styling
+- Typewriter cinematic intro (dark overlay, character-by-character typing, skippable)
+- Removed intro paragraph from title screen
+- Keyboard shortcuts (1-5) for action buttons
+- "THE LAND" and "INNER VOICE" section labels
+- Scaled-up game elements, centered situation text
+- Background revert (CSS-only landscape was too simple — will revisit with generated assets)
+
+### V1.3 — Options, Tutorial, Typewriter & Transitions
+- Options screen with persistent localStorage settings (difficulty, show opening, typewriter effect)
+- 3 randomized intro paragraph sets (confidence → unease → dread → flight)
+- Death screen: Return to Title button + typewriter on death narrative
+- Typewriter effect on situation text with action button lockout
+- Phase transition animation: bars animate over 1.5s, 2s action lockout, background color shift
+- Tutorial Day 1: fixed encounters for Day phase ("The Ridge") and Night phase ("First Darkness")
+- CONFIG: typewriter speeds + transition durations
 
 ## Content Guidelines
 
 The writing tone is atmospheric and primal. Think Cormac McCarthy meets nature documentary. The animal is intelligent but not human — it thinks in sensation, instinct, and growing unease. Avoid modern language or humor. Everything should feel ancient, inevitable, and earned.
+
+## Known Issues
+
+- 8 terrains have `compatible` arrays referencing opportunity IDs that don't exist yet (pre-existing from V1 — `mouse_nest`, `hippo_territory`, `regrowth_shoots`, `aardvark_hole`, `bark_water`, `mosquito_swarm`, `frog_chorus`, `herd_distant`). The generator handles this gracefully by falling back to random compatible opportunities, but these should be added in a future content pass.
+
+## Future Ideas (V2+)
+
+- Personalized death tips based on narrativeLog
+- Full narrative recap per game
+- Multiple animal species
+- Actual map/territory system
+- Sound design / ambient audio
+- Web-hosted percentile comparison (not just local sim data)
+- Add the missing opportunity IDs referenced by existing terrains

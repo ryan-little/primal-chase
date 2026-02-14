@@ -1,3 +1,16 @@
+// Pre-computed from 2500 simulation runs (5 strategies x 500 games)
+// Each entry: [value, percent_of_runs_that_scored_lower]
+const BASELINE_PERCENTILES = {
+  days: [
+    [3, 0], [4, 5], [5, 15], [6, 36], [7, 57], [8, 73],
+    [9, 84], [10, 92], [11, 97], [12, 99], [13, 100], [14, 100]
+  ],
+  distances: [
+    [0, 0], [5, 0], [10, 2], [15, 7], [20, 14], [25, 32],
+    [30, 60], [35, 84], [40, 93], [45, 97], [50, 99], [55, 100]
+  ]
+};
+
 const Score = {
   /**
    * Calculate final score from game state
@@ -90,6 +103,47 @@ const Score = {
     }
 
     return achievements;
+  },
+
+  /**
+   * Calculate percentile comparisons from baseline simulation data
+   * @param {Object} scoreData - score object from calculate()
+   * @returns {Array<string>} - array of percentile strings
+   */
+  calculatePercentiles(scoreData) {
+    const results = [];
+
+    // Days percentile
+    const dayPct = this.getPercentile(scoreData.days, BASELINE_PERCENTILES.days);
+    if (dayPct > 0) {
+      results.push(`You survived longer than ${dayPct}% of runs`);
+    }
+
+    // Distance percentile
+    const distPct = this.getPercentile(scoreData.distance, BASELINE_PERCENTILES.distances);
+    if (distPct > 0) {
+      results.push(`Your distance was farther than ${distPct}% of runs`);
+    }
+
+    return results;
+  },
+
+  /**
+   * Find percentile for a value given sorted breakpoints
+   * @param {number} value - the player's value
+   * @param {Array} breakpoints - array of [threshold, percentile] pairs
+   * @returns {number} - percentile (0-100)
+   */
+  getPercentile(value, breakpoints) {
+    let pct = 0;
+    for (let i = 0; i < breakpoints.length; i++) {
+      if (value >= breakpoints[i][0]) {
+        pct = breakpoints[i][1];
+      } else {
+        break;
+      }
+    }
+    return pct;
   },
 
   /**
