@@ -300,54 +300,81 @@ const Score = {
     if (!canvas) return;
 
     const ctx = canvas.getContext('2d');
-    canvas.width = 600;
-    canvas.height = 600;
+    const W = 600;
+    const H = 600;
+    canvas.width = W;
+    canvas.height = H;
 
-    // Dark gradient background (no logo — avoids canvas tainting on file://)
-    const gradient = ctx.createLinearGradient(0, 0, 0, canvas.height);
-    gradient.addColorStop(0, '#2a1a0e');
-    gradient.addColorStop(1, '#1a0f08');
+    // --- Background: warm savannah gradient ---
+    const gradient = ctx.createLinearGradient(0, 0, 0, H);
+    gradient.addColorStop(0, '#2e1c10');
+    gradient.addColorStop(0.4, '#1a0f08');
+    gradient.addColorStop(0.7, '#1c1209');
+    gradient.addColorStop(1, '#2a1a0e');
     ctx.fillStyle = gradient;
-    ctx.fillRect(0, 0, canvas.width, canvas.height);
+    ctx.fillRect(0, 0, W, H);
 
+    // --- Noise grain texture ---
+    const imageData = ctx.getImageData(0, 0, W, H);
+    const pixels = imageData.data;
+    for (let i = 0; i < pixels.length; i += 4) {
+      const noise = (Math.random() - 0.5) * 18;
+      pixels[i] += noise;
+      pixels[i + 1] += noise;
+      pixels[i + 2] += noise;
+    }
+    ctx.putImageData(imageData, 0, 0);
+
+    // --- Border frame ---
+    const borderInset = 12;
+    ctx.strokeStyle = '#4a3526';
+    ctx.lineWidth = 2;
+    ctx.strokeRect(borderInset, borderInset, W - borderInset * 2, H - borderInset * 2);
+
+    // --- Colors ---
     const amber = '#d4883a';
+    const gold = '#d4a574';
     const lightAmber = '#e8a864';
+    const secondary = '#b8944f';
     ctx.textAlign = 'center';
 
-    // Title
+    // --- Title ---
     ctx.fillStyle = lightAmber;
-    ctx.font = 'bold 44px serif';
-    ctx.fillText('PRIMAL CHASE', canvas.width / 2, 70);
+    ctx.font = 'bold 50px Georgia, serif';
+    ctx.letterSpacing = '3px';
+    ctx.fillText('PRIMAL CHASE', W / 2, 70);
+    ctx.letterSpacing = '0px';
 
-    // Death line
+    // --- Death line ---
     ctx.fillStyle = amber;
-    ctx.font = 'bold 30px serif';
-    ctx.fillText(`DAY ${scoreData.days} — ${this.formatDeathCauseUpper(scoreData.deathCause)}`, canvas.width / 2, 130);
+    ctx.font = 'bold 32px Georgia, serif';
+    ctx.fillText(`DAY ${scoreData.days} — ${this.formatDeathCauseUpper(scoreData.deathCause)}`, W / 2, 125);
 
-    // Separator
-    ctx.strokeStyle = amber;
+    // --- Separator ---
+    ctx.strokeStyle = '#4a3526';
     ctx.lineWidth = 2;
     ctx.beginPath();
-    ctx.moveTo(100, 160);
-    ctx.lineTo(500, 160);
+    ctx.moveTo(80, 152);
+    ctx.lineTo(W - 80, 152);
     ctx.stroke();
 
-    // Distance
-    ctx.font = '26px serif';
-    ctx.fillText(`${scoreData.distance} miles covered`, canvas.width / 2, 205);
+    // --- Distance ---
+    ctx.fillStyle = secondary;
+    ctx.font = '26px Georgia, serif';
+    ctx.fillText(`${scoreData.distance} miles covered`, W / 2, 190);
 
-    // Achievements
-    let yOffset = 250;
+    // --- Achievements ---
+    let yOffset = 235;
     if (scoreData.achievements && scoreData.achievements.length > 0) {
-      ctx.font = 'bold 20px serif';
+      ctx.font = 'bold 20px Georgia, serif';
       ctx.fillStyle = lightAmber;
-      ctx.fillText('Achievements', canvas.width / 2, yOffset);
+      ctx.fillText('Achievements', W / 2, yOffset);
       yOffset += 30;
 
-      ctx.font = '18px serif';
+      ctx.font = '18px Georgia, serif';
       ctx.fillStyle = amber;
       scoreData.achievements.slice(0, 5).forEach(achievement => {
-        const maxWidth = 480;
+        const maxWidth = 460;
         const words = achievement.split(' ');
         let line = '';
         const lines = [];
@@ -362,18 +389,33 @@ const Score = {
         });
         if (line) lines.push(line);
         lines.forEach(textLine => {
-          ctx.fillText(textLine, canvas.width / 2, yOffset);
+          ctx.fillText(textLine, W / 2, yOffset);
           yOffset += 24;
         });
       });
     }
 
-    // Tagline
-    ctx.fillStyle = lightAmber;
-    ctx.font = 'italic 20px serif';
-    ctx.fillText('How long can a King outrun a shadow?', canvas.width / 2, canvas.height - 60);
-    ctx.font = '18px serif';
-    ctx.fillText('primalchase.com', canvas.width / 2, canvas.height - 30);
+    // --- Tagline (randomized) ---
+    const taglines = [
+      'How long can a King outrun a shadow?',
+      'Born to rule. Destined to run.',
+      'The distance closes. It always does.',
+      'No throne. No rest. Only the chase.',
+      'Every stride buys one more breath.',
+      'You can outrun everything but time.',
+      'Even Kings have shadows.',
+      'Apex. Prey. The line blurs at dusk.',
+    ];
+    const tagline = taglines[Math.floor(Math.random() * taglines.length)];
+
+    ctx.fillStyle = gold;
+    ctx.font = 'italic 22px Georgia, serif';
+    ctx.fillText(tagline, W / 2, H - 50);
+
+    // --- URL ---
+    ctx.fillStyle = amber;
+    ctx.font = '16px Georgia, serif';
+    ctx.fillText('primalchase.com', W / 2, H - 25);
 
     // Copy image to clipboard (requires HTTPS — falls back to download on file://)
     const button = document.getElementById('btn-share-image');

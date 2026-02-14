@@ -54,18 +54,6 @@ const Hunters = {
     // Add escalation from previous trail losses
     speed += CONFIG.hunter.escalationPerLoss * gameState.timesLostHunters;
 
-    // Apply terrain modifiers if we have currentTerrain
-    if (gameState.currentTerrain) {
-      const terrain = gameState.currentTerrain;
-      if (terrain === 'mountain' || terrain === 'mountains') {
-        speed *= CONFIG.hunter.mountainPenalty;
-      } else if (terrain === 'jungle' || terrain === 'dense') {
-        speed *= CONFIG.hunter.junglePenalty;
-      } else if (terrain === 'plain' || terrain === 'plains' || terrain === 'grassland') {
-        speed *= CONFIG.hunter.plainBoost;
-      }
-    }
-
     // Apply water boost if active
     if (gameState.hunterWaterBoostDays > 0) {
       speed *= CONFIG.hunter.waterBoost;

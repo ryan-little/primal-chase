@@ -10,7 +10,7 @@ A text-based, browser-playable survival strategy game. You play as an apex preda
 
 **Git workflow:** `main` branch for deployment (GitHub Pages). `v1` branch for development.
 
-**Current status:** V1.5 — live at primalchase.com. Game analytics dashboard deployed at /stats/.
+**Current status:** V1.6 — live at primalchase.com. Game analytics dashboard deployed at /stats/.
 
 ## Critical Rules
 
@@ -289,13 +289,28 @@ All 8 implementation phases complete: simulation engine, stat display honesty, e
 - Encounter frequency tracking added to simulation engine, ASCII report, and dashboard
 - GTO label properly capitalized throughout
 
+### V1.6 — Share Card & Codebase Cleanup
+- Share card redesign: savannah gradient background, noise grain texture, border frame, better typography, tighter spacing
+- 8 rotating taglines on share card (randomized per generation)
+- Removed non-functional death overlay red tint (CSS + HTML)
+- Removed dead terrain modifier code from hunters.js (currentTerrain was never set; terrain-based hunter modifiers deferred to V2)
+- Removed orphaned CONFIG values (mountainPenalty, junglePenalty, plainBoost)
+- Fixed hardcoded CONFIG values in GTO simulation strategy — now reads from sandbox.CONFIG
+- Added disabled guard to action button click handlers
+- CSS cleanup: removed unused variables (--bg-savannah, --border-light), duplicate .howto-content strong rule, orphaned .situation-label selector, unused .text-center utility, redundant media query overrides
+- Replaced hardcoded hex colors with CSS variables in typewriter styles
+- Removed unused sparkline() function from report.js
+- Removed unused variables from charts.html dashboard (CSS, shown)
+- GitHub issue #1 closed (share image clipboard works on HTTPS)
+
 ## Content Guidelines
 
 The writing tone is atmospheric and primal. Think Cormac McCarthy meets nature documentary. The animal is intelligent but not human — it thinks in sensation, instinct, and growing unease. Avoid modern language or humor. Everything should feel ancient, inevitable, and earned.
 
 ## Known Issues
 
-- Share image clipboard copy requires HTTPS (secure context). Falls back to PNG download on file://. GitHub issue #1.
+None currently tracked.
+
 ## Future Ideas (V2+)
 
 - Personalized death tips based on narrativeLog
@@ -303,5 +318,6 @@ The writing tone is atmospheric and primal. Think Cormac McCarthy meets nature d
 - Multiple animal species
 - Actual map/territory system
 - Sound design / ambient audio
+- Terrain-based hunter speed modifiers (hunters faster on open plains, slower in dense terrain — adds strategic layer to fleeing direction)
 - Web-hosted percentile comparison (not just local sim data)
 - stats.primalchase.com subdomain for analytics (currently at /stats/)

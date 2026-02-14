@@ -2,7 +2,6 @@
 :root {
   --bg-dark: #1a0f08;
   --bg-darker: #2a1a0e;
-  --bg-savannah: #2e1c10;
   --text-primary: #d4883a;
   --text-secondary: #b8944f;
   --text-danger: #c44536;
@@ -10,7 +9,6 @@
   --text-night: #6b8cae;
   --text-gold: #d4a574;
   --border-color: #4a3526;
-  --border-light: #5c4433;
 }
 
 /* ===== GLOBAL RESET & BASE STYLES ===== */
@@ -145,7 +143,7 @@ body.night-mode .night-bg {
   font-family: Georgia, serif;
   font-size: 1.15em;
   line-height: 1.8;
-  color: #b8944f;
+  color: var(--text-secondary);
   margin-bottom: 1.2em;
   opacity: 0;
   transition: opacity 0.5s ease;
@@ -157,7 +155,7 @@ body.night-mode .night-bg {
 
 .typewriter-content p em {
   font-style: italic;
-  color: #d4883a;
+  color: var(--text-primary);
 }
 
 .typewriter-skip {
@@ -464,18 +462,6 @@ body.night-mode .night-bg {
   display: none;
 }
 
-.situation-label {
-  display: block;
-  font-style: normal;
-  font-size: 0.8em;
-  font-family: 'Courier New', monospace;
-  text-transform: uppercase;
-  letter-spacing: 1.5px;
-  color: rgba(184, 148, 79, 0.4);
-  margin-bottom: 0.5rem;
-  text-align: center;
-}
-
 .situation-text {
   font-size: 1.2em;
   line-height: 1.8;
@@ -604,18 +590,6 @@ body.night-mode .night-bg {
 }
 
 /* ===== DEATH SCREEN ===== */
-.death-overlay {
-  position: fixed;
-  inset: 0;
-  background: rgba(100, 20, 10, 0);
-  z-index: -1;
-  transition: background 2s ease;
-}
-
-#screen-death.active .death-overlay {
-  background: rgba(100, 20, 10, 0.15);
-}
-
 .death-container {
   max-width: 700px;
   width: 100%;
@@ -900,10 +874,6 @@ body.night-mode .night-bg {
   font-size: 0.88em;
 }
 
-.howto-content strong {
-  color: var(--text-primary);
-}
-
 /* ===== BACK BUTTON ===== */
 .back-btn {
   background: rgba(42, 26, 14, 0.8);
@@ -1108,12 +1078,7 @@ body.night-mode .night-bg {
   }
 
   .situation-scroll {
-    max-height: none;
     overflow-y: visible;
-  }
-
-  .action-buttons {
-    position: static;
   }
 
   .logo {
@@ -1213,9 +1178,5 @@ body.night-mode .night-bg {
 /* ===== UTILITY CLASSES ===== */
 .hidden {
   display: none !important;
-}
-
-.text-center {
-  text-align: center;
 }
 
