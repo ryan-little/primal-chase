@@ -518,6 +518,9 @@ const UI = {
     // Clear existing buttons
     container.innerHTML = '';
 
+    // Use grid layout for 4+ actions on desktop to reduce vertical space
+    container.classList.toggle('grid-layout', actions.length >= 4);
+
     // Create button for each action
     actions.forEach((action, index) => {
       const button = document.createElement('button');
