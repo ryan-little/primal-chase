@@ -543,6 +543,12 @@ body.night-mode::after {
   transform: translateX(2px);
 }
 
+.action-btn.disabled {
+  opacity: 0.4;
+  pointer-events: none;
+  cursor: not-allowed;
+}
+
 .action-name {
   font-weight: bold;
   font-size: 1.05em;

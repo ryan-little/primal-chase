@@ -242,7 +242,15 @@ const UI = {
     this.renderHunt(gameState);
     this.renderActionHistory(gameState);
 
-    // Render situation: outcome from last action + current encounter
+    // Render situation, monologue, and actions
+    this._renderSituation(gameState);
+  },
+
+  /**
+   * Render situation text, monologue, and action buttons
+   * Uses typewriter effect when enabled
+   */
+  _renderSituation(gameState) {
     const situationElement = document.getElementById('situation-text');
     if (situationElement) {
       let html = '<span class="situation-label">The Land</span>';
@@ -250,12 +258,23 @@ const UI = {
         html += `<p class="outcome-text">${gameState.lastOutcome}</p>`;
         gameState.lastOutcome = null;
       }
-      if (gameState.currentEncounter && gameState.currentEncounter.text) {
-        html += `<p>${gameState.currentEncounter.text}</p>`;
+
+      const encounterText = (gameState.currentEncounter && gameState.currentEncounter.text)
+        ? gameState.currentEncounter.text
+        : 'The land stretches endlessly before you. Heat shimmers on the horizon.';
+
+      if (Options.get('typewriterEffect')) {
+        situationElement.innerHTML = html;
+        this._situationSkipped = false;
+        this._situationTypewriterDone = false;
+        this.disableActions(true);
+        this.typewriteText(situationElement, encounterText, CONFIG.typewriter.speed, () => {
+          this.disableActions(false);
+        });
       } else {
-        html += '<p>The land stretches endlessly before you. Heat shimmers on the horizon.</p>';
+        situationElement.innerHTML = html + `<p>${encounterText}</p>`;
+        this._situationTypewriterDone = true;
       }
-      situationElement.innerHTML = html;
     }
 
     // Render internal monologue
@@ -264,7 +283,22 @@ const UI = {
     // Render available actions from the encounter's actions array
     if (gameState.currentEncounter && gameState.currentEncounter.actions) {
       this.renderActions(gameState.currentEncounter.actions);
+      // If typewriter is active, buttons are already disabled above
     }
+  },
+
+  /**
+   * Enable or disable action buttons
+   */
+  disableActions(disabled) {
+    const buttons = document.querySelectorAll('#action-buttons .action-btn');
+    buttons.forEach(btn => {
+      if (disabled) {
+        btn.classList.add('disabled');
+      } else {
+        btn.classList.remove('disabled');
+      }
+    });
   },
 
   /**
@@ -883,16 +917,37 @@ const UI = {
       };
     }
 
-    // Keyboard shortcuts for action buttons (1-5)
+    // Keyboard shortcuts for action buttons (1-5) + spacebar skip
     document.addEventListener('keydown', (e) => {
       const gameScreen = document.getElementById('screen-game');
       if (!gameScreen || !gameScreen.classList.contains('active')) return;
+
+      // Spacebar skips situation typewriter
+      if (e.code === 'Space' && !this._situationTypewriterDone) {
+        e.preventDefault();
+        this._situationSkipped = true;
+        return;
+      }
+
+      // Number keys for action buttons (only when not disabled)
       const num = parseInt(e.key);
       if (num >= 1 && num <= 5) {
         const buttons = document.querySelectorAll('#action-buttons .action-btn');
-        if (buttons[num - 1]) buttons[num - 1].click();
+        if (buttons[num - 1] && !buttons[num - 1].classList.contains('disabled')) {
+          buttons[num - 1].click();
+        }
       }
     });
+
+    // Tap to skip situation typewriter (mobile)
+    const situationEl = document.getElementById('situation-text');
+    if (situationEl) {
+      situationEl.addEventListener('click', () => {
+        if (!this._situationTypewriterDone) {
+          this._situationSkipped = true;
+        }
+      });
+    }
 
     // Back buttons
     const btnHowToBack = document.getElementById('btn-howto-back');
