@@ -3,7 +3,7 @@ const Options = {
     difficulty: 'normal',
     showOpening: true,
     typewriterEffect: true,
-    typewriterSpeed: 20
+    typewriterSpeed: 30
   },
 
   _values: null,
@@ -157,37 +157,30 @@ const UI = {
     }
 
     const p = paragraphs[index];
-    const fullHTML = p.innerHTML;
-    p.innerHTML = '';
+    const fullText = p.textContent;
     p.classList.add('visible');
 
+    // Start with all text hidden (layout stable from the start)
     let charIndex = 0;
-    let currentText = '';
     const typeSpeed = (typeof CONFIG !== 'undefined' && CONFIG.typewriter) ? CONFIG.typewriter.introSpeed : 35;
+
+    const render = () => {
+      const typed = fullText.substring(0, charIndex);
+      const untyped = fullText.substring(charIndex);
+      p.innerHTML = typed + '<span class="tw-hidden">' + untyped + '</span>';
+    };
+
+    render();
 
     const typeNext = () => {
       if (this._typewriterSkipped) return;
-      if (charIndex >= fullHTML.length) {
+      if (charIndex >= fullText.length) {
+        p.textContent = fullText;
         setTimeout(() => this._typeNextParagraph(index + 1), 800);
         return;
       }
-
-      // Handle HTML tags — add entire tag at once
-      if (fullHTML[charIndex] === '<') {
-        const closeIndex = fullHTML.indexOf('>', charIndex);
-        if (closeIndex !== -1) {
-          currentText += fullHTML.substring(charIndex, closeIndex + 1);
-          charIndex = closeIndex + 1;
-        } else {
-          currentText += fullHTML[charIndex];
-          charIndex++;
-        }
-      } else {
-        currentText += fullHTML[charIndex];
-        charIndex++;
-      }
-
-      p.innerHTML = currentText;
+      charIndex++;
+      render();
       setTimeout(typeNext, typeSpeed);
     };
 
@@ -253,7 +246,6 @@ const UI = {
       // Render vitals (bars will animate slowly)
       this.renderVitals(gameState);
       this.renderHunt(gameState);
-      this.renderActionHistory(gameState);
 
       // After transition duration, remove transitioning class and continue
       setTimeout(() => {
@@ -261,19 +253,13 @@ const UI = {
           bar.classList.remove('transitioning');
         });
 
-        // Now render situation text (with typewriter if enabled)
         this._renderSituation(gameState);
-
-        // Re-enable actions (typewriter will handle its own lockout if active)
-        if (!Options.get('typewriterEffect')) {
-          this.disableActions(false);
-        }
+        this.disableActions(false);
       }, CONFIG.transition.duration);
     } else {
       // No transition — render everything immediately
       this.renderVitals(gameState);
       this.renderHunt(gameState);
-      this.renderActionHistory(gameState);
       this._renderSituation(gameState);
     }
   },
@@ -285,7 +271,7 @@ const UI = {
   _renderSituation(gameState) {
     const situationElement = document.getElementById('situation-text');
     if (situationElement) {
-      let html = '<span class="situation-label">The Land</span>';
+      let html = '';
       if (gameState.lastOutcome) {
         html += `<p class="outcome-text">${gameState.lastOutcome}</p>`;
         gameState.lastOutcome = null;
@@ -295,18 +281,8 @@ const UI = {
         ? gameState.currentEncounter.text
         : 'The land stretches endlessly before you. Heat shimmers on the horizon.';
 
-      if (Options.get('typewriterEffect')) {
-        situationElement.innerHTML = html;
-        this._situationSkipped = false;
-        this._situationTypewriterDone = false;
-        this.disableActions(true);
-        this.typewriteText(situationElement, encounterText, CONFIG.typewriter.speed, () => {
-          this.disableActions(false);
-        });
-      } else {
-        situationElement.innerHTML = html + `<p>${encounterText}</p>`;
-        this._situationTypewriterDone = true;
-      }
+      situationElement.innerHTML = html + `<p>${encounterText}</p>`;
+      this._situationTypewriterDone = true;
     }
 
     // Render internal monologue
@@ -356,38 +332,6 @@ const UI = {
       document.body.classList.add('night-mode');
     }
 
-  },
-
-  /**
-   * Render action history in sidebar
-   */
-  renderActionHistory(gameState) {
-    const container = document.getElementById('history-entries');
-    if (!container) return;
-
-    const history = gameState.actionHistory || [];
-    if (history.length === 0) {
-      container.innerHTML = '<div class="history-entry" style="opacity: 0.5">No actions yet</div>';
-      return;
-    }
-
-    container.innerHTML = '';
-    // Show most recent first
-    [...history].reverse().forEach(entry => {
-      const div = document.createElement('div');
-      div.className = 'history-entry';
-
-      const phaseClass = entry.phase === 'night' ? 'night' : '';
-      const phaseLabel = entry.phase === 'day' ? 'D' : 'N';
-
-      div.innerHTML = `
-        <span class="history-phase ${phaseClass}">${phaseLabel}${entry.day}</span>
-        <span class="history-action">${entry.action}</span>
-        <span class="history-gap">${entry.hunterGap}mi</span>
-      `;
-
-      container.appendChild(div);
-    });
   },
 
   /**
@@ -499,12 +443,14 @@ const UI = {
    * @param {Object} gameState - current game state
    */
   renderHunt(gameState) {
-    const distanceElement = document.getElementById('hunter-distance');
+    const huntDistanceContainer = document.querySelector('.hunt-distance');
     const flavorElement = document.getElementById('hunt-flavor');
-    const totalDistanceElement = document.getElementById('distance-covered');
+    const distanceCoveredContainer = document.querySelector('.distance-covered');
 
-    if (distanceElement) {
-      distanceElement.textContent = Math.round(gameState.hunterDistance * 10) / 10;
+    if (huntDistanceContainer) {
+      const dist = Math.round(gameState.hunterDistance * 10) / 10;
+      const unit = dist === 1 ? 'mile' : 'miles';
+      huntDistanceContainer.innerHTML = `Hunters are <span id="hunter-distance">${dist}</span> ${unit} behind`;
     }
 
     if (flavorElement && typeof Hunters !== 'undefined') {
@@ -516,8 +462,10 @@ const UI = {
       flavorElement.textContent = flavorText;
     }
 
-    if (totalDistanceElement) {
-      totalDistanceElement.textContent = Math.round(gameState.distanceCovered * 10) / 10;
+    if (distanceCoveredContainer) {
+      const dist = Math.round(gameState.distanceCovered * 10) / 10;
+      const unit = dist === 1 ? 'mile' : 'miles';
+      distanceCoveredContainer.innerHTML = `You have covered <span id="distance-covered">${dist}</span> ${unit} on the chase so far`;
     }
   },
 
@@ -668,39 +616,37 @@ const UI = {
   typewriteText(element, text, speed, callback) {
     const p = document.createElement('p');
     element.appendChild(p);
-    p.style.opacity = '1';
+
+    // Set full text immediately (invisible) so layout is stable — no reflow as we type
+    p.textContent = text;
 
     let charIndex = 0;
-    let currentText = '';
     this._situationTypewriterDone = false;
     this._situationSkipped = false;
 
+    const render = () => {
+      const typed = text.substring(0, charIndex);
+      const untyped = text.substring(charIndex);
+      p.innerHTML = typed + '<span class="tw-hidden">' + untyped + '</span>';
+    };
+
+    render(); // start with all text hidden
+
     const typeNext = () => {
       if (this._situationSkipped) {
-        p.innerHTML = text;
+        p.textContent = text;
         this._situationTypewriterDone = true;
         if (callback) callback();
         return;
       }
       if (charIndex >= text.length) {
+        p.textContent = text;
         this._situationTypewriterDone = true;
         if (callback) callback();
         return;
       }
-      if (text[charIndex] === '<') {
-        const closeIndex = text.indexOf('>', charIndex);
-        if (closeIndex !== -1) {
-          currentText += text.substring(charIndex, closeIndex + 1);
-          charIndex = closeIndex + 1;
-        } else {
-          currentText += text[charIndex];
-          charIndex++;
-        }
-      } else {
-        currentText += text[charIndex];
-        charIndex++;
-      }
-      p.innerHTML = currentText;
+      charIndex++;
+      render();
       setTimeout(typeNext, speed);
     };
 
@@ -882,11 +828,11 @@ const UI = {
   },
 
   _syncSpeedSlider() {
-    const speedRow = document.getElementById('typewriter-speed-row');
+    const speedInline = document.getElementById('typewriter-speed-inline');
     const speedSlider = document.getElementById('opt-typewriter-speed');
     const on = Options.get('typewriterEffect');
-    if (speedRow) {
-      speedRow.classList.toggle('visible', on);
+    if (speedInline) {
+      speedInline.classList.toggle('hidden', !on);
     }
     if (speedSlider) {
       const speed = Options.get('typewriterSpeed') || CONFIG.typewriter.speed;

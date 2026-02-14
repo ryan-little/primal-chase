@@ -8,6 +8,8 @@
 </head>
 <body>
 
+  <!-- Night background overlay (fades via opacity) -->
+  <div class="night-bg"></div>
 
   <!-- Typewriter cinematic intro -->
   <div id="typewriter-overlay" class="typewriter-overlay">
@@ -20,11 +22,11 @@
     <div class="title-container">
       <img id="title-logo" src="assets/primalchaselogoout.png" alt="Primal Chase" class="logo">
       <div class="title-buttons">
-        <button id="btn-howto" class="title-btn">Learn to Run</button>
         <button id="btn-start" class="title-btn title-btn-primary">Start the Hunt</button>
+        <button id="btn-howto" class="title-btn">Learn to Run</button>
         <button id="btn-leaderboard" class="title-btn">The Longest Strides</button>
+        <button id="btn-options" class="title-btn">Options</button>
       </div>
-      <button id="btn-options" class="title-btn title-btn-options">Options</button>
     </div>
   </div>
 
@@ -72,15 +74,9 @@
 
         <div class="game-sidebar">
           <div id="hunt-info" class="hunt-info">
-            <div class="hunt-distance">Hunters: <span id="hunter-distance">25</span> mi behind</div>
+            <div class="hunt-distance">Hunters are <span id="hunter-distance">25</span> miles behind</div>
             <div class="hunt-flavor" id="hunt-flavor">You can barely sense them. But they are there.</div>
-            <div class="distance-covered">Distance: <span id="distance-covered">0</span> mi</div>
-          </div>
-          <div id="action-history" class="action-history">
-            <div class="history-title">Recent</div>
-            <div id="history-entries" class="history-entries">
-              <!-- Action history entries rendered here -->
-            </div>
+            <div class="distance-covered">You have covered <span id="distance-covered">0</span> miles on the chase so far</div>
           </div>
         </div>
       </div>
@@ -136,8 +132,10 @@
       </div>
 
       <div class="death-buttons">
-        <button id="btn-share-text" class="death-btn">Share Text</button>
-        <button id="btn-share-image" class="death-btn">Share Image</button>
+        <div class="death-buttons-row">
+          <button id="btn-share-text" class="death-btn">Share Text</button>
+          <button id="btn-share-image" class="death-btn">Share Image</button>
+        </div>
         <button id="btn-submit-score" class="death-btn">Submit to Longest Strides</button>
         <button id="btn-try-again" class="death-btn primary">Try Again</button>
         <button id="btn-return-title" class="death-btn">Return to Title</button>
@@ -247,14 +245,11 @@
           <span class="option-label">Typewriter Effect</span>
           <div class="option-control">
             <button class="option-toggle active" id="opt-typewriter" data-option="typewriterEffect">ON</button>
-          </div>
-        </div>
-        <div class="option-row option-row-slider" id="typewriter-speed-row">
-          <span class="option-label">Typewriter Speed</span>
-          <div class="option-control slider-control">
-            <span class="slider-label">Fast</span>
-            <input type="range" id="opt-typewriter-speed" class="option-slider" min="5" max="50" value="20">
-            <span class="slider-label">Slow</span>
+            <span class="speed-inline" id="typewriter-speed-inline">
+              <span class="slider-label">Fast</span>
+              <input type="range" id="opt-typewriter-speed" class="option-slider" min="5" max="50" value="30">
+              <span class="slider-label">Slow</span>
+            </span>
           </div>
         </div>
       </div>
