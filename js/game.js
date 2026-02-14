@@ -28,7 +28,9 @@ const Game = {
         timesRested: 0,
         phasesWithHighThirst: 0,
         phasesNearDeath: 0
-      }
+      },
+      actionHistory: [],
+      narrativeLog: []
     };
 
     if (typeof Encounters !== 'undefined') {
@@ -69,6 +71,15 @@ const Game = {
     if (actionKey === 'rest') {
       this.state.achievementStats.timesRested++;
     }
+
+    // Capture stats before effects for history tracking
+    const statsBefore = {
+      heat: this.state.heat,
+      stamina: this.state.stamina,
+      thirst: this.state.thirst,
+      hunger: this.state.hunger,
+      hunterDistance: this.state.hunterDistance
+    };
 
     // Get the effects — either from the action's effects object or CONFIG standard
     const effects = action.effects || {};
@@ -148,6 +159,29 @@ const Game = {
     // Clamp stats
     this.clampStats();
 
+    // Track action in history
+    const statChanges = {
+      heat: Math.round(this.state.heat - statsBefore.heat),
+      stamina: Math.round(this.state.stamina - statsBefore.stamina),
+      thirst: Math.round(this.state.thirst - statsBefore.thirst),
+      hunger: Math.round(this.state.hunger - statsBefore.hunger)
+    };
+    const historyEntry = {
+      day: this.state.day,
+      phase: this.state.phase,
+      action: action.name || actionKey,
+      statChanges: statChanges,
+      hunterGap: Math.round(this.state.hunterDistance * 10) / 10
+    };
+    this.state.actionHistory.push(historyEntry);
+    if (this.state.actionHistory.length > 5) {
+      this.state.actionHistory.shift();
+    }
+    this.state.narrativeLog.push({
+      ...historyEntry,
+      encounterText: this.state.currentEncounter ? this.state.currentEncounter.text : null
+    });
+
     // Check death
     const deathCause = this.checkDeath();
     if (deathCause) {
@@ -163,9 +197,13 @@ const Game = {
     // Advance phase
     this.advancePhase();
 
-    // Generate next encounter
+    // Generate next encounter — rest keeps same terrain with fresh opportunity/pressure
     if (typeof Encounters !== 'undefined') {
-      this.state.currentEncounter = Encounters.generate(this.state);
+      if (actionKey === 'rest' && this.state.currentEncounter) {
+        this.state.currentEncounter = Encounters.regenerateSameLocation(this.state.currentEncounter, this.state);
+      } else {
+        this.state.currentEncounter = Encounters.generate(this.state);
+      }
     }
 
     // Generate monologue
@@ -173,8 +211,8 @@ const Game = {
       this.state.monologue = Monologue.select(this.state, actionKey);
     }
 
-    // Render
-    if (typeof UI !== 'undefined') UI.renderGame(this.state);
+    // Render (with transition animation on phase changes)
+    if (typeof UI !== 'undefined') UI.renderGame(this.state, { transition: true });
   },
 
   /**

@@ -367,6 +367,10 @@ body.night-mode::after {
   transition: width 0.3s ease, background-color 0.3s ease;
 }
 
+.status-bar-fill.transitioning {
+  transition: width 1.5s ease-in-out, background-color 1.5s ease-in-out;
+}
+
 /* ===== GAME SIDEBAR ===== */
 .game-sidebar {
   padding: 1.2rem 1.5rem;

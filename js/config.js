@@ -78,5 +78,11 @@ const CONFIG = {
   typewriter: {
     speed: 20,           // ms per character for situation/death text
     introSpeed: 35       // ms per character for opening intro
+  },
+
+  // Phase transition
+  transition: {
+    duration: 2000,              // ms for phase transition lockout
+    barAnimationDuration: 1500   // ms for status bar animation
   }
 };

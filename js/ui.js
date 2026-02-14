@@ -234,16 +234,47 @@ const UI = {
   /**
    * Main render function - updates all game screen content
    * @param {Object} gameState - current game state
+   * @param {Object} opts - { transition: bool }
    */
-  renderGame(gameState) {
+  renderGame(gameState, opts = {}) {
     this.showScreen('screen-game');
     this.renderPhaseHeader(gameState);
-    this.renderVitals(gameState);
-    this.renderHunt(gameState);
-    this.renderActionHistory(gameState);
 
-    // Render situation, monologue, and actions
-    this._renderSituation(gameState);
+    if (opts.transition) {
+      // Disable actions during transition
+      this.disableActions(true);
+
+      // Add transitioning class to bars for slow animation
+      document.querySelectorAll('.status-bar-fill').forEach(bar => {
+        bar.classList.add('transitioning');
+      });
+
+      // Render vitals (bars will animate slowly)
+      this.renderVitals(gameState);
+      this.renderHunt(gameState);
+      this.renderActionHistory(gameState);
+
+      // After transition duration, remove transitioning class and continue
+      setTimeout(() => {
+        document.querySelectorAll('.status-bar-fill').forEach(bar => {
+          bar.classList.remove('transitioning');
+        });
+
+        // Now render situation text (with typewriter if enabled)
+        this._renderSituation(gameState);
+
+        // Re-enable actions (typewriter will handle its own lockout if active)
+        if (!Options.get('typewriterEffect')) {
+          this.disableActions(false);
+        }
+      }, CONFIG.transition.duration);
+    } else {
+      // No transition — render everything immediately
+      this.renderVitals(gameState);
+      this.renderHunt(gameState);
+      this.renderActionHistory(gameState);
+      this._renderSituation(gameState);
+    }
   },
 
   /**
