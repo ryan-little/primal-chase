@@ -26,9 +26,6 @@ const CONFIG = {
     escalationPerLoss: 0.8,    // speed increase each time trail is re-found
     waterBoost: 1.5,           // speed multiplier after player visits water
     waterBoostDuration: 1,     // days the water boost lasts
-    mountainPenalty: 0.7,      // speed multiplier in mountains
-    junglePenalty: 0.6,        // speed multiplier in jungle/dense
-    plainBoost: 1.2,           // speed multiplier on open plains
     nightGain: 0.8             // distance hunters gain at night (they camp)
   },
 

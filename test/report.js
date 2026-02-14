@@ -63,27 +63,6 @@ function barChart(data, title, maxWidth = 40) {
 }
 
 // ============================================================
-// SPARKLINE (hunter distance over time)
-// ============================================================
-
-function sparkline(values, maxWidth = 60) {
-  const blocks = ' _.-=+*#@';
-  const min = Math.min(...values);
-  const max = Math.max(...values);
-  const range = max - min || 1;
-
-  let line = '';
-  // Sample down if too many points
-  const step = Math.max(1, Math.floor(values.length / maxWidth));
-  for (let i = 0; i < values.length; i += step) {
-    const normalized = (values[i] - min) / range;
-    const idx = Math.min(blocks.length - 1, Math.round(normalized * (blocks.length - 1)));
-    line += blocks[idx];
-  }
-  return line;
-}
-
-// ============================================================
 // REPORT GENERATION
 // ============================================================
 

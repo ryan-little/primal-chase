@@ -520,7 +520,6 @@
     }
   };
 
-  const CSS = getComputedStyle(document.documentElement);
   const BG = '#1e150e';
   const GRID_COLOR = 'rgba(74,53,38,0.5)';
   const AXIS_COLOR = '#8a7058';
@@ -1583,7 +1582,6 @@
         // Show top 10 most common + bottom 5 rarest
         const top = entries.slice(0, 10);
         const bottom = entries.slice(-5);
-        const shown = [...top];
         const hasGap = entries.length > 15;
 
         group.innerHTML = `

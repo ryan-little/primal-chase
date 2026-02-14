@@ -71,14 +71,14 @@ function createGameSandbox() {
 // ACTION PICKER — selects actions based on strategy
 // ============================================================
 
-function pickAction(actions, strategy, gameState) {
+function pickAction(actions, strategy, gameState, sandbox) {
   if (!actions || actions.length === 0) return null;
 
   if (strategy === 'smart') {
     return smartPick(actions, gameState);
   }
   if (strategy === 'gto') {
-    return gtoPick(actions, gameState);
+    return gtoPick(actions, gameState, sandbox);
   }
 
   const weights = STRATEGIES[strategy];
@@ -180,14 +180,14 @@ function smartPick(actions, state) {
 // distance gained, opportunity value, and phase-aware costs.
 // ============================================================
 
-function gtoPick(actions, state) {
+function gtoPick(actions, state, sandbox) {
   if (actions.length === 1) return actions[0];
 
   let bestAction = actions[0];
   let bestScore = -Infinity;
 
   for (const action of actions) {
-    const score = gtoScoreAction(action, state);
+    const score = gtoScoreAction(action, state, sandbox);
     if (score > bestScore) {
       bestScore = score;
       bestAction = action;
@@ -197,11 +197,9 @@ function gtoPick(actions, state) {
   return bestAction;
 }
 
-function gtoScoreAction(action, state) {
+function gtoScoreAction(action, state, sandbox) {
   const e = action.effects || {};
-  const passive = state.phase === 'day'
-    ? { heat: 5, stamina: 0, thirst: 5, hunger: 3 }     // CONFIG.passiveDrain.day
-    : { heat: -10, stamina: 5, thirst: 2, hunger: 3 };   // CONFIG.passiveDrain.night
+  const passive = sandbox.CONFIG.passiveDrain[state.phase];
 
   // Project next-state stats after this action + passive drains
   const nextHeat = Math.max(0, Math.min(100, state.heat + (e.heat || 0) + passive.heat));
@@ -412,7 +410,7 @@ function simulateOneGame(sandbox, strategy) {
     const actions = encounter ? encounter.actions : [];
     if (actions.length === 0) break; // no actions = stuck
 
-    const action = pickAction(actions, strategy, Game.state);
+    const action = pickAction(actions, strategy, Game.state, sandbox);
     if (!action) break;
 
     // Execute action (this handles effects, death check, phase advance, new encounter)

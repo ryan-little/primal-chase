@@ -540,6 +540,7 @@ const UI = {
 
       // Wire up click handler
       button.onclick = () => {
+        if (button.classList.contains('disabled')) return;
         if (typeof Game !== 'undefined' && Game.processAction) {
           Game.processAction(action.key);
         }
