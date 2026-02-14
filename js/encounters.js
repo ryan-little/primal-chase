@@ -22,6 +22,7 @@ const Encounters = {
       id: 'dry_riverbed',
       name: 'a dry riverbed',
       text: 'The cracked earth of a dry riverbed stretches before you, pale veins splitting the dust like old bones.',
+      nightText: 'The riverbed is a pale scar in the moonlight, its cracked surface glowing faintly. Shadows pool in the deepest channels.',
       actions: [{ key: 'drink', name: 'Dig', description: 'Dig into the dry riverbed in search of water', chance: 0.5 }],
       modifiers: {},
       compatible: ['vulture', 'shade_scrub', 'animal_tracks', 'bones', 'termite_mound', 'lizard', 'dust_devil', 'dried_carcass', 'loose_stones', 'thorn_bush', 'beetle_trail', 'cracked_mud', 'wind_shift', 'hawk_shadow', 'snake_den']
@@ -30,6 +31,7 @@ const Encounters = {
       id: 'acacia_grove',
       name: 'a stand of acacia trees',
       text: 'Twisted acacias claw at the sky, their canopy throwing spotted shade across the red earth.',
+      nightText: 'The acacias are black silhouettes against the stars, their twisted branches like frozen lightning overhead.',
       actions: [],
       modifiers: { rest: { heat: -5 } },
       compatible: ['shade_scrub', 'bird_alarm', 'animal_tracks', 'termite_mound', 'weaver_nests', 'fallen_branch', 'monkey_troop', 'beetle_trail', 'thorn_bush', 'fig_tree', 'wind_shift', 'hawk_shadow', 'leopard_cache']
@@ -38,6 +40,7 @@ const Encounters = {
       id: 'salt_flat',
       name: 'a vast salt flat',
       text: 'The ground turns white and blinding. Salt crystals crunch beneath your paws, and the horizon dissolves into shimmering nothing.',
+      nightText: 'The salt flat reflects the moonlight like a frozen sea, white and ghostly in every direction. Your paws leave dark prints in the luminous crust.',
       actions: [],
       modifiers: { push: { heat: 5 }, trot: { heat: 3 } },
       compatible: ['dust_devil', 'bones', 'mirage', 'cracked_mud', 'wind_shift', 'vulture', 'loose_stones', 'dried_carcass']
@@ -46,6 +49,7 @@ const Encounters = {
       id: 'rocky_outcrop',
       name: 'a rocky outcrop',
       text: 'Dark stone juts from the earth like the spine of something buried. The rocks are warm but offer vantage.',
+      nightText: 'The rocks loom dark against the stars, still radiating the day\'s stored heat. The stone is warm beneath your paws.',
       actions: [],
       modifiers: { rest: { heat: -3 }, push: { stamina: -5 } },
       compatible: ['shade_scrub', 'lizard', 'snake_den', 'loose_stones', 'hawk_shadow', 'animal_tracks', 'wind_shift', 'bones', 'hyrax_colony']
@@ -54,6 +58,7 @@ const Encounters = {
       id: 'tall_grass',
       name: 'a sea of tall grass',
       text: 'Golden grass rises to your shoulders, swaying in waves. The world narrows to what is immediately before you.',
+      nightText: 'The grass is a dark ocean, whispering in waves you cannot see. Anything could be hiding within arm\'s reach.',
       actions: [],
       modifiers: { trot: { heat: -2 } },
       compatible: ['animal_tracks', 'bird_alarm', 'snake_den', 'beetle_trail', 'wind_shift', 'grasshopper_swarm', 'hidden_burrow', 'mouse_nest', 'thorn_bush']
@@ -62,6 +67,7 @@ const Encounters = {
       id: 'watering_hole',
       name: 'a muddy watering hole',
       text: 'Brown water pools in a shallow depression, its edges trampled by a hundred hooves. Flies drone in lazy circles.',
+      nightText: 'Moonlight glints on still water. The watering hole is a dark mirror reflecting stars, its edges muddied by the traffic of the day.',
       actions: [{ key: 'drink', name: 'Drink', description: 'Drink from the watering hole', chance: 1.0 }],
       modifiers: {},
       compatible: ['animal_tracks', 'bird_alarm', 'vulture', 'mud_wallow', 'hippo_territory', 'crocodile_risk', 'fresh_tracks', 'weaver_nests']
@@ -70,6 +76,7 @@ const Encounters = {
       id: 'kopje',
       name: 'a weathered kopje',
       text: 'Rounded boulders stack like a giant\'s cairn, smoothed by millennia of wind. Lizards scatter as your shadow falls across the stone.',
+      nightText: 'The boulder pile rises like a crouching giant in the darkness, its stone still warm from the day. The crevices between rocks are pools of black.',
       actions: [],
       modifiers: { rest: { heat: -8, stamina: 5 } },
       compatible: ['shade_scrub', 'lizard', 'hyrax_colony', 'hawk_shadow', 'snake_den', 'loose_stones', 'wind_shift', 'leopard_cache']
@@ -78,6 +85,7 @@ const Encounters = {
       id: 'burned_ground',
       name: 'a stretch of burned ground',
       text: 'Black earth and charred stubble — a fire passed through here recently. The air still tastes of ash and the ground radiates heat.',
+      nightText: 'The burned earth smells sharper at night, acrid and recent. Embers still glow in places, orange pinpricks scattered across the dark ground.',
       actions: [{ key: 'eat', name: 'Scavenge', description: 'Search the burn for small animals caught in the fire', chance: 0.6 }],
       modifiers: { push: { heat: 8 }, trot: { heat: 4 } },
       compatible: ['bones', 'vulture', 'dried_carcass', 'dust_devil', 'beetle_trail', 'wind_shift', 'cracked_mud', 'regrowth_shoots']
@@ -86,6 +94,7 @@ const Encounters = {
       id: 'termite_cathedral',
       name: 'a field of termite mounds',
       text: 'Red clay towers rise from the plain like ancient sentinels, some taller than you. The air hums with the industry of millions.',
+      nightText: 'The termite mounds stand like pale sentries in the darkness, their clay towers catching the faint light. The hum of millions continues unseen.',
       actions: [],
       modifiers: {},
       compatible: ['termite_mound', 'aardvark_hole', 'bird_alarm', 'animal_tracks', 'shade_scrub', 'beetle_trail', 'lizard', 'hawk_shadow']
@@ -94,6 +103,7 @@ const Encounters = {
       id: 'dry_ravine',
       name: 'a narrow ravine',
       text: 'The earth splits open into a steep-sided gully, carved by waters that haven\'t flowed in seasons. The walls are crumbling sandstone.',
+      nightText: 'The ravine is a black gash in the earth, its depths invisible. Cool air rises from below, carrying the scent of damp stone.',
       actions: [{ key: 'drink', name: 'Dig', description: 'Dig at the ravine bottom for trapped moisture', chance: 0.4 }],
       modifiers: { push: { stamina: -8 }, rest: { heat: -5 } },
       compatible: ['shade_scrub', 'loose_stones', 'snake_den', 'bones', 'hidden_burrow', 'animal_tracks', 'wind_shift', 'cracked_mud']
@@ -101,7 +111,8 @@ const Encounters = {
     {
       id: 'baobab',
       name: 'an enormous baobab tree',
-      text: 'A baobab stands alone, impossibly thick, its branches bare against the sky like roots reaching into heaven. It has stood here longer than memory.',
+      text: 'An impossibly thick trunk rises before you, branches bare against the sky like roots reaching into heaven. It has stood here longer than memory.',
+      nightText: 'The baobab is a massive dark shape against the stars, its trunk a column of shadow wider than memory. The bark is cool and rough.',
       actions: [],
       modifiers: { rest: { heat: -10, stamina: 8 } },
       compatible: ['shade_scrub', 'bird_alarm', 'weaver_nests', 'monkey_troop', 'beetle_trail', 'fig_tree', 'bark_water', 'animal_tracks', 'wind_shift']
@@ -110,6 +121,7 @@ const Encounters = {
       id: 'elephant_path',
       name: 'an old elephant trail',
       text: 'A wide path beaten flat by generations of elephants cuts through the brush. The going is easier here, packed earth beneath your paws.',
+      nightText: 'The elephant trail is a pale ribbon in the darkness, the packed earth easier to follow by feel than by sight.',
       actions: [],
       modifiers: { push: { stamina: 5 }, trot: { stamina: 3 } },
       compatible: ['animal_tracks', 'fresh_tracks', 'bones', 'dung_pile', 'bird_alarm', 'fallen_branch', 'wind_shift', 'mud_wallow']
@@ -118,6 +130,7 @@ const Encounters = {
       id: 'sandy_wash',
       name: 'a sandy wash',
       text: 'Fine sand fills a wide, shallow channel. Your paws sink with each step, and the heat rises in visible waves from the pale ground.',
+      nightText: 'The sand gleams silver in the moonlight. Each footprint is a dark well in the luminous ground, a trail you cannot hide.',
       actions: [{ key: 'drink', name: 'Dig', description: 'Dig in the sand for subsurface water', chance: 0.35 }],
       modifiers: { push: { stamina: -5, heat: 3 }, trot: { stamina: -3 } },
       compatible: ['animal_tracks', 'lizard', 'beetle_trail', 'loose_stones', 'wind_shift', 'dust_devil', 'cracked_mud', 'snake_den']
@@ -126,6 +139,7 @@ const Encounters = {
       id: 'fever_trees',
       name: 'a grove of fever trees',
       text: 'Yellow-green bark glows in the light, ghostly and beautiful. These trees mean water is near — or was, once.',
+      nightText: 'The fever trees glow faintly in the dark, their pale bark catching what little light the stars provide. A spectral grove.',
       actions: [{ key: 'drink', name: 'Search', description: 'Search the roots for seeping groundwater', chance: 0.55 }],
       modifiers: { rest: { heat: -4 } },
       compatible: ['bird_alarm', 'monkey_troop', 'weaver_nests', 'animal_tracks', 'shade_scrub', 'wind_shift', 'mosquito_swarm', 'fig_tree']
@@ -134,6 +148,7 @@ const Encounters = {
       id: 'ridge_line',
       name: 'a long ridge',
       text: 'You climb a ridge that runs like a scar across the landscape. From here you can see far — the land spread out in amber and rust.',
+      nightText: 'From the ridge, the night spreads in every direction — a dark sea broken by the occasional gleam of distant water or the faint glow of fire.',
       actions: [],
       modifiers: { push: { stamina: -8 }, trot: { stamina: -4 }, rest: { heat: -3 } },
       compatible: ['hawk_shadow', 'wind_shift', 'loose_stones', 'bird_alarm', 'animal_tracks', 'vulture', 'distant_smoke']
@@ -142,6 +157,7 @@ const Encounters = {
       id: 'clay_pan',
       name: 'a dried clay pan',
       text: 'A wide depression of cracked gray clay, baked hard as pottery. Every step echoes. There is no shade and no shelter.',
+      nightText: 'The clay pan is a pale void in the darkness, crackling softly as it contracts in the cooling air. Your steps ring hollow.',
       actions: [],
       modifiers: { push: { heat: 5 }, trot: { heat: 3 } },
       compatible: ['mirage', 'dust_devil', 'cracked_mud', 'bones', 'vulture', 'wind_shift', 'dried_carcass', 'loose_stones']
@@ -150,6 +166,7 @@ const Encounters = {
       id: 'thorn_thicket',
       name: 'a dense thorn thicket',
       text: 'A wall of hooked thorns bars your path, each branch armed with curved spines that catch fur and flesh alike.',
+      nightText: 'The thorns are invisible in the dark but not unfelt. Every step is a gamble against hooked spines that snag and tear.',
       actions: [],
       modifiers: { push: { stamina: -10, heat: 5 }, trot: { stamina: -5 } },
       compatible: ['hidden_burrow', 'bird_alarm', 'snake_den', 'beetle_trail', 'animal_tracks', 'thorn_bush', 'shade_scrub']
@@ -157,7 +174,8 @@ const Encounters = {
     {
       id: 'seasonal_stream',
       name: 'a seasonal stream',
-      text: 'Water! A thin trickle threads over smooth stones, barely a hand\'s width but moving, alive. The sound is almost forgotten music.',
+      text: 'A thin trickle threads over smooth stones, barely a hand\'s width but moving, alive. The sound is almost forgotten music.',
+      nightText: 'Water murmurs in the dark, its sound a guide when your eyes fail. The stream catches starlight in broken silver lines.',
       actions: [{ key: 'drink', name: 'Drink', description: 'Drink from the stream', chance: 1.0 }],
       modifiers: {},
       compatible: ['animal_tracks', 'fresh_tracks', 'bird_alarm', 'frog_chorus', 'mud_wallow', 'dragonfly', 'monkey_troop', 'crocodile_risk']
@@ -166,6 +184,7 @@ const Encounters = {
       id: 'open_plain',
       name: 'an open plain',
       text: 'Nothing but grass and sky in every direction. You are exposed here, visible, but the ground is flat and the running is easy.',
+      nightText: 'The plain stretches into darkness without end. The sky is enormous above, the ground is nothing below, and you are somewhere between.',
       actions: [],
       modifiers: { push: { stamina: 5 }, trot: { stamina: 3 }, rest: { heat: 5 } },
       compatible: ['dust_devil', 'vulture', 'mirage', 'animal_tracks', 'grasshopper_swarm', 'wind_shift', 'hawk_shadow', 'herd_distant']
@@ -174,9 +193,118 @@ const Encounters = {
       id: 'overhang_cave',
       name: 'a shallow overhang',
       text: 'A lip of stone juts from the hillside, creating a pocket of deep shade. The rock is cool to the touch, almost damp.',
+      nightText: 'The overhang is a pocket of absolute darkness, the rock above a cool ceiling that blocks the stars. Shelter in its truest form.',
       actions: [],
       modifiers: { rest: { heat: -15, stamina: 10 } },
       compatible: ['shade_scrub', 'lizard', 'snake_den', 'bones', 'bat_colony', 'hyrax_colony', 'animal_tracks', 'loose_stones', 'wind_shift']
+    },
+    {
+      id: 'dried_marsh',
+      name: 'a dried marsh',
+      text: 'The earth here is pockmarked and uneven, the memory of standing water written in brittle reeds and cracked clay. Pale stalks rattle in the wind like the ribs of something long dead.',
+      nightText: 'The dead reeds whisper against each other in the dark, a dry chorus without melody. The ground is treacherous with hidden channels and soft pockets.',
+      actions: [{ key: 'drink', name: 'Dig', description: 'Dig into the soft clay for trapped water', chance: 0.4 }],
+      modifiers: { push: { stamina: -5 }, trot: { stamina: -3 } },
+      compatible: ['animal_tracks', 'bird_alarm', 'cracked_mud', 'snake_den', 'beetle_trail', 'wind_shift', 'fresh_tracks', 'hidden_burrow', 'grasshopper_swarm']
+    },
+    {
+      id: 'granite_plateau',
+      name: 'a granite plateau',
+      text: 'Flat stone stretches before you, gray and featureless, baked to a shimmer by the sun. Nothing grows here. The rock throws heat back at the sky like a forge.',
+      nightText: 'The plateau is a dark slab under the stars, still breathing the day\'s heat upward in waves you can feel through your pads. The stone ticks and groans as it cools.',
+      actions: [],
+      modifiers: { push: { heat: 5 }, trot: { heat: 3 }, rest: { heat: -3 } },
+      compatible: ['loose_stones', 'wind_shift', 'hawk_shadow', 'lizard', 'vulture', 'dust_devil', 'bones', 'hyrax_colony']
+    },
+    {
+      id: 'bamboo_grove',
+      name: 'a bamboo grove',
+      text: 'Green stalks rise in dense columns, creaking and swaying overhead. The air here is cooler, filtered through a thousand leaves, and the light falls in shifting coins on the ground.',
+      nightText: 'The bamboo grove is a cathedral of darkness, the stalks groaning against each other like old doors. The air is cool and close, heavy with the scent of green.',
+      actions: [{ key: 'drink', name: 'Split Stem', description: 'Bite open a bamboo stalk for the water stored inside', chance: 0.6 }],
+      modifiers: { rest: { heat: -8, stamina: 5 }, push: { stamina: -5 } },
+      compatible: ['shade_scrub', 'bird_alarm', 'monkey_troop', 'animal_tracks', 'snake_den', 'beetle_trail', 'hidden_burrow', 'wind_shift', 'fallen_branch']
+    },
+    {
+      id: 'red_dunes',
+      name: 'a field of red sand dunes',
+      text: 'The earth rises in waves of deep rust, sculpted by wind into ridges and troughs that shift with every gust. Each step sinks to the ankle. The sky is enormous above the nothing.',
+      nightText: 'The dunes are dark swells against the stars, their crests edged with faint silver. The sand hisses as it slides in the night wind, erasing your tracks even as you make them.',
+      actions: [],
+      modifiers: { push: { stamina: -8, heat: 5 }, trot: { stamina: -5, heat: 3 } },
+      compatible: ['dust_devil', 'wind_shift', 'bones', 'lizard', 'beetle_trail', 'loose_stones', 'snake_den', 'mirage']
+    },
+    {
+      id: 'fallen_tree_grove',
+      name: 'a grove of fallen trees',
+      text: 'Some storm or drought has toppled a stand of old trees. They lie like felled giants, their root discs clawing at the sky, the spaces between them thick with new growth and decay.',
+      nightText: 'The fallen trunks are dark shapes in the gloom, each one a wall or a bridge depending on your nerve. Fungi glow faintly on the rotting wood, pale green and unearthly.',
+      actions: [{ key: 'eat', name: 'Forage', description: 'Search the rotting wood for grubs and trapped animals', chance: 0.7 }],
+      modifiers: { push: { stamina: -5 }, rest: { heat: -5, stamina: 5 } },
+      compatible: ['fallen_branch', 'beetle_trail', 'snake_den', 'hidden_burrow', 'shade_scrub', 'bird_alarm', 'animal_tracks', 'monkey_troop', 'bat_colony']
+    },
+    {
+      id: 'volcanic_rock',
+      name: 'a field of volcanic rock',
+      text: 'Black stone lies in jagged heaps, sharp-edged and brittle, the frozen vomit of some ancient eruption. The rock cuts and the heat it stores is fierce.',
+      nightText: 'The lava field is a landscape of black teeth in the darkness, still radiating the day\'s heat like a fever. Each step must be chosen or it draws blood.',
+      actions: [],
+      modifiers: { push: { stamina: -10, heat: 5 }, trot: { stamina: -5, heat: 3 }, rest: { heat: -5 } },
+      compatible: ['loose_stones', 'lizard', 'wind_shift', 'bones', 'hawk_shadow', 'snake_den', 'hyrax_colony', 'vulture']
+    },
+    {
+      id: 'dry_lake_bed',
+      name: 'a dry lake bed',
+      text: 'The ground turns white and flat — a lake that died seasons ago. Mineral deposits crust the surface in spirals and rings, and the air tastes of alkali and old salt.',
+      nightText: 'The lake bed glows bone-white under the moon, a ghostly plain where nothing moves and nothing grows. Your shadow is the only dark thing for miles.',
+      actions: [],
+      modifiers: { push: { heat: 5 }, trot: { heat: 3 }, rest: { heat: 3 } },
+      compatible: ['mirage', 'dust_devil', 'cracked_mud', 'bones', 'vulture', 'wind_shift', 'dried_carcass', 'beetle_trail']
+    },
+    {
+      id: 'whistling_caves',
+      name: 'a hillside of whistling caves',
+      text: 'Wind pours through a honeycomb of small openings in the rock face, producing a low, keening sound that rises and falls like breathing. The caves exhale cool air that smells of deep stone.',
+      nightText: 'The caves moan in the dark, each opening a mouth singing its own note. The sound carries for miles — a warning or an invitation, depending on what you are.',
+      actions: [],
+      modifiers: { rest: { heat: -12, stamina: 8 } },
+      compatible: ['bat_colony', 'shade_scrub', 'hyrax_colony', 'snake_den', 'loose_stones', 'wind_shift', 'animal_tracks', 'hawk_shadow', 'bones']
+    },
+    {
+      id: 'reed_bed',
+      name: 'a dense reed bed',
+      text: 'Tall reeds crowd together in a rustling wall, their roots in mud that has not fully dried. The air is thick with moisture and the hum of insects. Something splashes unseen.',
+      nightText: 'The reeds are a dark curtain, impenetrable to sight. Water gurgles somewhere beneath the roots and frogs call from every direction, masking all other sound.',
+      actions: [{ key: 'drink', name: 'Drink', description: 'Drink from the water pooled among the reed roots', chance: 0.85 }],
+      modifiers: { push: { stamina: -5 }, trot: { stamina: -3 } },
+      compatible: ['animal_tracks', 'bird_alarm', 'fresh_tracks', 'snake_den', 'crocodile_risk', 'hidden_burrow', 'wind_shift', 'grasshopper_swarm']
+    },
+    {
+      id: 'mopane_woodland',
+      name: 'a mopane woodland',
+      text: 'Stunted trees with butterfly-shaped leaves grow in orderly rows, their canopy thin but wide. The leaf litter crunches underfoot and the air smells of turpentine and warm bark.',
+      nightText: 'The mopane trees stand in dark ranks, their thin canopy letting starlight through in patches. The leaves have folded closed for the night, and the woodland is still as held breath.',
+      actions: [{ key: 'eat', name: 'Hunt', description: 'Hunt the mopane worms clustered on the bark', chance: 0.75 }],
+      modifiers: { rest: { heat: -5 }, trot: { stamina: 3 } },
+      compatible: ['shade_scrub', 'bird_alarm', 'animal_tracks', 'beetle_trail', 'fallen_branch', 'weaver_nests', 'wind_shift', 'hawk_shadow', 'monkey_troop', 'fig_tree']
+    },
+    {
+      id: 'ash_field',
+      name: 'a grassfire ash field',
+      text: 'The land has been scoured by recent fire. Black ash blankets everything, and the charred skeletons of grass and scrub stand like wire. Small green shoots already push through the ruin.',
+      nightText: 'The ash field is a void — darker than the night around it, as if the fire burned a hole in the world itself. Embers still pulse in the deepest roots, orange stars in black earth.',
+      actions: [{ key: 'eat', name: 'Scavenge', description: 'Search the ash for animals killed in the blaze', chance: 0.55 }],
+      modifiers: { push: { heat: 5 }, trot: { heat: 3 } },
+      compatible: ['bones', 'vulture', 'dried_carcass', 'beetle_trail', 'wind_shift', 'dust_devil', 'animal_tracks', 'hawk_shadow']
+    },
+    {
+      id: 'sandstone_arches',
+      name: 'a gallery of sandstone arches',
+      text: 'Wind and water have carved the stone into bridges and windows, rust-red against the blue sky. Light pours through the openings like something sacred. The shade beneath is deep and cool.',
+      nightText: 'The arches frame the stars in windows of stone, each opening a portal to a different piece of sky. The rock still holds warmth but the shade beneath has gone cold.',
+      actions: [],
+      modifiers: { rest: { heat: -10, stamina: 8 }, push: { stamina: -5 } },
+      compatible: ['shade_scrub', 'hawk_shadow', 'loose_stones', 'hyrax_colony', 'lizard', 'bat_colony', 'wind_shift', 'animal_tracks', 'snake_den', 'bones']
     }
   ],
 
@@ -391,6 +519,90 @@ const Encounters = {
       text: 'High in a branch, wedged into a fork, hangs the remains of a kill — another predator\'s larder.',
       actions: [{ key: 'eat', name: 'Steal', description: 'Climb and steal the cached kill', chance: 0.65 }],
       modifiers: {}
+    },
+    {
+      id: 'warthog_burrow',
+      name: 'a warthog burrow',
+      text: 'A wide hole torn in the earth, ringed with fresh digging and coarse bristles. Something large backs into this den each night.',
+      actions: [{ key: 'eat', name: 'Ambush', description: 'Wait beside the burrow for its occupant to emerge', chance: 0.5 }],
+      modifiers: {}
+    },
+    {
+      id: 'dung_pile',
+      name: 'a fresh dung pile',
+      text: 'A mound of dark dung, still steaming — elephant, by the size. The scent tells a story of what has passed and where it went.',
+      actions: [],
+      modifiers: { trot: { stamina: 2 } }
+    },
+    {
+      id: 'dragonfly',
+      name: 'a swarm of dragonflies',
+      text: 'The air shimmers with dragonflies, hundreds of them, their wings catching the light like thrown glass. Where they gather, water is near.',
+      actions: [],
+      modifiers: {}
+    },
+    {
+      id: 'secretary_bird',
+      name: 'a secretary bird',
+      text: 'A tall bird strides through the grass on impossibly long legs, stamping at something in the dust. It kills with its feet — a predator disguised as a clerk.',
+      actions: [],
+      modifiers: {}
+    },
+    {
+      id: 'pangolin',
+      name: 'a curled pangolin',
+      text: 'An armored shape lies curled beside a termite mound, its scales interlocked like a fist of bronze. It is alive but unreachable — a meal locked in a vault.',
+      actions: [{ key: 'eat', name: 'Pry', description: 'Attempt to pry the pangolin open', chance: 0.25 }],
+      modifiers: {}
+    },
+    {
+      id: 'jackal_pack',
+      name: 'a jackal pack',
+      text: 'Three jackals trot in a loose formation, pausing to yip at one another. They watch you with the casual wariness of animals that know exactly where they stand.',
+      actions: [],
+      modifiers: {}
+    },
+    {
+      id: 'wildebeest_calf',
+      name: 'a stranded calf',
+      text: 'A wildebeest calf stands alone, legs trembling, separated from its herd. It bleats into the emptiness. Easy prey — if you can afford to stop.',
+      actions: [{ key: 'eat', name: 'Take', description: 'Bring down the calf for a full meal', chance: 0.85 }],
+      modifiers: {}
+    },
+    {
+      id: 'honey_guide',
+      name: 'a honey guide bird',
+      text: 'A small brown bird chatters insistently, flitting from branch to branch ahead of you, leading you somewhere. The old pact — follow the bird, find the hive.',
+      actions: [{ key: 'eat', name: 'Follow', description: 'Follow the honey guide to a beehive', chance: 0.7 }],
+      modifiers: {}
+    },
+    {
+      id: 'puff_adder',
+      name: 'a coiled puff adder',
+      text: 'A thick body lies coiled in the path, patterned like the earth itself. It does not move because it does not need to. Everything that steps too close learns.',
+      actions: [],
+      modifiers: { push: { stamina: -3 }, rest: { stamina: -3 } }
+    },
+    {
+      id: 'ground_hornbill',
+      name: 'a ground hornbill',
+      text: 'A massive black bird walks the earth ahead of you, its red throat pouch swaying, probing the soil for insects. It regards you without fear.',
+      actions: [],
+      modifiers: {}
+    },
+    {
+      id: 'spring_hare',
+      name: 'spring hares',
+      text: 'Small shapes explode from the grass in erratic leaps, zigzagging away on powerful hind legs. Quick and unpredictable — but not faster than instinct.',
+      actions: [{ key: 'eat', name: 'Pounce', description: 'Snatch a spring hare from its leap', chance: 0.55 }],
+      modifiers: {}
+    },
+    {
+      id: 'buffalo_skull',
+      name: 'a buffalo skull',
+      text: 'A massive skull rests half-buried in the soil, horns curving outward like a crown. The bone is polished by sun and wind to the color of old ivory.',
+      actions: [],
+      modifiers: {}
     }
   ],
 
@@ -505,9 +717,10 @@ const Encounters = {
       id: 'old_territory',
       name: 'familiar ground',
       text: 'You recognize this place — a scent mark, a scratched tree. This was your territory, once.',
-      condition: (state) => state.day >= 5,
+      condition: (state) => state.day >= 5 && !Encounters._usedOldTerritory,
       fallbackCondition: false,
-      modifiers: { trot: { stamina: 3 } }
+      modifiers: { trot: { stamina: 3 } },
+      oneTime: true
     },
     {
       id: 'dusk_light',
@@ -516,6 +729,62 @@ const Encounters = {
       condition: (state) => state.phase === 'day',
       fallbackCondition: true,
       modifiers: { rest: { heat: -5 } }
+    },
+    {
+      id: 'cramps',
+      name: 'knotting muscles',
+      text: 'A coil of pain tightens in your haunch without warning, locking the muscle into a fist. Each stride sends a bolt of white through the leg.',
+      condition: (state) => state.stamina <= 50 && state.day >= 3,
+      fallbackCondition: true,
+      modifiers: { push: { stamina: -5 }, trot: { stamina: -3 } }
+    },
+    {
+      id: 'blurred_vision',
+      name: 'blurring sight',
+      text: 'The world softens at the edges, shapes bleeding into shapes. You blink and blink but the clarity will not return. The heat has found your eyes.',
+      condition: (state) => state.heat >= 65 || state.thirst >= 60,
+      fallbackCondition: true,
+      modifiers: { push: { stamina: -3 } }
+    },
+    {
+      id: 'bleeding_paw',
+      name: 'a torn pad',
+      text: 'Something sharp has opened a cut in your forepaw. Not deep, but the blood comes with each step and the sting will not fade.',
+      condition: () => Math.random() < 0.1,
+      fallbackCondition: true,
+      modifiers: { push: { stamina: -5 }, trot: { stamina: -3 } }
+    },
+    {
+      id: 'moonless_night',
+      name: 'a moonless dark',
+      text: 'There is no moon. The darkness is total, a black so deep that the ground and sky are the same void. You navigate by scent and memory alone.',
+      condition: (state) => state.phase === 'night',
+      fallbackCondition: false,
+      modifiers: { push: { stamina: -3 }, trot: { stamina: -2 } }
+    },
+    {
+      id: 'second_wind',
+      name: 'a second wind',
+      text: 'Something shifts in your chest — a loosening, a sudden flush of strength from a place you did not know existed. The legs find a rhythm that has been hiding.',
+      condition: (state) => state.stamina <= 35 && state.day >= 4,
+      fallbackCondition: false,
+      modifiers: { push: { stamina: 5, heat: -3 }, trot: { stamina: 3, heat: -2 } }
+    },
+    {
+      id: 'circling_vultures_personal',
+      name: 'vultures overhead',
+      text: 'They are circling you now. Not the kill ahead or the carcass behind — you. They have read the story in your stride and they know the ending.',
+      condition: (state) => (state.heat >= 70 || state.stamina <= 25 || state.thirst >= 70) && state.day >= 5,
+      fallbackCondition: false,
+      modifiers: {}
+    },
+    {
+      id: 'muscle_spasm',
+      name: 'a spasm',
+      text: 'Your shoulder locks without warning, a tremor that ripples down the foreleg and drops your stride into a stumble. The body is sending signals you cannot ignore.',
+      condition: (state) => state.stamina <= 30,
+      fallbackCondition: true,
+      modifiers: { push: { stamina: -8 }, trot: { stamina: -3 } }
     }
   ],
 
@@ -524,6 +793,34 @@ const Encounters = {
   // ============================================================
 
   signatures: [
+    // --- TUTORIAL ENCOUNTERS (Day 1 only) ---
+    {
+      id: 'tutorial_day',
+      name: 'The Ridge',
+      text: 'The savanna stretches before you from this high ridge — an ocean of gold and rust beneath a merciless sun. The air shimmers with heat. Somewhere behind you, faint as a half-remembered sound, is the steady rhythm of footfall. They are far away. But they are there. Your body is strong, your senses sharp. You must choose how to spend this daylight. Push hard and open the gap, or move steady and save your strength. The land ahead offers both distance and danger.',
+      minDay: 1,
+      maxDay: 1,
+      dayOnly: true,
+      choices: [
+        { key: 'push', name: 'Push', description: 'Sprint hard — cover ground but burn through stamina and heat', effects: null },
+        { key: 'trot', name: 'Trot', description: 'Move at a steady pace — moderate distance, manageable cost', effects: null },
+        { key: 'rest', name: 'Rest', description: 'Hold position — recover strength, but the hunters close in', effects: null }
+      ]
+    },
+    {
+      id: 'tutorial_night',
+      name: 'First Darkness',
+      text: 'The sun bleeds out across the horizon and the world cools. Shadows stretch long, then swallow everything. The heat that pressed against you all day lifts like a hand removed from your throat. Somewhere behind you, the hunters have stopped. They make camp at night — you can feel the absence of their pressure. The darkness is yours. You move slower, see less, but the night is merciful. This is when you recover. This is when you plan.',
+      minDay: 1,
+      maxDay: 1,
+      nightOnly: true,
+      choices: [
+        { key: 'push', name: 'Push', description: 'Press on through darkness — slower, but the hunters are camped', effects: null },
+        { key: 'trot', name: 'Trot', description: 'Move carefully through the night — less heat, less thirst', effects: null },
+        { key: 'rest', name: 'Rest', description: 'Rest and recover — the safest time to restore your body', effects: null }
+      ]
+    },
+
     // --- WATER/TRAIL EVENTS (can lose hunters) ---
     {
       id: 'sig_river_crossing',
@@ -1038,13 +1335,28 @@ const Encounters = {
   // GENERATOR METHODS
   // ============================================================
 
+  // Track old_territory one-time firing
+  _usedOldTerritory: false,
+
   reset() {
     this.usedSignatures = new Set();
     this.recentTerrains = [];
     this.recentOpportunities = [];
+    this.recentPressures = [];
+    this._usedOldTerritory = false;
   },
 
   generate(gameState) {
+    // Force tutorial encounters on Day 1
+    if (gameState.day === 1) {
+      const tutorialId = gameState.phase === 'day' ? 'tutorial_day' : 'tutorial_night';
+      const tutorial = this.signatures.find(s => s.id === tutorialId);
+      if (tutorial && !this.usedSignatures.has(tutorialId)) {
+        this.usedSignatures.add(tutorialId);
+        return this.formatSignatureEncounter(tutorial, gameState);
+      }
+    }
+
     // Try rare event first
     if (Math.random() < CONFIG.encounters.rareChancePerPhase) {
       const rare = this.tryRare(gameState);
@@ -1076,7 +1388,9 @@ const Encounters = {
     const eligible = this.signatures.filter(s => {
       if (this.usedSignatures.has(s.id)) return false;
       if (s.minDay && gameState.day < s.minDay) return false;
+      if (s.maxDay && gameState.day > s.maxDay) return false;
       if (s.nightOnly && gameState.phase !== 'night') return false;
+      if (s.dayOnly && gameState.phase !== 'day') return false;
       return true;
     });
     if (eligible.length === 0) return null;
@@ -1133,7 +1447,7 @@ const Encounters = {
     }
     const terrain = availableTerrains[Math.floor(Math.random() * availableTerrains.length)];
     this.recentTerrains.push(terrain.id);
-    if (this.recentTerrains.length > 5) this.recentTerrains.shift();
+    if (this.recentTerrains.length > 10) this.recentTerrains.shift();
 
     // Pick opportunity (compatible with terrain, avoid recent)
     let availableOpps = this.opportunities.filter(o =>
@@ -1147,19 +1461,35 @@ const Encounters = {
     }
     const opportunity = availableOpps[Math.floor(Math.random() * availableOpps.length)];
     this.recentOpportunities.push(opportunity.id);
-    if (this.recentOpportunities.length > 5) this.recentOpportunities.shift();
+    if (this.recentOpportunities.length > 12) this.recentOpportunities.shift();
 
-    // Pick pressure (condition-based)
+    // Pick pressure (condition-based, avoid recent)
     let availablePressures = this.pressures.filter(p => {
+      if (this.recentPressures.includes(p.id)) return false;
       try { return p.condition(gameState); } catch(e) { return p.fallbackCondition; }
     });
+    if (availablePressures.length === 0) {
+      availablePressures = this.pressures.filter(p => {
+        try { return p.condition(gameState); } catch(e) { return p.fallbackCondition; }
+      });
+    }
     if (availablePressures.length === 0) {
       availablePressures = this.pressures.filter(p => p.fallbackCondition);
     }
     const pressure = availablePressures[Math.floor(Math.random() * availablePressures.length)];
+    this.recentPressures.push(pressure.id);
+    if (this.recentPressures.length > 7) this.recentPressures.shift();
 
-    // Compose narrative
-    const text = `You have reached ${terrain.name}. ${terrain.text} ${opportunity.text} ${pressure.text}`;
+    // Track one-time pressures
+    if (pressure.oneTime) {
+      this._usedOldTerritory = true;
+    }
+
+    // Use nightText when available and phase is night
+    const terrainText = (gameState.phase === 'night' && terrain.nightText) ? terrain.nightText : terrain.text;
+
+    // Compose narrative (no "You have reached" prefix)
+    const text = `${terrainText} ${opportunity.text} ${pressure.text}`;
 
     // Build actions: always push/trot/rest + terrain actions + opportunity actions
     const actions = this.buildCombinatorialActions(terrain, opportunity, pressure, gameState);
@@ -1282,5 +1612,76 @@ const Encounters = {
     }
     // Absolute fallback
     return { heat: 10, stamina: -5, thirst: 0, hunger: 0 };
+  },
+
+  /**
+   * Regenerate encounter for rest action — keeps same terrain, re-rolls opportunity/pressure
+   * For signature/rare encounters, re-presents the same encounter
+   * @param {Object} currentEncounter - the current encounter
+   * @param {Object} gameState - current game state
+   * @returns {Object} - regenerated encounter
+   */
+  regenerateSameLocation(currentEncounter, gameState) {
+    // Signature/rare encounters: re-present the same encounter
+    if (currentEncounter.type === 'signature' || currentEncounter.type === 'rare') {
+      return currentEncounter;
+    }
+
+    // Combinatorial: keep terrain, re-roll opportunity and pressure
+    const terrain = currentEncounter.terrain;
+    if (!terrain) return this.generate(gameState);
+
+    // Pick new opportunity (compatible with terrain, avoid recent)
+    let availableOpps = this.opportunities.filter(o =>
+      terrain.compatible.includes(o.id) && !this.recentOpportunities.includes(o.id)
+    );
+    if (availableOpps.length === 0) {
+      availableOpps = this.opportunities.filter(o => terrain.compatible.includes(o.id));
+    }
+    if (availableOpps.length === 0) {
+      availableOpps = this.opportunities;
+    }
+    const opportunity = availableOpps[Math.floor(Math.random() * availableOpps.length)];
+    this.recentOpportunities.push(opportunity.id);
+    if (this.recentOpportunities.length > 12) this.recentOpportunities.shift();
+
+    // Pick new pressure (condition-based, avoid recent)
+    let availablePressures = this.pressures.filter(p => {
+      if (this.recentPressures.includes(p.id)) return false;
+      try { return p.condition(gameState); } catch(e) { return p.fallbackCondition; }
+    });
+    if (availablePressures.length === 0) {
+      availablePressures = this.pressures.filter(p => {
+        try { return p.condition(gameState); } catch(e) { return p.fallbackCondition; }
+      });
+    }
+    if (availablePressures.length === 0) {
+      availablePressures = this.pressures.filter(p => p.fallbackCondition);
+    }
+    const pressure = availablePressures[Math.floor(Math.random() * availablePressures.length)];
+    this.recentPressures.push(pressure.id);
+    if (this.recentPressures.length > 7) this.recentPressures.shift();
+
+    if (pressure.oneTime) {
+      this._usedOldTerritory = true;
+    }
+
+    // Use nightText when available and phase is night
+    const terrainText = (gameState.phase === 'night' && terrain.nightText) ? terrain.nightText : terrain.text;
+
+    const text = `${terrainText} ${opportunity.text} ${pressure.text}`;
+    const actions = this.buildCombinatorialActions(terrain, opportunity, pressure, gameState);
+
+    return {
+      type: 'combinatorial',
+      id: `${terrain.id}_${opportunity.id}_${pressure.id}`,
+      name: terrain.name,
+      text: text,
+      terrain: terrain,
+      opportunity: opportunity,
+      pressure: pressure,
+      actions: actions,
+      loseHuntersAvailable: false
+    };
   }
 };
