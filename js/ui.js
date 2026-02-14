@@ -40,11 +40,11 @@ const Options = {
 };
 
 const INTRO_PARAGRAPHS = [
-  "Under a white sun that has burned since before memory, you pause at the crest of a ridge. The savanna unfolds below — golden grass, thornwood, the shimmer of heat rising from stone. You are the apex. Nothing in this land can match you.",
-  "But behind you, miles back, something is wrong.",
-  "They do not chase. They do not tire. They just <em>follow</em>.",
-  "You have already run farther than instinct says is possible. Your body aches. Your tongue is cracked. The air tastes of dust and something older — something like dread.",
-  "There is no winning this chase. There is only distance. Only one more day."
+  "You stand at the crest of a ridge, the savanna golden and endless beneath you. The air is still. The land is yours.",
+  "But today, something is different. On the far horizon, where the heat bends the light — shapes. Upright. Moving.",
+  "They do not run. They do not crouch or stalk. They just walk. Steady. Patient. Toward you.",
+  "Something deeper than thought tells you what this means. Something old. Something the body knows before the mind can name it.",
+  "You turn. You run. The chase begins."
 ];
 
 const UI = {

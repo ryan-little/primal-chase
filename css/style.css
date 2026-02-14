@@ -134,7 +134,7 @@ body.night-mode::after {
 .typewriter-content {
   max-width: 700px;
   width: 100%;
-  text-align: left;
+  text-align: center;
 }
 
 .typewriter-content p {
