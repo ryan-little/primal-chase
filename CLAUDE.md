@@ -317,7 +317,10 @@ All 8 implementation phases complete: simulation engine, stat display honesty, e
   - Removed vestigial `drinkAvailableChance`, `eatAvailableChance`, `loseHuntersChance` from CONFIG.encounters
 - **Simulation**: `--difficulty` flag (`all|easy|normal|hard`), output nested by difficulty level
   - Baseline stats computed from normal-difficulty data only
-- **Dashboard overhaul**: TOC nav, collapsed-by-default sections, difficulty analysis section with summary cards + comparison table + auto-generated insights
+- **Dashboard overhaul**: TOC 4-column grid, collapsed-by-default sections, difficulty analysis section with summary cards + comparison table + auto-generated insights
+- **Dashboard filter system**: difficulty + strategy dropdowns in summary bar; selecting either re-renders entire dashboard (all charts, tables, distributions) with filtered data; section collapse states preserved across re-renders; fade-in animations only on first load
+  - `build(diffKey, stratKey)` is parameterized and re-callable; `render()` wrapper saves/restores UI state
+  - Single-strategy view hides "Best Strategy" metric, simplifies death analysis to single bar chart, removes per-strategy distribution rows
 - Internal monologue system now terrain-aware and pressure-aware (~100 new fragments, ~280 total)
 - Terrain categories in CONFIG: water, open, dense, rocky, shelter — mapped to terrain IDs
 - Pressure categories in CONFIG: injury, weather, hunter_sign, decay — mapped to pressure IDs
