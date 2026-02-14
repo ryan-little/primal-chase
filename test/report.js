@@ -87,6 +87,12 @@ function sparkline(values, maxWidth = 60) {
 // REPORT GENERATION
 // ============================================================
 
+const STRATEGY_LABELS = {
+  'push-heavy': 'Push Heavy', 'trot-heavy': 'Trot Heavy', 'balanced': 'Balanced',
+  'rest-heavy': 'Rest Heavy', 'smart': 'Smart', 'gto': 'GTO'
+};
+function stratLabel(s) { return STRATEGY_LABELS[s] || s; }
+
 function generateReport(data) {
   const output = [];
 
@@ -99,7 +105,7 @@ function generateReport(data) {
   const summaryRows = [];
   for (const [strategy, d] of Object.entries(data)) {
     summaryRows.push([
-      strategy, d.n, d.days.avg, d.days.median, d.days.min, d.days.max,
+      stratLabel(strategy), d.n, d.days.avg, d.days.median, d.days.min, d.days.max,
       d.distance.avg + ' mi', d.lostHunters.avg
     ]);
   }
@@ -107,7 +113,7 @@ function generateReport(data) {
 
   // ---- Death cause distribution per strategy ----
   for (const [strategy, d] of Object.entries(data)) {
-    output.push(barChart(d.deathCauses, `DEATH CAUSES — ${strategy.toUpperCase()}`));
+    output.push(barChart(d.deathCauses, `DEATH CAUSES — ${stratLabel(strategy).toUpperCase()}`));
   }
 
   // ---- Combined death causes ----
@@ -126,7 +132,7 @@ function generateReport(data) {
       const values = days.map(day => d.avgHunterDistByDay[day]);
 
       output.push('');
-      output.push(`  HUNTER DISTANCE OVER TIME — ${strategy.toUpperCase()}`);
+      output.push(`  HUNTER DISTANCE OVER TIME — ${stratLabel(strategy).toUpperCase()}`);
       output.push(`  ${'='.repeat(40)}`);
 
       const hdHeaders = ['Day', 'Avg Distance', 'Trend'];
@@ -149,7 +155,7 @@ function generateReport(data) {
     const days = Object.keys(d.avgStatsByDay).map(Number).sort((a, b) => a - b);
 
     output.push('');
-    output.push(`  STAT TRAJECTORIES — ${firstStrategy.toUpperCase()} (avg values per day)`);
+    output.push(`  STAT TRAJECTORIES — ${stratLabel(firstStrategy).toUpperCase()} (avg values per day)`);
     output.push(`  ${'='.repeat(50)}`);
 
     const statHeaders = ['Day', 'Heat', 'Stamina', 'Thirst', 'Hunger'];
@@ -166,7 +172,7 @@ function generateReport(data) {
   const varietyHeaders = ['Strategy', 'Unique Encounters', 'Terrain Repeat Gap'];
   const varietyRows = [];
   for (const [strategy, d] of Object.entries(data)) {
-    varietyRows.push([strategy, d.uniqueEncountersAvg, d.avgTerrainRepeatGap]);
+    varietyRows.push([stratLabel(strategy), d.uniqueEncountersAvg, d.avgTerrainRepeatGap]);
   }
   output.push(drawTable(varietyHeaders, varietyRows, 'ENCOUNTER VARIETY'));
 
@@ -222,7 +228,7 @@ function generateReport(data) {
     }
   }
   if (bestStrategy) {
-    output.push(`  Best strategy: ${bestStrategy} (avg ${bestDays} days)`);
+    output.push(`  Best strategy: ${stratLabel(bestStrategy)} (avg ${bestDays} days)`);
   }
 
   // Find most common death cause
