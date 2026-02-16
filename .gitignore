@@ -7,5 +7,10 @@ CLAUDE.md
 test/
 docs/
 
+# Playwright artifacts (root-level screenshots from playtest agents)
+/*.png
+/*.jpeg
+.playwright-mcp/
+
 # macOS
 .DS_Store
