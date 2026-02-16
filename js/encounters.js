@@ -1403,8 +1403,9 @@ const Encounters = {
   },
 
   generate(gameState) {
-    // Force tutorial encounters on Day 1
-    if (gameState.day === 1) {
+    // Force tutorial encounters on Day 1 (unless disabled in options)
+    const showTutorial = typeof Options !== 'undefined' ? Options.get('showTutorial') : true;
+    if (gameState.day === 1 && showTutorial !== false) {
       const tutorialId = gameState.phase === 'day' ? 'tutorial_day' : 'tutorial_night';
       const tutorial = this.signatures.find(s => s.id === tutorialId);
       if (tutorial && !this.usedSignatures.has(tutorialId)) {

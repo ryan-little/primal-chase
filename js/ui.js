@@ -1,6 +1,7 @@
 const Options = {
   _defaults: {
     difficulty: 'normal',
+    showTutorial: true,
     showOpening: true,
     typewriterEffect: true,
     situationTypewriter: true,
@@ -98,6 +99,12 @@ const UI = {
     if (logo) {
       logo.src = logos[Math.floor(Math.random() * logos.length)];
     }
+    // Ensure animated elements are visible on return navigation
+    // (CSS animations don't replay when toggling display)
+    const credit = document.querySelector('#screen-title .creator-credit');
+    if (credit) credit.style.opacity = '1';
+    const buttons = document.querySelector('.title-buttons');
+    if (buttons) buttons.style.opacity = '1';
   },
 
   /**
@@ -591,7 +598,7 @@ const UI = {
     if (dist > 0) {
       parts.push(`<span class="action-gain">+${dist} mi</span>`);
     } else if (dist === 0) {
-      parts.push(`<span class="action-cost">0 mi</span>`);
+      parts.push(`<span class="action-warning">0 mi</span>`);
     } else if (dist < 0) {
       parts.push(`<span class="action-cost">${dist} mi</span>`);
     }
@@ -874,9 +881,15 @@ const UI = {
       btn.classList.toggle('active', btn.dataset.value === currentDifficulty);
     });
     // Sync toggle states
+    const tutorialBtn = document.getElementById('opt-tutorial');
     const openingBtn = document.getElementById('opt-opening');
     const typewriterBtn = document.getElementById('opt-typewriter');
     const situationBtn = document.getElementById('opt-situation-typewriter');
+    if (tutorialBtn) {
+      const on = Options.get('showTutorial');
+      tutorialBtn.textContent = on ? 'ON' : 'OFF';
+      tutorialBtn.classList.toggle('off', !on);
+    }
     if (openingBtn) {
       const on = Options.get('showOpening');
       openingBtn.textContent = on ? 'ON' : 'OFF';
