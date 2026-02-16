@@ -1,0 +1,11 @@
+# Claude Code
+CLAUDE.md
+.claude/
+.mcp.json
+
+# Internal tooling
+test/
+docs/
+
+# macOS
+.DS_Store

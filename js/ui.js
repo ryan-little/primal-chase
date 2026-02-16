@@ -293,12 +293,32 @@ const UI = {
         gameState.lastOutcome = null;
       }
 
+      // Hide old monologue immediately so it doesn't linger during typewriter
+      this.renderMonologue(null);
+
       this.disableActions(true);
       const speed = Options.get('typewriterSpeed') || CONFIG.typewriter.speed;
       this.typewriteText(situationElement, encounterText, speed, () => {
-        // Render monologue after typewriter finishes
-        this.renderMonologue(gameState.monologue);
-        this.disableActions(false);
+        // Typewrite monologue after situation finishes (or show instantly if skipped)
+        if (gameState.monologue) {
+          if (this._situationSkipped) {
+            this.renderMonologue(gameState.monologue);
+            this.disableActions(false);
+          } else {
+            const monologueEl = document.getElementById('monologue');
+            if (monologueEl) {
+              monologueEl.innerHTML = '<span class="monologue-label">Inner voice</span>';
+              monologueEl.style.display = 'block';
+              this.typewriteText(monologueEl, gameState.monologue, speed, () => {
+                this.disableActions(false);
+              });
+            } else {
+              this.disableActions(false);
+            }
+          }
+        } else {
+          this.disableActions(false);
+        }
       });
     } else {
       // No typewriter — render everything instantly
@@ -766,6 +786,9 @@ const UI = {
           achievementsList.appendChild(ul);
         }
       }
+
+      // Auto-save to leaderboard
+      if (Score.save) Score.save(scoreData);
     }
   },
 
@@ -954,16 +977,7 @@ const UI = {
       };
     }
 
-    const btnSubmitScore = document.getElementById('btn-submit-score');
-    if (btnSubmitScore) {
-      btnSubmitScore.onclick = () => {
-        if (typeof Score !== 'undefined' && Score.save && typeof Game !== 'undefined') {
-          const scoreData = Score.calculate(Game.state);
-          Score.save(scoreData);
-          this.renderLeaderboard();
-        }
-      };
-    }
+    // Leaderboard auto-saves on death — no manual submit button needed
 
     // Keyboard shortcuts for action buttons (1-5) + spacebar skip
     document.addEventListener('keydown', (e) => {

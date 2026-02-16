@@ -320,7 +320,7 @@ const Encounters = {
     {
       id: 'shade_scrub',
       name: 'patches of shade',
-      text: 'Scattered patches of shade offer brief respite from the relentless sun.',
+      text: 'Scattered patches of shade offer brief respite from the punishing heat.',
       actions: [],
       modifiers: { rest: { heat: -5 } }
     },
@@ -1678,9 +1678,11 @@ const Encounters = {
    * @returns {Object} - regenerated encounter
    */
   regenerateSameLocation(currentEncounter, gameState) {
-    // Signature/rare encounters: re-present the same encounter
+    // Signature/rare encounters: phase has already advanced via advancePhase(),
+    // so re-presenting the same encounter would show wrong-phase text/descriptions.
+    // Generate a fresh encounter for the new phase instead.
     if (currentEncounter.type === 'signature' || currentEncounter.type === 'rare') {
-      return currentEncounter;
+      return this.generate(gameState);
     }
 
     // Combinatorial: keep terrain, re-roll opportunity and pressure
