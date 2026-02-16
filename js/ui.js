@@ -426,6 +426,14 @@ const UI = {
     // Interpolate color: green → amber → red
     const color = this.getDangerColor(dangerLevel);
     barElement.style.backgroundColor = color;
+
+    // Add critical class when stat is in danger
+    const container = barElement.parentElement.parentElement;
+    if (dangerLevel > 65) {
+      container.classList.add('critical');
+    } else {
+      container.classList.remove('critical');
+    }
   },
 
   /**
@@ -498,6 +506,14 @@ const UI = {
       const dist = Math.round(gameState.hunterDistance * 10) / 10;
       const unit = dist === 1 ? 'mile' : 'miles';
       huntDistanceContainer.innerHTML = `Hunters are <span id="hunter-distance">${dist}</span> ${unit} behind`;
+
+      // Add warning classes when hunters are close
+      huntDistanceContainer.classList.remove('critical', 'caution');
+      if (dist < 5) {
+        huntDistanceContainer.classList.add('critical');
+      } else if (dist < 10) {
+        huntDistanceContainer.classList.add('caution');
+      }
     }
 
     if (flavorElement && typeof Hunters !== 'undefined') {
@@ -665,6 +681,16 @@ const UI = {
    * @param {Function} callback - called when typing finishes
    */
   typewriteText(element, text, speed, callback) {
+    // Skip typewriter entirely for users with reduced-motion preference
+    const prefersReducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+    if (prefersReducedMotion) {
+      const p = document.createElement('p');
+      p.textContent = text;
+      element.appendChild(p);
+      if (callback) callback();
+      return;
+    }
+
     const p = document.createElement('p');
     element.appendChild(p);
 
@@ -976,6 +1002,18 @@ const UI = {
           const scoreData = Score.calculate(Game.state);
           const shareText = Score.generateShareText(scoreData);
           Score.copyToClipboard(shareText, btnShareText);
+
+          // Add visual confirmation
+          const originalText = btnShareText.textContent;
+          btnShareText.textContent = '✓ Copied!';
+          btnShareText.style.backgroundColor = 'var(--text-safe)';
+          btnShareText.style.color = 'var(--bg-dark)';
+
+          setTimeout(() => {
+            btnShareText.textContent = originalText;
+            btnShareText.style.backgroundColor = '';
+            btnShareText.style.color = '';
+          }, 2000);
         }
       };
     }
@@ -984,8 +1022,19 @@ const UI = {
     if (btnShareImage) {
       btnShareImage.onclick = () => {
         if (typeof Score !== 'undefined' && Score.generateShareImage && typeof Game !== 'undefined') {
-          const scoreData = Score.calculate(Game.state);
-          Score.generateShareImage(scoreData);
+          // Disable button and show loading
+          btnShareImage.disabled = true;
+          const originalText = btnShareImage.textContent;
+          btnShareImage.textContent = 'Generating...';
+
+          setTimeout(() => {
+            const scoreData = Score.calculate(Game.state);
+            Score.generateShareImage(scoreData);
+
+            // Reset button
+            btnShareImage.disabled = false;
+            btnShareImage.textContent = originalText;
+          }, 100);
         }
       };
     }

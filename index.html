@@ -8,6 +8,9 @@
 </head>
 <body>
 
+  <!-- Skip link for keyboard navigation -->
+  <a href="#screen-game" class="skip-link">Skip to game</a>
+
   <!-- Night background overlay (fades via opacity) -->
   <div class="night-bg"></div>
 
@@ -17,6 +20,7 @@
     <div class="typewriter-skip">Press SPACE or tap to skip</div>
   </div>
 
+  <main>
   <!-- Title Screen -->
   <div id="screen-title" class="screen active">
     <div class="title-container">
@@ -35,38 +39,38 @@
   <div id="screen-game" class="screen">
     <div class="game-container">
       <div class="game-header">
-        <div id="phase-indicator" class="phase-indicator">DAY 1</div>
+        <div id="phase-indicator" class="phase-indicator" role="status" aria-live="polite" aria-label="Current phase">DAY 1</div>
       </div>
 
       <div class="game-top">
         <div class="vitals-grid">
-          <div class="status-bar-container">
-            <div class="status-label">Heat</div>
-            <div class="status-value" id="heat-value">0%</div>
+          <div class="status-bar-container" role="group" aria-labelledby="heat-label">
+            <div id="heat-label" class="status-label">Heat</div>
+            <div class="status-value" id="heat-value" aria-live="polite">0%</div>
             <div class="status-bar-track">
               <div id="heat-bar" class="status-bar-fill heat-bar" style="width: 0%"></div>
             </div>
           </div>
 
-          <div class="status-bar-container">
-            <div class="status-label">Stamina</div>
-            <div class="status-value" id="stamina-value">100%</div>
+          <div class="status-bar-container" role="group" aria-labelledby="stamina-label">
+            <div id="stamina-label" class="status-label">Stamina</div>
+            <div class="status-value" id="stamina-value" aria-live="polite">100%</div>
             <div class="status-bar-track">
               <div id="stamina-bar" class="status-bar-fill stamina-bar" style="width: 100%"></div>
             </div>
           </div>
 
-          <div class="status-bar-container">
-            <div class="status-label">Thirst</div>
-            <div class="status-value" id="thirst-value">0%</div>
+          <div class="status-bar-container" role="group" aria-labelledby="thirst-label">
+            <div id="thirst-label" class="status-label">Thirst</div>
+            <div class="status-value" id="thirst-value" aria-live="polite">0%</div>
             <div class="status-bar-track">
               <div id="thirst-bar" class="status-bar-fill thirst-bar" style="width: 0%"></div>
             </div>
           </div>
 
-          <div class="status-bar-container">
-            <div class="status-label">Hunger</div>
-            <div class="status-value" id="hunger-value">0%</div>
+          <div class="status-bar-container" role="group" aria-labelledby="hunger-label">
+            <div id="hunger-label" class="status-label">Hunger</div>
+            <div class="status-value" id="hunger-value" aria-live="polite">0%</div>
             <div class="status-bar-track">
               <div id="hunger-bar" class="status-bar-fill hunger-bar" style="width: 0%"></div>
             </div>
@@ -74,7 +78,7 @@
         </div>
 
         <div class="game-sidebar">
-          <div id="hunt-info" class="hunt-info">
+          <div id="hunt-info" class="hunt-info" aria-live="polite" aria-atomic="true">
             <div class="hunt-distance">Hunters are <span id="hunter-distance">25</span> miles behind</div>
             <div class="hunt-flavor" id="hunt-flavor">You can barely sense them. But they are there.</div>
             <div class="distance-covered">You have covered <span id="distance-covered">0</span> miles on the chase so far</div>
@@ -92,7 +96,7 @@
         </div>
       </div>
 
-      <div id="action-buttons" class="action-buttons">
+      <div id="action-buttons" class="action-buttons" role="region" aria-label="Available actions">
         <!-- Action buttons will be dynamically generated here -->
       </div>
     </div>
@@ -139,13 +143,14 @@
       <h1 class="leaderboard-title">The Longest Strides</h1>
       <div id="leaderboard-table" class="leaderboard-table">
         <table>
+          <caption class="sr-only">Top player runs ranked by days survived</caption>
           <thead>
             <tr>
-              <th>Rank</th>
-              <th>Days</th>
-              <th>Distance</th>
-              <th>Lost Hunters</th>
-              <th>Death</th>
+              <th scope="col">Rank</th>
+              <th scope="col">Days</th>
+              <th scope="col">Distance</th>
+              <th scope="col">Lost Hunters</th>
+              <th scope="col">Death</th>
             </tr>
           </thead>
           <tbody id="leaderboard-body">
@@ -166,67 +171,53 @@
 
         <div class="howto-columns">
           <section>
-            <h2>THE DAY</h2>
-            <p>Each day is split into two phases: <strong class="day-text">DAY</strong> and <strong class="night-text">NIGHT</strong>. You choose one action per phase. During the day, the sun is brutal — heat builds fast, thirst climbs, and every move costs more. But you cover the most ground in daylight.</p>
-          </section>
-
-          <section>
-            <h2>THE NIGHT</h2>
-            <p>At night, heat is no longer a threat and thirst rises more slowly. You move less distance, but the hunters make camp — they barely gain ground. Use the darkness to rest, recover, and prepare for the next day.</p>
+            <h2>THE CYCLE</h2>
+            <p>Each day has two phases: <strong class="day-text">DAY</strong> and <strong class="night-text">NIGHT</strong>. One action per phase. Days are brutal — heat builds, thirst climbs, everything costs more — but you cover the most ground. Nights are merciful — heat fades, thirst slows, and the hunters make camp. Use darkness to recover.</p>
           </section>
 
           <section>
             <h2>YOUR VITALS</h2>
             <ul>
-              <li><strong>Heat</strong> — Builds when you run under the sun. Too much and you collapse from heatstroke. Rest to cool down.</li>
-              <li><strong>Stamina</strong> — Your energy reserves. Push too hard without resting and exhaustion will claim you.</li>
-              <li><strong>Thirst</strong> — Rises every phase. Find water when you can, or dehydration will kill you before the hunters do.</li>
-              <li><strong>Hunger</strong> — Rises slowly but relentlessly. Scavenge when you can, or starve.</li>
+              <li><strong>Heat</strong> — Builds when you run. Heatstroke kills. Rest to cool.</li>
+              <li><strong>Stamina</strong> — Your energy. Exhaustion kills. Rest to recover.</li>
+              <li><strong>Thirst</strong> — Rises every phase. Find water or dehydrate.</li>
+              <li><strong>Hunger</strong> — Rises slowly. Scavenge when you can.</li>
             </ul>
           </section>
 
           <section>
             <h2>YOUR ACTIONS</h2>
             <ul>
-              <li><strong>Push</strong> — Sprint at full speed. Covers the most ground, but drains stamina and builds dangerous heat.</li>
-              <li><strong>Trot</strong> — A sustainable pace. Moderate distance, moderate costs.</li>
-              <li><strong>Rest</strong> — Stop moving. Recover heat and stamina, but the hunters close in. Since you haven't moved, the situation stays the same — you must at least Trot to find new opportunities.</li>
-              <li><strong>Drink / Eat</strong> — Appear when the land offers water or food. Reset thirst or hunger, but cost precious time.</li>
+              <li><strong>Push</strong> — Sprint. Maximum distance, maximum cost.</li>
+              <li><strong>Trot</strong> — Sustainable pace. Moderate everything.</li>
+              <li><strong>Rest</strong> — Recover heat and stamina, but hunters close in. The situation stays the same — Trot to find new opportunities.</li>
+              <li><strong>Drink / Eat</strong> — Appear when the land offers them. Cost time.</li>
             </ul>
-            <p>Action buttons show the <strong>total real effect</strong> on your stats — including passive drains — so what you see is what happens.</p>
+            <p>Buttons show <strong>total real effects</strong> including passive drains.</p>
           </section>
 
           <section>
-            <h2>THE SITUATIONS</h2>
-            <p>Each phase, the terrain shifts around you. Fever trees, dry riverbeds, rocky escarpments — every location is different, and some offer unique opportunities: a hidden water source, a scavenging chance, or a way to throw the hunters off your trail. Rare encounters can change the course of a run entirely. If you Rest, you stay in the same situation — you must at least Trot to find new terrain and new opportunities.</p>
+            <h2>THE LAND</h2>
+            <p>Each phase brings new terrain with unique opportunities — water, food, ways to lose the hunters. Rare encounters can change everything. Resting keeps the same situation; you must move to find new ground.</p>
           </section>
 
           <section>
             <h2>THE HUNTERS</h2>
-            <p>They start 25 miles behind, moving at a steady pace. Some encounters let you lose them temporarily — but every time they pick up your trail again, they come back faster. Water sources can give them a boost if they find where you drank. The gap between you and them is the only thing keeping you alive.</p>
+            <p>They start 25 miles back, moving at a steady pace that never stops. Lose them through encounters, but each time they find your trail again, they come back faster. The gap is everything.</p>
           </section>
 
           <section class="howto-achievements">
             <h2>ACHIEVEMENTS</h2>
             <ul>
-              <li><strong>Week of Running</strong> — Survive 7 days</li>
-              <li><strong>Into the Unknown</strong> — Survive 10 days</li>
-              <li><strong>The Long Road</strong> — Survive 15 days</li>
-              <li><strong>Legend</strong> — Survive 20 days</li>
-              <li><strong>Myth</strong> — Survive 30 days</li>
-              <li><strong>Distance Master</strong> — Cover 50+ miles</li>
-              <li><strong>Long Strider</strong> — Cover 75+ miles</li>
-              <li><strong>Century Runner</strong> — Cover 100+ miles</li>
-            </ul>
-          </section>
-
-          <section class="howto-achievements">
-            <h2>SPECIAL</h2>
-            <ul>
-              <li><strong>Shadow Walker</strong> — Lose the hunters 3+ times</li>
-              <li><strong>Ghost</strong> — Lose the hunters 5+ times</li>
+              <li><strong>Week of Running</strong> — 7 days</li>
+              <li><strong>Into the Unknown</strong> — 10 days</li>
+              <li><strong>The Long Road</strong> — 15 days</li>
+              <li><strong>Legend</strong> — 20 days</li>
+              <li><strong>Myth</strong> — 30 days</li>
+              <li><strong>Distance Master / Long Strider / Century Runner</strong> — 50 / 75 / 100+ miles</li>
+              <li><strong>Shadow Walker / Ghost</strong> — Lose the hunters 3 / 5+ times</li>
               <li><strong>Night Runner</strong> — Push through darkness 3+ times</li>
-              <li><strong>Iron Will</strong> — Never rest (survive 3+ days)</li>
+              <li><strong>Iron Will</strong> — Never rest (3+ days)</li>
               <li><strong>Desert Crosser</strong> — Survive extreme thirst</li>
               <li><strong>On the Edge</strong> — Dance with death repeatedly</li>
               <li><strong>Perfect Balance</strong> — Master the chase (5+ days)</li>
@@ -245,7 +236,10 @@
       <h1>Options</h1>
       <div class="options-content">
         <div class="option-row">
-          <span class="option-label">Difficulty</span>
+          <div class="option-label-group">
+            <span class="option-label">Difficulty</span>
+            <span class="option-help">Adjusts hunter speed and passive drain rates</span>
+          </div>
           <div class="option-control difficulty-control">
             <button class="option-btn" data-option="difficulty" data-value="easy">Easy</button>
             <button class="option-btn active" data-option="difficulty" data-value="normal">Normal</button>
@@ -253,19 +247,28 @@
           </div>
         </div>
         <div class="option-row">
-          <span class="option-label">Show Tutorial</span>
+          <div class="option-label-group">
+            <span class="option-label">Show Tutorial</span>
+            <span class="option-help">Display tutorial encounters on Day 1</span>
+          </div>
           <div class="option-control">
             <button class="option-toggle active" id="opt-tutorial" data-option="showTutorial">ON</button>
           </div>
         </div>
         <div class="option-row">
-          <span class="option-label">Show Opening</span>
+          <div class="option-label-group">
+            <span class="option-label">Show Opening</span>
+            <span class="option-help">Play cinematic intro before starting</span>
+          </div>
           <div class="option-control">
             <button class="option-toggle active" id="opt-opening" data-option="showOpening">ON</button>
           </div>
         </div>
         <div class="option-row">
-          <span class="option-label">Typewriter Effect</span>
+          <div class="option-label-group">
+            <span class="option-label">Typewriter Effect</span>
+            <span class="option-help">Animate text character-by-character for cinematic opening</span>
+          </div>
           <div class="option-control">
             <button class="option-toggle active" id="opt-typewriter" data-option="typewriterEffect">ON</button>
           </div>
@@ -279,7 +282,10 @@
           </div>
         </div>
         <div class="option-row" id="opt-situation-row">
-          <span class="option-label">Situation Typewriter</span>
+          <div class="option-label-group">
+            <span class="option-label">Situation Typewriter</span>
+            <span class="option-help">Animate encounter text during gameplay (slower pace)</span>
+          </div>
           <div class="option-control">
             <button class="option-toggle active" id="opt-situation-typewriter" data-option="situationTypewriter">ON</button>
           </div>
@@ -288,9 +294,10 @@
       <button id="btn-options-back" class="back-btn">Return to Title</button>
     </div>
   </div>
+  </main>
 
   <!-- Version badge (visible on all screens) -->
-  <div id="version-badge">v1.7.1</div>
+  <div id="version-badge">v1.8.0</div>
 
   <!-- Hidden canvas for share image generation -->
   <canvas id="share-canvas" style="display: none;"></canvas>

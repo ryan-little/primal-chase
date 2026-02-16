@@ -84,7 +84,7 @@ const Encounters = {
     {
       id: 'burned_ground',
       name: 'a stretch of burned ground',
-      text: 'Black earth and charred stubble — a fire passed through here recently. The air still tastes of ash and the ground radiates heat.',
+      text: 'The fire was recent. You can still taste it — scorched bone, cooked grass, the chemical bite of sap that boiled inside its bark. The ground is hot enough to hurt.',
       nightText: 'The burned earth smells sharper at night, acrid and recent. Embers still glow in places, orange pinpricks scattered across the dark ground.',
       actions: [{ key: 'eat', name: 'Scavenge', description: 'Search the burn for small animals caught in the fire', chance: 0.6 }],
       modifiers: { push: { heat: 8 }, trot: { heat: 4 } },
@@ -192,7 +192,7 @@ const Encounters = {
     {
       id: 'overhang_cave',
       name: 'a shallow overhang',
-      text: 'A lip of stone juts from the hillside, creating a pocket of deep shade. The rock is cool to the touch, almost damp.',
+      text: 'Stone curls over stone, forming a pocket of absolute shade. You press against the rock and feel how cold it is, how it drinks the heat from your body. Shelter.',
       nightText: 'The overhang is a pocket of absolute darkness, the rock above a cool ceiling that blocks the stars. Shelter in its truest form.',
       actions: [],
       modifiers: { rest: { heat: -15, stamina: 10 } },
@@ -327,21 +327,21 @@ const Encounters = {
     {
       id: 'animal_tracks',
       name: 'animal tracks',
-      text: 'Tracks cross the ground — hooves, paws, the drag marks of a tail. Life has passed through here recently.',
+      text: 'The earth is written in tracks — hooves pressed deep, the drag-mark of a hunting tail, paw prints that circle and vanish. A conversation you were not part of, but can read.',
       actions: [],
       modifiers: {}
     },
     {
       id: 'bird_alarm',
       name: 'alarm calls',
-      text: 'A burst of frantic bird calls erupts from the brush. Something has disturbed them.',
+      text: 'Francolins scatter screaming from the brush, wings beating the air white. Whatever flushed them is close and moving. The silence that follows is worse than the noise.',
       actions: [],
       modifiers: {}
     },
     {
       id: 'bones',
       name: 'old bones',
-      text: 'Sun-bleached bones lie scattered in the dust, picked clean long ago. Something large died here.',
+      text: 'Sun-bleached bones lie scattered in the dust, picked clean by everything with teeth. A ribcage arches from the earth like a ruined cathedral. The marrow inside may still hold something worth cracking for.',
       actions: [{ key: 'eat', name: 'Scavenge', description: 'Crack the bones for marrow', chance: 0.4 }],
       modifiers: {}
     },
@@ -362,7 +362,7 @@ const Encounters = {
     {
       id: 'dust_devil',
       name: 'a dust devil',
-      text: 'A column of spinning dust dances across the landscape, scattering grit and confusion.',
+      text: 'A column of red dust spins itself into being, taller than the acacias, wandering the plain like something searching. Grit peppers your face. The air inside it roars.',
       actions: [],
       modifiers: { push: { heat: 3 } }
     },
@@ -376,14 +376,14 @@ const Encounters = {
     {
       id: 'loose_stones',
       name: 'loose footing',
-      text: 'The ground is treacherous with loose stones and shifting gravel.',
+      text: 'Gravel shifts underfoot like a living thing. Each step rolls and slides, turning speed into a negotiation with gravity. One bad stride and the ankle goes.',
       actions: [],
       modifiers: { push: { stamina: -3 } }
     },
     {
       id: 'thorn_bush',
       name: 'thorn bushes',
-      text: 'Dense thorns line the path, forcing you to pick your way carefully.',
+      text: 'Thorns hook the path like a wall of curved knives. You can push through — everything here can be pushed through — but the cost is written in torn fur and blood.',
       actions: [],
       modifiers: { push: { stamina: -2, heat: 2 } }
     },
@@ -404,21 +404,21 @@ const Encounters = {
     {
       id: 'wind_shift',
       name: 'a shift in the wind',
-      text: 'The wind changes direction, carrying new scents — dust, distant green, and something else.',
+      text: 'The wind turns. One breath it carries dust and baked stone. The next: green. Moisture. A world that still has water in it, somewhere beyond the shimmer.',
       actions: [],
       modifiers: { trot: { heat: -2 } }
     },
     {
       id: 'hawk_shadow',
       name: 'a raptor\'s shadow',
-      text: 'A shadow glides over you — a martial eagle, riding the thermals, watching everything with cold precision.',
+      text: 'A shadow crosses yours. You flinch before you look up — a martial eagle, wings locked, riding the thermals with the patience of something that has never needed to run.',
       actions: [],
       modifiers: {}
     },
     {
       id: 'snake_den',
       name: 'snake holes',
-      text: 'Dark openings pock the ground, each one a potential viper\'s lair.',
+      text: 'Dark openings pock the ground, each one exhaling the dry musk of scales. A forked tongue tastes the air from one of them, then withdraws. You step carefully.',
       actions: [],
       modifiers: { rest: { stamina: -3 } }
     },
@@ -446,14 +446,14 @@ const Encounters = {
     {
       id: 'mirage',
       name: 'a shimmering mirage',
-      text: 'The horizon liquefies into false water, taunting you with an oasis that does not exist.',
+      text: 'The heat bends the horizon into false water — a lake that retreats as you approach, shimmering, perfect, lying. Your throat tightens at the sight of what is not there.',
       actions: [],
       modifiers: { push: { thirst: 3 } }
     },
     {
       id: 'fallen_branch',
       name: 'fallen timber',
-      text: 'A massive branch has fallen, creating a natural barrier and a pocket of decay.',
+      text: 'A limb thick as a torso has torn from its trunk and lies rotting on the earth. Fungus blooms along its length. Beneath the bark, grubs curl fat and pale — the small economies of decay.',
       actions: [{ key: 'eat', name: 'Forage', description: 'Search the rotting wood for grubs and insects', chance: 0.7 }],
       modifiers: {}
     },
@@ -467,7 +467,7 @@ const Encounters = {
     {
       id: 'hidden_burrow',
       name: 'a burrow entrance',
-      text: 'A dark hole in the earth, wide enough to enter, its edges worn smooth by repeated passage.',
+      text: 'A dark mouth in the earth, its rim polished to glass by ten thousand entries and exits. Cool air breathes from the depth. Something lives down there, fat and unsuspecting.',
       actions: [{ key: 'eat', name: 'Dig', description: 'Dig out whatever lives in this burrow', chance: 0.45 }],
       modifiers: {}
     },
@@ -509,7 +509,7 @@ const Encounters = {
     {
       id: 'crocodile_risk',
       name: 'movement in the water',
-      text: 'Something long and dark shifts beneath the surface. The water here is not safe.',
+      text: 'A shape displaces water near the bank — long, armored, moving with the slow confidence of something that has never needed to hurry. The water here is not safe.',
       actions: [],
       modifiers: { drink: { chance: -0.3 } }
     },
@@ -659,6 +659,107 @@ const Encounters = {
       text: 'Dark shapes move across the far plain like a slow river — wildebeest or zebra, too far to tell. They drift with the grass, unconcerned.',
       actions: [{ key: 'eat', name: 'Stalk', description: 'Close the distance and attempt a hunt', chance: 0.35 }],
       modifiers: { push: { stamina: 3 } }
+    },
+
+    // --- NIGHT VARIANTS (baseId links to day counterpart for dedup) ---
+    {
+      id: 'vulture_night',
+      baseId: 'vulture',
+      nightOnly: true,
+      name: 'roosting vultures',
+      text: 'Vultures roost in a dead tree nearby, dark shapes hunched against the stars. They will resume their vigil at dawn. For now, they sleep with the patience of things that are never in a hurry.',
+      actions: [{ key: 'eat', name: 'Scavenge', description: 'Search below their roost for scraps of what they fed on', chance: 0.6 }],
+      modifiers: {}
+    },
+    {
+      id: 'dust_devil_night',
+      baseId: 'dust_devil',
+      nightOnly: true,
+      name: 'a night wind',
+      text: 'A gust tears across the dark ground, invisible but felt — sand stinging your eyes, your ears flattened against the sound. The wind does not sleep here.',
+      actions: [],
+      modifiers: { push: { heat: -2 } }
+    },
+    {
+      id: 'hawk_shadow_night',
+      baseId: 'hawk_shadow',
+      nightOnly: true,
+      name: 'an owl\'s call',
+      text: 'A deep, hollow note drops from the sky — an eagle owl, hunting by sound. Its call carries for miles across the still night, a predator\'s sonar painting the dark.',
+      actions: [],
+      modifiers: {}
+    },
+    {
+      id: 'mirage_night',
+      baseId: 'mirage',
+      nightOnly: true,
+      name: 'a cold shimmer',
+      text: 'The air above the cooling earth bends the starlight into ripples. For a moment, the ground ahead seems to move — a river of light flowing through nothing. The eyes lie differently at night.',
+      actions: [],
+      modifiers: {}
+    },
+    {
+      id: 'shade_scrub_night',
+      baseId: 'shade_scrub',
+      nightOnly: true,
+      name: 'dense shadow',
+      text: 'Pools of absolute darkness gather beneath the scrub — the kind of dark where you become invisible. Even your own paws vanish.',
+      actions: [],
+      modifiers: { rest: { stamina: 3 } }
+    },
+    {
+      id: 'lizard_night',
+      baseId: 'lizard',
+      nightOnly: true,
+      name: 'sleeping lizards',
+      text: 'Lizards lie torpid on the rocks, cold-blooded bodies shut down for the night. They do not twitch when your shadow passes. Easy, if you are hungry enough to stop.',
+      actions: [{ key: 'eat', name: 'Take', description: 'Snatch the torpid lizards from the stone', chance: 0.9 }],
+      modifiers: {}
+    },
+    {
+      id: 'monkey_troop_night',
+      baseId: 'monkey_troop',
+      nightOnly: true,
+      name: 'sleeping baboons',
+      text: 'The troop is huddled in the upper branches, dark shapes packed together for warmth and safety. An infant whimpers in its sleep. For once, the sentinels are quiet.',
+      actions: [],
+      modifiers: {}
+    },
+    {
+      id: 'beetle_trail_night',
+      baseId: 'beetle_trail',
+      nightOnly: true,
+      name: 'glowing beetles',
+      text: 'Pinpricks of cold green light move through the grass — bioluminescent beetles, each one a tiny lantern navigating by chemistry. They map a path you cannot otherwise see.',
+      actions: [],
+      modifiers: {}
+    },
+    {
+      id: 'grasshopper_swarm_night',
+      baseId: 'grasshopper_swarm',
+      nightOnly: true,
+      name: 'a chorus of crickets',
+      text: 'The night pulses with the rhythmic sawing of a thousand crickets. The sound is so dense it becomes a wall — nothing else can be heard through it. Even your own footsteps are swallowed.',
+      actions: [{ key: 'eat', name: 'Feed', description: 'Snatch crickets from the grass as you move', chance: 0.85 }],
+      modifiers: {}
+    },
+    {
+      id: 'fresh_tracks_night',
+      baseId: 'fresh_tracks',
+      nightOnly: true,
+      name: 'nocturnal tracks',
+      text: 'Prints in the dew-damp earth, still sharp-edged. Something heavy and warm-blooded passed through minutes ago, moving in the dark. The scent trail is fresh and thick.',
+      actions: [{ key: 'eat', name: 'Hunt', description: 'Follow the scent trail in the dark', chance: 0.4 }],
+      modifiers: {}
+    },
+    {
+      id: 'distant_smoke_night',
+      baseId: 'distant_smoke',
+      nightOnly: true,
+      name: 'a distant fire',
+      text: 'A glow on the horizon — not dawn, too early and too orange. Their fire, or a brush fire, or another hunting party. The light is small but it means the dark is not empty.',
+      actions: [],
+      modifiers: {}
     }
   ],
 
@@ -675,7 +776,7 @@ const Encounters = {
     {
       id: 'hunters_gaining',
       name: 'the hunters gaining',
-      text: 'You can sense them — closer than yesterday, closer than this morning. The gap is shrinking.',
+      text: 'They are close enough now that you catch their scent between your own labored breaths. Sweat. Smoke. The iron tang of spear points.',
       condition: (state) => state.hunterDistance < 10,
       fallbackCondition: true,
       modifiers: {}
@@ -692,7 +793,7 @@ const Encounters = {
     {
       id: 'injured_paw',
       name: 'a thorn in your paw',
-      text: 'A sharp pain lances through your foreleg with every step. Something is embedded deep.',
+      text: 'A sharp pain lances through your foreleg with every step. Something is embedded deep — thorn or stone or splinter — and it works deeper with each stride, a hot point of fire that will not fade.',
       condition: () => Math.random() < 0.12,
       fallbackCondition: true,
       modifiers: { push: { stamina: -8 }, trot: { stamina: -4 } }
@@ -700,7 +801,7 @@ const Encounters = {
     {
       id: 'scent_on_wind',
       name: 'their scent on the wind',
-      text: 'The breeze carries the unmistakable scent of them — sweat, smoke, and something metallic.',
+      text: 'The breeze shifts and there it is — their smell. Woodfire. Cured hide. The sharp mineral stink of shaped stone. Every hair on your back rises.',
       condition: (state) => state.hunterDistance < 15 && state.hunterState === 'pursuit',
       fallbackCondition: true,
       modifiers: {}
@@ -756,7 +857,7 @@ const Encounters = {
     {
       id: 'ground_vibrations',
       name: 'something in the earth',
-      text: 'The ground trembles faintly beneath your paws — a large herd moving somewhere beyond sight.',
+      text: 'The ground trembles beneath your pads — a low vibration, felt before heard. Hooves. Thousands of them, moving somewhere beyond the horizon like distant thunder that never stops.',
       condition: () => Math.random() < 0.1,
       fallbackCondition: true,
       modifiers: {}
@@ -1285,6 +1386,130 @@ const Encounters = {
         { key: 'opposite', name: 'Run the Opposite Way', description: 'Now that you can see them, run directly away', effects: null, distance: null },
         { key: 'zigzag', name: 'Change Direction', description: 'Cut perpendicular to their path — may confuse tracking', effects: { heat: 10, stamina: -15, thirst: 5, hunger: 5 }, distance: 2, loseHunters: false }
       ]
+    },
+
+    // --- LATE GAME: BODY FAILING (Day 10+) ---
+    {
+      id: 'sig_hallucination_mother',
+      name: 'The Mother',
+      minDay: 12,
+      text: 'She is there. Standing in the shade of an acacia that does not exist, the light falling through leaves that are not real. Your mother. The smell of the den, of milk, of the first safe warmth you ever knew. She is calling you in a language before language — come, rest, it is over. The part of your brain that still thinks knows this is heat, exhaustion, the body beginning to shut down. The part that remembers her wants to go.',
+      choices: [
+        { key: 'collapse', name: 'Go to Her', description: 'Let go — rest in the shade that is not there', effects: { heat: -30, stamina: -50, thirst: 20, hunger: 20 }, distance: -5, risk: { chance: 0.6, penalty: { stamina: -30 }, text: 'You collapse. When you wake, the sun is directly overhead and the shade was never there. Your body screams as you force it upright.' } },
+        { key: 'push', name: 'Push Past', description: 'She is not real. This is how they win — you give up.', effects: null, distance: null }
+      ]
+    },
+    {
+      id: 'sig_legs_failing',
+      name: 'The Betrayal',
+      minDay: 10,
+      text: 'Your right foreleg buckles without warning. Not pain — absence. The muscle simply stops responding, as if something between your brain and the limb has been severed. You pitch forward, chin hitting the dust, and lie there for three breaths before the connection returns. The leg trembles when you stand. It is not certain it will hold.',
+      choices: [
+        { key: 'test_leg', name: 'Walk It Off', description: 'Move slowly, test the leg, find out what you have left', effects: { heat: -10, stamina: -15, thirst: 5, hunger: 5 }, distance: 1 },
+        { key: 'rest_leg', name: 'Rest Until It Passes', description: 'Lie still and let the leg recover — the hunters gain but the muscle may return', effects: { heat: -15, stamina: 15, thirst: 5, hunger: 5 }, distance: -3 },
+        { key: 'push', name: 'Push Through It', description: 'The leg works or it does not. Either way, you run.', effects: null, distance: null }
+      ]
+    },
+    {
+      id: 'sig_blood_trail',
+      name: 'The Tell',
+      minDay: 10,
+      text: 'You stop to pant and see it behind you — a trail of dark drops on the pale earth, regular as punctuation. Blood. Your blood, leaking from somewhere you cannot reach or see, painting a line from wherever you came to exactly where you stand. You do not need to be a tracker to follow this.',
+      choices: [
+        { key: 'river_wash', name: 'Find Water to Wash', description: 'Seek water to clean the wound and break the trail — costs time', effects: { heat: 10, stamina: -20, thirst: -30, hunger: 5 }, distance: -1, loseHunters: true },
+        { key: 'push', name: 'Outpace the Blood', description: 'Run faster than the trail can lead them', effects: null, distance: null }
+      ]
+    },
+
+    // --- LATE GAME: HUNTER ESCALATION (Day 12+) ---
+    {
+      id: 'sig_second_party',
+      name: 'The Reinforcements',
+      minDay: 15,
+      text: 'You reach a high point and look back. Two dust clouds. The original party, tireless as ever, and a second group converging from the east on a line that will intersect your path by nightfall. Your survival has become an insult their tribe cannot bear. They have sent more.',
+      choices: [
+        { key: 'split_trail', name: 'Split Your Trail', description: 'Double back, cross your own path, create confusion between the parties', effects: { heat: 20, stamina: -25, thirst: 15, hunger: 10 }, distance: -2, loseHunters: true, risk: { chance: 0.4, penalty: { stamina: -20 }, text: 'The maneuver costs you. Your body no longer has the precision for this kind of trickery.' } },
+        { key: 'push', name: 'Outrun Them Both', description: 'You have come this far. You will not stop for anyone.', effects: null, distance: null }
+      ]
+    },
+    {
+      id: 'sig_trap_line',
+      name: 'The Net',
+      minDay: 12,
+      text: 'Something is wrong with the ground ahead. Branches laid in a pattern that is not wind, not animal. A pit, covered with brush, its edges betrayed by the geometry of the sticks. They are not just following you. They are ahead of you. They have been reading where you will go and preparing the ground.',
+      choices: [
+        { key: 'detour', name: 'Wide Detour', description: 'Circle far around — if there is one trap there may be others', effects: { heat: 15, stamina: -20, thirst: 10, hunger: 10 }, distance: 0 },
+        { key: 'careful_path', name: 'Pick Through Carefully', description: 'Move slowly and read the ground — your eyes are better than theirs', effects: { heat: 5, stamina: -10, thirst: 5, hunger: 5 }, distance: 1, risk: { chance: 0.2, penalty: { stamina: -25, heat: 15 }, text: 'A second trap, hidden better than the first. Your foreleg punches through the covering and you wrench free with a snarl of pain.' } },
+        { key: 'push', name: 'Abandon This Direction', description: 'Turn completely — any direction that does not smell of their planning', effects: null, distance: null }
+      ]
+    },
+    {
+      id: 'sig_fire_drive',
+      name: 'The Drive',
+      minDay: 14,
+      nightOnly: true,
+      text: 'Fires. Not one but many, arranged in a crescent behind you, each one tended by a figure you can barely see against the glow. They are driving you. Herding you like livestock toward something you cannot see in the dark ahead. The fires advance slowly, deliberately, closing the arc.',
+      choices: [
+        { key: 'break_line', name: 'Break Through the Fire Line', description: 'Sprint between two fires — they cannot cover every gap', effects: { heat: 30, stamina: -25, thirst: 15, hunger: 5 }, distance: -2, loseHunters: true, risk: { chance: 0.35, penalty: { heat: 20, stamina: -15 }, text: 'The gap was narrower than you thought. Flame licks your flank and the smoke blinds you for three terrible strides.' } },
+        { key: 'into_dark', name: 'Run Into the Dark', description: 'Go where they are driving you — it may be a trap, but the fire is certain', effects: { heat: 5, stamina: -15, thirst: 5, hunger: 5 }, distance: 3 },
+        { key: 'push', name: 'Outflank the Crescent', description: 'Run perpendicular, try to get around the edge of the fire line', effects: null, distance: null }
+      ]
+    },
+
+    // --- LATE GAME: MYTHIC TERRITORY (Day 15+) ---
+    {
+      id: 'sig_territorial_edge',
+      name: 'The Edge of the World',
+      minDay: 18,
+      text: 'The land changes underfoot. The grass gives way to something else — darker soil, different trees, a scent profile your ancestors never catalogued. You have run beyond the savanna into terra incognita. This is not your territory. Your kind never learned these signs, these smells, this earth. But neither did they.',
+      choices: [
+        { key: 'enter_unknown', name: 'Cross the Border', description: 'The unknown might hide you, or kill you, but staying means capture', effects: { heat: 10, stamina: -15, thirst: 10, hunger: 10 }, distance: 3, loseHunters: true },
+        { key: 'stay_known', name: 'Stay in Known Land', description: 'You know this terrain. It knows you. Maybe that is enough.', effects: null, distance: null }
+      ]
+    },
+    {
+      id: 'sig_ancestor_grounds',
+      name: 'The Old Grounds',
+      minDay: 16,
+      text: 'You know this place. Not from memory — from something deeper, etched into the marrow. A kopje surrounded by fever trees, a spring that seeps from cracked rock. The air tastes the way the den smelled when you were small. Your kind has been coming here to die for a thousand generations. The bones in the grass prove it.',
+      choices: [
+        { key: 'rest_ancestors', name: 'Rest Among the Old Ones', description: 'Something in this place restores what running has taken — deep, ancient rest', effects: { heat: -35, stamina: 30, thirst: -40, hunger: 0 }, distance: -3 },
+        { key: 'drink_spring', name: 'Drink and Move', description: 'Take the water and the memory and keep going', effects: { heat: -10, stamina: -5, thirst: -100, hunger: 3 }, distance: 2 },
+        { key: 'push', name: 'This Is Not Your Time', description: 'You did not come here to lie down with bones', effects: null, distance: null }
+      ]
+    },
+
+    // --- LATE GAME: EXISTENTIAL CHOICES (Day 18+) ---
+    {
+      id: 'sig_choosing_ground',
+      name: 'Choosing Ground',
+      minDay: 20,
+      text: 'A kopje overlooking a valley thick with green, water gleaming in the distance. You could stop here. Not a brief rest, but a final one. Let them come. You would face them on ground of your choosing, with the sun on your face and the whole of the savanna spread below. There are worse places to stop running. Or you could run. The body still answers, somehow. It has never not answered.',
+      choices: [
+        { key: 'make_stand', name: 'Stop Here', description: 'This is the ground. This is the place. No more running.', effects: { heat: -50, stamina: 50, thirst: -30, hunger: 10 }, distance: -10 },
+        { key: 'push', name: 'Run Past Beauty', description: 'You have not come twenty days to stop now', effects: null, distance: null }
+      ]
+    },
+    {
+      id: 'sig_the_question',
+      name: 'The Question',
+      minDay: 14,
+      text: 'In the grey space between sleep and waking, while your legs still move of their own accord, a thought surfaces that you cannot push away: what are you running toward? There is no destination. No safe place. No border beyond which they will stop. You are not running to anything. You are running from everything. And the everything is gaining.',
+      choices: [
+        { key: 'accept', name: 'Accept It', description: 'The answer is the running itself. There was never anything else.', effects: { heat: -10, stamina: 10, thirst: 0, hunger: 0 }, distance: 0 },
+        { key: 'defy', name: 'Defy It', description: 'The answer is that the question does not matter. Only the next stride does.', effects: null, distance: null }
+      ]
+    },
+    {
+      id: 'sig_last_water',
+      name: 'The Last Water',
+      minDay: 16,
+      text: 'A seep. A trickle. Water beading on rock in a crevice so small you have to press your tongue flat against the stone to reach it. Mineral-sharp, tasting of deep earth and iron. It takes an eternity to drink enough to matter, and every moment spent pressing your face against rock is a moment you are not watching behind you.',
+      choices: [
+        { key: 'drink_slow', name: 'Drink Every Drop', description: 'Press your tongue to the stone until the thirst breaks — slow, exposed, necessary', effects: { heat: 5, stamina: -15, thirst: -80, hunger: 5 }, distance: -3 },
+        { key: 'taste_go', name: 'Taste and Go', description: 'Wet your tongue and move — something is better than nothing', effects: { heat: 3, stamina: -5, thirst: -30, hunger: 3 }, distance: 1 },
+        { key: 'push', name: 'Move On', description: 'Not enough water here to justify the stop', effects: null, distance: null }
+      ]
     }
   ],
 
@@ -1506,18 +1731,33 @@ const Encounters = {
     this.recentTerrains.push(terrain.id);
     if (this.recentTerrains.length > 10) this.recentTerrains.shift();
 
-    // Pick opportunity (compatible with terrain, avoid recent)
+    // Pick opportunity (compatible with terrain, avoid recent, respect day/night)
+    const isNight = gameState.phase === 'night';
+    const oppDedup = (o) => o.baseId || o.id; // use baseId for dedup when present
+    const isRecentOpp = (o) => this.recentOpportunities.includes(oppDedup(o));
+    const isCompatible = (o) => {
+      // Night variants match if their baseId is in the compatible list
+      const checkId = o.baseId || o.id;
+      return terrain.compatible.includes(checkId) || terrain.compatible.includes(o.id);
+    };
+    const phaseFilter = (o) => {
+      if (o.nightOnly && !isNight) return false; // night-only opps hidden during day
+      if (!o.nightOnly && !o.baseId) return true; // normal opps always eligible
+      if (o.nightOnly && isNight) return true;     // night variants eligible at night
+      return true;
+    };
+
     let availableOpps = this.opportunities.filter(o =>
-      terrain.compatible.includes(o.id) && !this.recentOpportunities.includes(o.id)
+      phaseFilter(o) && isCompatible(o) && !isRecentOpp(o)
     );
     if (availableOpps.length === 0) {
-      availableOpps = this.opportunities.filter(o => terrain.compatible.includes(o.id));
+      availableOpps = this.opportunities.filter(o => phaseFilter(o) && isCompatible(o));
     }
     if (availableOpps.length === 0) {
-      availableOpps = this.opportunities; // fallback
+      availableOpps = this.opportunities.filter(o => phaseFilter(o)); // fallback
     }
     const opportunity = availableOpps[Math.floor(Math.random() * availableOpps.length)];
-    this.recentOpportunities.push(opportunity.id);
+    this.recentOpportunities.push(oppDedup(opportunity)); // track by baseId for dedup
     if (this.recentOpportunities.length > 12) this.recentOpportunities.shift();
 
     // Pick pressure (condition-based, avoid recent)
