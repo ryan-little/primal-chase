@@ -47,8 +47,7 @@ const CONFIG = {
     }
   },
 
-  // Distance hunters gain when player does non-movement actions
-  hunterGainOnStationaryDay: 5,    // full hunter speed during day
+  // Distance hunters gain when player is stationary at night
   hunterGainOnStationaryNight: 0.5, // hunters camp at night
 
   // Passive drains per phase (applied regardless of action)

@@ -585,6 +585,10 @@ body.night-mode .night-bg {
   color: var(--text-safe);
 }
 
+.action-warning {
+  color: #c49a3a;
+}
+
 /* ===== DEATH SCREEN ===== */
 .death-container {
   max-width: 700px;
@@ -910,7 +914,7 @@ body.night-mode .night-bg {
 .options-container h1 {
   text-align: center;
   font-size: 2em;
-  margin-bottom: 2rem;
+  margin-bottom: 1.2rem;
   color: var(--text-primary);
   text-shadow: 0 2px 6px rgba(0, 0, 0, 0.8);
 }
@@ -918,8 +922,8 @@ body.night-mode .night-bg {
 .options-content {
   display: flex;
   flex-direction: column;
-  gap: 1.5rem;
-  margin-bottom: 2rem;
+  gap: 1rem;
+  margin-bottom: 1.5rem;
 }
 
 .option-row {
