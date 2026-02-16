@@ -315,16 +315,12 @@ body.night-mode .night-bg {
   background: rgba(10, 6, 3, 0.8);
   border: none;
   box-shadow: none;
-  display: flex;
-  flex-direction: column;
-  height: calc(100vh - 40px);
 }
 
 .game-header {
   text-align: center;
   padding: 1.2rem 1.5rem;
   border-bottom: 2px solid var(--border-color);
-  flex-shrink: 0;
 }
 
 .phase-indicator {
@@ -356,7 +352,6 @@ body.night-mode .night-bg {
   grid-template-columns: 1fr 1fr;
   gap: 0;
   border-bottom: 2px solid var(--border-color);
-  flex-shrink: 0;
 }
 
 .vitals-grid {
@@ -446,20 +441,9 @@ body.night-mode .night-bg {
   border-top: 1px solid rgba(74, 53, 38, 0.3);
 }
 
-/* ===== SITUATION & MONOLOGUE (SCROLLABLE) ===== */
+/* ===== SITUATION & MONOLOGUE ===== */
 .situation-scroll {
-  flex: 1;
-  overflow-y: auto;
-  scrollbar-width: none;
   padding: 1.5rem 3rem;
-  min-height: 0;
-  display: flex;
-  flex-direction: column;
-  justify-content: center;
-}
-
-.situation-scroll::-webkit-scrollbar {
-  display: none;
 }
 
 .situation-text {
@@ -509,7 +493,6 @@ body.night-mode .night-bg {
   padding: 1rem 2rem 1.2rem;
   border-top: 2px solid var(--border-color);
   background: rgba(10, 6, 3, 0.9);
-  flex-shrink: 0;
 }
 
 /* 2x2 grid for 4+ actions on desktop */
@@ -1075,11 +1058,6 @@ body.night-mode .night-bg {
     font-size: 14px;
   }
 
-  .game-container {
-    height: auto;
-    min-height: calc(100vh - 20px);
-  }
-
   /* Stack vitals and sidebar vertically on tablet */
   .game-top {
     grid-template-columns: 1fr;
@@ -1088,10 +1066,6 @@ body.night-mode .night-bg {
   .vitals-grid {
     border-right: none;
     border-bottom: 1px solid var(--border-color);
-  }
-
-  .situation-scroll {
-    overflow-y: visible;
   }
 
   .logo {

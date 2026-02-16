@@ -227,6 +227,9 @@ const Game = {
       return;
     }
 
+    // Track whether the last action succeeded (for monologue system)
+    this.state.lastActionSucceeded = chanceSucceeded;
+
     // Build outcome text
     this.state.lastOutcome = this.buildOutcomeText(action, riskTriggered, chanceSucceeded);
 
@@ -242,9 +245,9 @@ const Game = {
       }
     }
 
-    // Generate monologue
+    // Generate monologue (skip drink/eat triggers if the action failed)
     if (typeof Monologue !== 'undefined') {
-      this.state.monologue = Monologue.select(this.state, actionKey);
+      this.state.monologue = Monologue.select(this.state, chanceSucceeded ? actionKey : null);
     }
 
     // Render (with transition animation on phase changes)
@@ -317,8 +320,8 @@ const Game = {
       return failTexts[Math.floor(Math.random() * failTexts.length)];
     }
 
-    // Use action description if it's a signature encounter choice
-    if (action.description && !action.isStandard) {
+    // Use action description for signature encounter choices (not chance-based situational actions)
+    if (action.description && !action.isStandard && action.chance === undefined) {
       return action.description;
     }
 
