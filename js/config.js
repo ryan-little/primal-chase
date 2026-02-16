@@ -32,16 +32,16 @@ const CONFIG = {
   // Day actions
   actions: {
     day: {
-      push:  { distance: 6, heat: 20, stamina: -20, thirst: 15, hunger: 10 },
-      trot:  { distance: 3, heat: 10, stamina: -10, thirst: 10, hunger: 5 },
-      rest:  { distance: 0, heat: -20, stamina: 20, thirst: 0, hunger: 3 },
-      drink: { distance: 0, heat: 10, stamina: -5, thirst: -100, hunger: 0 },
-      eat:   { distance: 0, heat: 15, stamina: -5, thirst: -30, hunger: -100 }
+      push:  { distance: 6.5, heat: 22, stamina: -17, thirst: 15, hunger: 10 },
+      trot:  { distance: 3.5, heat: 11, stamina: -10, thirst: 8, hunger: 5 },
+      rest:  { distance: 0, heat: -20, stamina: 27, thirst: 0, hunger: 3 },
+      drink: { distance: 0, heat: 11, stamina: -5, thirst: -100, hunger: 0 },
+      eat:   { distance: 0, heat: 16, stamina: -5, thirst: -30, hunger: -100 }
     },
     night: {
-      push:  { distance: 5, heat: 10, stamina: -20, thirst: 8, hunger: 10 },
-      trot:  { distance: 2, heat: 5, stamina: -10, thirst: 5, hunger: 5 },
-      rest:  { distance: 0, heat: -30, stamina: 25, thirst: 0, hunger: 3 },
+      push:  { distance: 5.5, heat: 10, stamina: -17, thirst: 8, hunger: 10 },
+      trot:  { distance: 2.5, heat: 5, stamina: -10, thirst: 5, hunger: 5 },
+      rest:  { distance: 0, heat: -30, stamina: 32, thirst: 0, hunger: 3 },
       drink: { distance: 0, heat: 0, stamina: -5, thirst: -100, hunger: 0 },
       eat:   { distance: 0, heat: 5, stamina: -5, thirst: -30, hunger: -100 }
     }
@@ -52,8 +52,8 @@ const CONFIG = {
 
   // Passive drains per phase (applied regardless of action)
   passiveDrain: {
-    day:   { heat: 5, stamina: 0, thirst: 5, hunger: 3 },
-    night: { heat: -8, stamina: 5, thirst: 2, hunger: 3 }
+    day:   { heat: 6, stamina: 0, thirst: 5, hunger: 3.5 },
+    night: { heat: -8, stamina: 5, thirst: 2, hunger: 3.5 }
   },
 
   // Encounter system
@@ -107,11 +107,11 @@ const CONFIG = {
       }
     },
     hard: {
-      starting: { hunterDistance: 18 },
-      hunter: { baseSpeed: 6.5, dailyEscalation: 0.15, escalationPerLoss: 1.2 },
+      starting: { hunterDistance: 20 },
+      hunter: { baseSpeed: 6.3, dailyEscalation: 0.13, escalationPerLoss: 1.0 },
       passiveDrain: {
-        day:   { heat: 5, stamina: 0, thirst: 7, hunger: 4 },
-        night: { heat: -6, stamina: 3, thirst: 3, hunger: 4 }
+        day:   { heat: 6, stamina: 0, thirst: 7, hunger: 3.5 },
+        night: { heat: -6, stamina: 3, thirst: 3, hunger: 3.5 }
       }
     }
   }

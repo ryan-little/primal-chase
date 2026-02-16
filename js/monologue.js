@@ -283,7 +283,7 @@ const Monologue = {
     { mood: 'concerned', triggers: ['night'], nightOnly: true, text: 'The dark should comfort me. Instead I strain at every sound, parsing the wind for footfalls.' },
 
     // Desperate — after drink (additions)
-    { mood: 'desperate', triggers: ['after_drink'], text: 'Water. I almost wept. Can animals weep? Something in me tried.' },
+    { mood: 'desperate', triggers: ['after_drink'], text: 'Water. Something wet ran from my eyes that was not sweat. I do not have a word for what my body did.' },
     { mood: 'desperate', triggers: ['after_drink'], text: 'I drink and the world reassembles itself from the blur. Not whole, but enough. Enough to run.' },
 
     // Desperate — after eat (additions)
@@ -466,7 +466,151 @@ const Monologue = {
     { mood: 'haunted', text: 'The world has shrunk to the space between my paws and their footsteps. Everything else is decoration.' },
     { mood: 'haunted', text: 'I used to know what I was. Predator. King. Now I am just the distance between two points that are slowly becoming one.' },
     { mood: 'haunted', text: 'Every landscape I cross becomes a eulogy. The riverbed where I drank. The ridge where I rested. Places that knew me alive.' },
-    { mood: 'haunted', text: 'They will not stop. I have accepted this. The question is no longer whether, but when, and whether I will be running when it happens.' }
+    { mood: 'haunted', text: 'They will not stop. I have accepted this. The question is no longer whether, but when, and whether I will be running when it happens.' },
+
+    // ===================== TERRAIN-REACTIVE (EXPANDED) =====================
+
+    // terrain_water — additional
+    { mood: 'confident', triggers: ['terrain_water'], text: 'The rivers are mine. I was born to this wet season, raised on flood plains that swallowed the horizon.' },
+    { mood: 'confident', triggers: ['terrain_water'], text: 'Where there is water there is life, and where there is life I am at the top of it. This is still my world.' },
+    { mood: 'confident', triggers: ['terrain_water'], text: 'I hear the water before I see it. My ears know the sound the way my paws know the earth — without thinking.' },
+    { mood: 'concerned', triggers: ['terrain_water'], text: 'So much water and yet drinking means stopping. The cruelty of abundance.' },
+    { mood: 'concerned', triggers: ['terrain_water'], text: 'The banks are trampled with tracks. Everything comes to drink. I am no different. I hate that I am no different.' },
+    { mood: 'concerned', triggers: ['terrain_water'], text: 'Water ahead. But water draws everything to the same narrow ground. I can smell what else has come.' },
+    { mood: 'desperate', triggers: ['terrain_water'], text: 'I wade through shallows and my body begs me to collapse into them. Just lie down. Just drink until the burning stops.' },
+    { mood: 'desperate', triggers: ['terrain_water'], text: 'The water runs cool over my paws and the relief is so sharp it hurts. I could die here and call it mercy.' },
+    { mood: 'desperate', triggers: ['terrain_water'], text: 'Wet earth. Wet air. My tongue cracks at the taste of it in the wind. So close. So costly.' },
+    { mood: 'haunted', triggers: ['terrain_water'], text: 'Water everywhere. I have crossed three rivers in as many days and they are still behind me. What did I do to earn this?' },
+    { mood: 'haunted', triggers: ['terrain_water'], text: 'The river does not know it is beautiful. It does not know I am dying beside it. It runs because that is what rivers do. So do I.' },
+
+    // terrain_open — additional
+    { mood: 'confident', triggers: ['terrain_open'], text: 'The open plain is my kingdom. No walls, no ceiling — just the honest conversation between speed and earth.' },
+    { mood: 'confident', triggers: ['terrain_open'], text: 'Nothing between me and the horizon but heat and will. I was made for this distance.' },
+    { mood: 'concerned', triggers: ['terrain_open'], text: 'The flatness goes on forever. Nowhere to rest, nowhere to vanish. Just the long, honest run.' },
+    { mood: 'concerned', triggers: ['terrain_open'], text: 'Every step out here is visible. I might as well be leaving a trail of fire across the sky.' },
+    { mood: 'desperate', triggers: ['terrain_open'], text: 'Nowhere to hide. The sky presses down and the earth offers nothing. I am a mark on an empty page.' },
+    { mood: 'desperate', triggers: ['terrain_open'], text: 'The plain offers only distance and distance is not enough anymore. I need a miracle. The open ground does not deal in those.' },
+    { mood: 'haunted', triggers: ['terrain_open'], text: 'The emptiness feels personal. As if the land has cleared itself to give them a better view of me dying.' },
+    { mood: 'haunted', triggers: ['terrain_open'], text: 'I have been crossing open ground for so long that I have forgotten what shelter looks like. Was there ever shade?' },
+
+    // terrain_dense — additional
+    { mood: 'confident', triggers: ['terrain_dense'], text: 'I vanish into cover like water into sand. This is what they do not understand — I am not lost, I am hidden.' },
+    { mood: 'confident', triggers: ['terrain_dense'], text: 'The branches close behind me like a door. In here my scent disperses, my prints disappear. I am smoke.' },
+    { mood: 'confident', triggers: ['terrain_dense'], text: 'Thick bush. My body remembers how to flow through gaps that would stop anything walking upright.' },
+    { mood: 'concerned', triggers: ['terrain_dense'], text: 'The cover hides me but it slows me too. I trade speed for invisibility and hope the exchange rate holds.' },
+    { mood: 'concerned', triggers: ['terrain_dense'], text: 'Branches scrape my ribs as I push through. Every thorn is a small tax on a dwindling treasury.' },
+    { mood: 'desperate', triggers: ['terrain_dense'], text: 'I crash through the brush and leave fur on every thorn. A trail of myself, torn and scattered. They will not need to track me. They can just follow the pieces.' },
+    { mood: 'desperate', triggers: ['terrain_dense'], text: 'The thicket holds me like a net. Every direction costs something — skin, breath, time I do not have.' },
+    { mood: 'haunted', triggers: ['terrain_dense'], text: 'The thicket closes around me and I wonder: am I seeking shelter or a grave?' },
+    { mood: 'haunted', triggers: ['terrain_dense'], text: 'Deep in the green dark where nothing watches. But the silence here is not peace. It is the held breath before the hand closes.' },
+
+    // terrain_rocky — additional
+    { mood: 'confident', triggers: ['terrain_rocky'], text: 'Stone leaves no story. I cross the rock and behind me — nothing. Not a print. Not a scent. Ghost.' },
+    { mood: 'confident', triggers: ['terrain_rocky'], text: 'My claws find grip in stone that their flat feet slide across. The rock is my ally today.' },
+    { mood: 'concerned', triggers: ['terrain_rocky'], text: 'The rocks remember nothing. No scent, no track, no story. But my pads are bleeding and the stone keeps its own account.' },
+    { mood: 'concerned', triggers: ['terrain_rocky'], text: 'Hard footing. My ankles ache with the impact of it. Stone does not forgive a bad step.' },
+    { mood: 'desperate', triggers: ['terrain_rocky'], text: 'I slip on the rocks and for a moment think: this is it. The fall will be faster than them. But my legs catch me. They always do.' },
+    { mood: 'desperate', triggers: ['terrain_rocky'], text: 'Blood on the stone from my torn pads. A map of my suffering painted on ancient rock. The stone does not care.' },
+    { mood: 'haunted', triggers: ['terrain_rocky'], text: 'These stones were here when my kind first walked this land. They will be here when the last of us falls.' },
+    { mood: 'haunted', triggers: ['terrain_rocky'], text: 'The rock endures. I do not. Between the two of us, the stone has the better argument for patience.' },
+
+    // terrain_shelter — additional
+    { mood: 'confident', triggers: ['terrain_shelter'], text: 'Cover, shade, a place to gather myself. The land remembers that I am its highest work.' },
+    { mood: 'concerned', triggers: ['terrain_shelter'], text: 'The urge to hide is growing louder than the urge to run. That is a dangerous shift.' },
+    { mood: 'desperate', triggers: ['terrain_shelter'], text: 'Shelter. The word alone makes something collapse inside me. I could stop. I could finally, finally stop.' },
+    { mood: 'haunted', triggers: ['terrain_shelter'], text: 'Is this shelter or a resting place for the last night? I cannot tell anymore. The two look the same.' },
+
+    // ===================== PRESSURE-REACTIVE (EXPANDED) =====================
+
+    // pressure_injury — additional
+    { mood: 'confident', triggers: ['pressure_injury'], text: 'The wound stings but the sting keeps me alert. Pain is just the body paying attention.' },
+    { mood: 'confident', triggers: ['pressure_injury'], text: 'I have taken worse from rivals and mating fights. A thorn? A cut? This is nothing.' },
+    { mood: 'concerned', triggers: ['pressure_injury'], text: 'The thorn works deeper with every stride. Pain is just information, I tell myself. But the information is getting louder.' },
+    { mood: 'concerned', triggers: ['pressure_injury'], text: 'The limp is settling in. My body routes around the hurt automatically, but each workaround costs something else.' },
+    { mood: 'desperate', triggers: ['pressure_injury'], text: 'I cannot remember what running felt like without pain. Was there ever a time my body moved without screaming?' },
+    { mood: 'desperate', triggers: ['pressure_injury'], text: 'The wound has its own heartbeat now. It pulses in time with my stride, a counter-rhythm of ruin.' },
+    { mood: 'haunted', triggers: ['pressure_injury'], text: 'The injury has stopped being a wound and started being a companion. It travels with me, patient as they are.' },
+    { mood: 'haunted', triggers: ['pressure_injury'], text: 'My body is a ledger of damage. Every page another hurt. I have stopped reading it.' },
+
+    // pressure_weather — additional
+    { mood: 'confident', triggers: ['pressure_weather'], text: 'The wind picks up and I angle into it. Weather is just terrain that moves — you learn to read it or you learn to suffer.' },
+    { mood: 'confident', triggers: ['pressure_weather'], text: 'Storm air. I can taste the rain before it falls. Let it come. The wet will erase my trail.' },
+    { mood: 'concerned', triggers: ['pressure_weather'], text: 'The pressure drops and my ears flatten. Something is building in the sky that has nothing to do with me and everything to do with my survival.' },
+    { mood: 'concerned', triggers: ['pressure_weather'], text: 'The air tastes of iron and ozone. The sky is choosing sides and I do not know which one it will take.' },
+    { mood: 'desperate', triggers: ['pressure_weather'], text: 'The sky breaks and I cannot tell if the water on my face is rain or the last of what my body can give.' },
+    { mood: 'desperate', triggers: ['pressure_weather'], text: 'Heat or cold, sun or storm — the sky has become another predator. It does not chase but it does not help.' },
+    { mood: 'haunted', triggers: ['pressure_weather'], text: 'The sky darkens and I welcome it. Let the world turn to water. Let everything dissolve. At least the rain is honest.' },
+    { mood: 'haunted', triggers: ['pressure_weather'], text: 'I have run through every kind of weather this land can make. None of it has killed me. None of it has saved me.' },
+
+    // pressure_hunter_sign — additional
+    { mood: 'confident', triggers: ['pressure_hunter_sign'], text: 'I smell them and my stride lengthens without thinking. The body knows what to do with threat.' },
+    { mood: 'confident', triggers: ['pressure_hunter_sign'], text: 'Their sign in the grass. Broken stems, the print of a flat foot. Clumsy. I read their passage like a language written by children.' },
+    { mood: 'concerned', triggers: ['pressure_hunter_sign'], text: 'The grass bends where they have passed. They are getting better at this. Learning my patterns.' },
+    { mood: 'concerned', triggers: ['pressure_hunter_sign'], text: 'Ash from their fire, still warm. They rested here. They did not rest for long.' },
+    { mood: 'desperate', triggers: ['pressure_hunter_sign'], text: 'Their scent is so close I can taste the smoke on my tongue. Woodfire and iron and the salt of working bodies.' },
+    { mood: 'desperate', triggers: ['pressure_hunter_sign'], text: 'I see where they sharpened their spears against a rock. The stone is still scratched white. Fresh. Eager.' },
+    { mood: 'haunted', triggers: ['pressure_hunter_sign'], text: 'Their sign is everywhere now. In the bent grass, the cold fire pits, the worn earth. This land belongs to them already. I am just the last thing that has not admitted it.' },
+    { mood: 'haunted', triggers: ['pressure_hunter_sign'], text: 'I found a print so fresh the mud was still settling. They are right behind me. They have always been right behind me.' },
+
+    // pressure_decay — additional
+    { mood: 'confident', triggers: ['pressure_decay'], text: 'The scavengers watch. Let them. I am not done yet, and they are terrible judges of the living.' },
+    { mood: 'concerned', triggers: ['pressure_decay'], text: 'A vulture lands nearby and folds its wings. It does not circle. It waits. The distinction is not comforting.' },
+    { mood: 'desperate', triggers: ['pressure_decay'], text: 'The flies cluster at my eyes, my wounds, the corners of my mouth. They taste death before it arrives.' },
+    { mood: 'desperate', triggers: ['pressure_decay'], text: 'The smell coming off my own body has changed. I know this smell. I have followed it to kills. It is the smell of something ending.' },
+    { mood: 'haunted', triggers: ['pressure_decay'], text: 'The vultures have stopped circling. They just follow now, a patient escort to whatever comes next.' },
+    { mood: 'haunted', triggers: ['pressure_decay'], text: 'I am attended by flies and followed by vultures. My court has assembled. The only ceremony left is the one I am trying to outrun.' },
+
+    // ===================== NIGHT-ONLY (EXPANDED) =====================
+
+    { mood: 'confident', nightOnly: true, text: 'The darkness is a cloak I was born to wear. I see what they cannot, move where they stumble.' },
+    { mood: 'confident', nightOnly: true, text: 'The stars are so many tonight they cast shadows. I run by their ancient light and feel invincible.' },
+    { mood: 'confident', nightOnly: true, text: 'Cool air in my lungs, dark earth beneath my paws. The night was made for this. For me.' },
+    { mood: 'confident', nightOnly: true, text: 'Owls call in the dark and I answer with silence. The nocturnal understand each other.' },
+    { mood: 'confident', nightOnly: true, text: 'Their fire is a weakness, not a strength. It blinds them to everything beyond its circle. I live in the everything beyond.' },
+
+    { mood: 'concerned', nightOnly: true, text: 'The dark hides the ground and I trip on roots I cannot see. The night that sheltered me now demands its price.' },
+    { mood: 'concerned', nightOnly: true, text: 'I strain to hear their footsteps but the night insects drown everything in clicking song.' },
+    { mood: 'concerned', nightOnly: true, text: 'The moon is thin tonight. A sliver. Not enough light to run by, not enough dark to hide in.' },
+    { mood: 'concerned', nightOnly: true, text: 'Hyenas laugh in the distance. They hunt at night too. I am not the only danger in this dark — nor the greatest.' },
+    { mood: 'concerned', nightOnly: true, text: 'I used to rule the night. Now I merely survive it, one careful step at a time.' },
+
+    { mood: 'desperate', nightOnly: true, text: 'The darkness is no longer a friend. It hides the ground, hides my wounds, hides how close they are.' },
+    { mood: 'desperate', nightOnly: true, text: 'I stumble through black nothing and each fall takes longer to rise from. The night is eating me.' },
+    { mood: 'desperate', nightOnly: true, text: 'I cannot see my own paws. I run on memory and prayer, and both are running out.' },
+    { mood: 'desperate', nightOnly: true, text: 'Somewhere in this dark there is a rock or a root with my name on it. I will find it with my face.' },
+    { mood: 'desperate', nightOnly: true, text: 'The night stretches like something alive. Each hour is longer than the last. Dawn is a rumor I no longer believe.' },
+
+    { mood: 'haunted', nightOnly: true, text: 'I have run through so many nights they blur into one endless darkness between two bright terrors.' },
+    { mood: 'haunted', nightOnly: true, text: 'The stars look down and I look up and neither of us has an answer for the other.' },
+    { mood: 'haunted', nightOnly: true, text: 'The dark is not empty. It is full of sounds I used to know — the bush at night, alive and indifferent. I am part of it now. The dying part.' },
+    { mood: 'haunted', nightOnly: true, text: 'Their fire is closer tonight than any night before. I can see it without turning my head. We are almost walking together now.' },
+    { mood: 'haunted', nightOnly: true, text: 'The night used to feel infinite. Now it feels like a closing fist. Dawn will come, and with it, them.' },
+
+    // ===================== COMBINED TRIGGERS (EXPANDED) =====================
+
+    // terrain_dense + pressure_injury — pain in cover
+    { mood: 'concerned', triggers: ['terrain_dense', 'pressure_injury'], text: 'The thorns catch at my wounded leg. Every snag sends fire up my spine and I bite back a sound they might hear.' },
+    { mood: 'desperate', triggers: ['terrain_dense', 'pressure_injury'], text: 'The brush tears at my wounds and the wounds tear at my will. Everything in here wants a piece of me.' },
+
+    // terrain_rocky + near_death — final footing
+    { mood: 'desperate', triggers: ['terrain_rocky', 'near_death'], text: 'I slip on the stones and for a moment think: this is it. The fall will be faster than them. But my legs catch me. Somehow they always catch me.' },
+    { mood: 'haunted', triggers: ['terrain_rocky', 'near_death'], text: 'The stone is warm where I lie. If I close my eyes, I could believe this is just a nap on a sun-baked kopje. In better days. In another life.' },
+
+    // terrain_water + pressure_hunter_sign — water betrays
+    { mood: 'concerned', triggers: ['terrain_water', 'pressure_hunter_sign'], text: 'Water ahead and their scent on the wind. They know I need to drink. They are waiting where the water is.' },
+    { mood: 'haunted', triggers: ['terrain_water', 'pressure_hunter_sign'], text: 'I crossed the river to lose them. Then I caught their scent on the far bank. They swam. Of course they swam.' },
+
+    // terrain_open + pressure_weather — exposed and battered
+    { mood: 'desperate', triggers: ['terrain_open', 'pressure_weather'], text: 'Open ground and the sky bearing down. No shelter from above, no cover on the ground. Just the run and whatever the sky decides to do to me.' },
+    { mood: 'haunted', triggers: ['terrain_open', 'pressure_weather'], text: 'The flat stretches forever and the weather comes from every direction. I am the tallest thing for miles. The lightning knows it.' },
+
+    // terrain_shelter + pressure_decay — resting with death
+    { mood: 'desperate', triggers: ['terrain_shelter', 'pressure_decay'], text: 'I crawl into shade and the flies follow me in. Even shelter cannot keep the dying away.' },
+    { mood: 'haunted', triggers: ['terrain_shelter', 'pressure_decay'], text: 'I rest in the overhang and the vultures land on the rock above. They roost. They make themselves comfortable. They plan to be here a while.' },
+
+    // terrain_dense + pressure_hunter_sign — hidden but tracked
+    { mood: 'concerned', triggers: ['terrain_dense', 'pressure_hunter_sign'], text: 'I hide in the brush but I can smell them. Close. If the wind shifts, they will smell me too.' },
+    { mood: 'desperate', triggers: ['terrain_dense', 'pressure_hunter_sign'], text: 'The cover hides me but their scent finds me anyway, seeping through the branches like smoke. There is no hiding from what follows by smell.' }
   ],
 
   // ============================================================

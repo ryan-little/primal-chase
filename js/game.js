@@ -65,8 +65,7 @@ const Game = {
         phasesWithHighThirst: 0,
         phasesNearDeath: 0
       },
-      actionHistory: [],
-      narrativeLog: []
+      lastActionSucceeded: null
     };
 
     if (typeof Encounters !== 'undefined') {
@@ -202,21 +201,7 @@ const Game = {
       thirst: Math.round(this.state.thirst - statsBefore.thirst),
       hunger: Math.round(this.state.hunger - statsBefore.hunger)
     };
-    const historyEntry = {
-      day: this.state.day,
-      phase: this.state.phase,
-      action: action.name || actionKey,
-      statChanges: statChanges,
-      hunterGap: Math.round(this.state.hunterDistance * 10) / 10
-    };
-    this.state.actionHistory.push(historyEntry);
-    if (this.state.actionHistory.length > 5) {
-      this.state.actionHistory.shift();
-    }
-    this.state.narrativeLog.push({
-      ...historyEntry,
-      encounterText: this.state.currentEncounter ? this.state.currentEncounter.text : null
-    });
+    // (statChanges available for debugging if needed)
 
     // Check death
     const deathCause = this.checkDeath();

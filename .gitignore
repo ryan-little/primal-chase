@@ -7,7 +7,12 @@ CLAUDE.md
 test/
 docs/
 
-# Playwright artifacts (root-level screenshots from playtest agents)
+# Dependencies (dev only — vanilla JS game, no runtime deps)
+node_modules/
+package.json
+package-lock.json
+
+# Playwright artifacts
 /*.png
 /*.jpeg
 .playwright-mcp/
