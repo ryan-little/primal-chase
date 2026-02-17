@@ -87,6 +87,9 @@ const UI = {
    * Render the title screen with random logo selection
    */
   renderTitle() {
+    const isReturn = this._titleShown;
+    this._titleShown = true;
+
     this.showScreen('screen-title');
     document.body.classList.remove('night-mode');
     // Random logo selection
@@ -99,12 +102,15 @@ const UI = {
     if (logo) {
       logo.src = logos[Math.floor(Math.random() * logos.length)];
     }
-    // Ensure animated elements are visible on return navigation
-    // (CSS animations don't replay when toggling display)
-    const credit = document.querySelector('#screen-title .creator-credit');
-    if (credit) credit.style.opacity = '1';
-    const buttons = document.querySelector('.title-buttons');
-    if (buttons) buttons.style.opacity = '1';
+    // On return visits, force elements visible (CSS animations don't replay)
+    if (isReturn) {
+      const credit = document.querySelector('#screen-title .creator-credit');
+      if (credit) credit.style.opacity = '1';
+      if (logo) logo.style.opacity = '1';
+      document.querySelectorAll('.title-btn').forEach(btn => {
+        btn.style.opacity = '1';
+      });
+    }
   },
 
   /**
@@ -243,30 +249,31 @@ const UI = {
     this.renderPhaseHeader(gameState);
 
     if (opts.transition) {
-      // Disable actions during transition
-      this.disableActions(true);
-
-      // Add transitioning class to bars for slow animation
+      // Animate bars slowly
       document.querySelectorAll('.status-bar-fill').forEach(bar => {
         bar.classList.add('transitioning');
       });
-
-      // Render vitals (bars will animate slowly)
       this.renderVitals(gameState);
       this.renderHunt(gameState);
 
-      // After transition duration, remove transitioning class and render situation
       setTimeout(() => {
         document.querySelectorAll('.status-bar-fill').forEach(bar => {
           bar.classList.remove('transitioning');
         });
+      }, CONFIG.transition.barAnimationDuration);
 
-        this._renderSituation(gameState);
-        // If situation typewriter is off, re-enable actions now; otherwise typewriter callback handles it
-        if (!(Options.get('typewriterEffect') && Options.get('situationTypewriter'))) {
-          this.disableActions(false);
-        }
-      }, CONFIG.transition.duration);
+      // Fade out situation text and action buttons
+      const scroll = document.querySelector('.situation-scroll');
+      const actionsContainer = document.getElementById('action-buttons');
+      if (scroll) scroll.classList.add('fading');
+      if (actionsContainer) actionsContainer.classList.add('fading');
+
+      // After fade out, render new content with staggered actions
+      setTimeout(() => {
+        this._renderSituation(gameState, { stagger: true });
+        if (scroll) scroll.classList.remove('fading');
+        if (actionsContainer) actionsContainer.classList.remove('fading');
+      }, 300);
     } else {
       // No transition — render everything immediately
       this.renderVitals(gameState);
@@ -279,7 +286,7 @@ const UI = {
    * Render situation text, monologue, and action buttons
    * Uses typewriter effect when enabled
    */
-  _renderSituation(gameState) {
+  _renderSituation(gameState, opts = {}) {
     const situationElement = document.getElementById('situation-text');
     if (!situationElement) return;
 
@@ -287,12 +294,16 @@ const UI = {
       ? gameState.currentEncounter.text
       : 'The land stretches endlessly before you. Heat shimmers on the horizon.';
 
-    // Render available actions (may be disabled during typewriter)
+    const useTypewriter = Options.get('typewriterEffect') && Options.get('situationTypewriter');
+    // Stagger actions during transitions or when typewriter will play
+    const stagger = opts.stagger || useTypewriter;
+
+    // Render available actions (hidden if staggering)
     if (gameState.currentEncounter && gameState.currentEncounter.actions) {
-      this.renderActions(gameState.currentEncounter.actions);
+      this.renderActions(gameState.currentEncounter.actions, stagger);
     }
 
-    if (Options.get('typewriterEffect') && Options.get('situationTypewriter')) {
+    if (useTypewriter) {
       // Show outcome text instantly, then typewrite encounter text
       situationElement.innerHTML = '';
       if (gameState.lastOutcome) {
@@ -303,28 +314,27 @@ const UI = {
       // Hide old monologue immediately so it doesn't linger during typewriter
       this.renderMonologue(null);
 
-      this.disableActions(true);
       const speed = Options.get('typewriterSpeed') || CONFIG.typewriter.speed;
       this.typewriteText(situationElement, encounterText, speed, () => {
         // Typewrite monologue after situation finishes (or show instantly if skipped)
         if (gameState.monologue) {
           if (this._situationSkipped) {
             this.renderMonologue(gameState.monologue);
-            this.disableActions(false);
+            this._revealActions();
           } else {
             const monologueEl = document.getElementById('monologue');
             if (monologueEl) {
               monologueEl.innerHTML = '<span class="monologue-label">Inner voice</span>';
               monologueEl.style.display = 'block';
               this.typewriteText(monologueEl, gameState.monologue, speed, () => {
-                this.disableActions(false);
+                this._revealActions();
               });
             } else {
-              this.disableActions(false);
+              this._revealActions();
             }
           }
         } else {
-          this.disableActions(false);
+          this._revealActions();
         }
       });
     } else {
@@ -339,6 +349,11 @@ const UI = {
 
       // Render internal monologue
       this.renderMonologue(gameState.monologue);
+
+      // Stagger-reveal actions if in transition mode
+      if (stagger) {
+        this._revealActions();
+      }
     }
   },
 
@@ -423,16 +438,15 @@ const UI = {
     // Calculate danger level (0 = safe, 100 = death)
     const dangerLevel = inverted ? (100 - clampedValue) : clampedValue;
 
-    // Interpolate color: green → amber → red
-    const color = this.getDangerColor(dangerLevel);
-    barElement.style.backgroundColor = color;
-
     // Add critical class when stat is in danger
     const container = barElement.parentElement.parentElement;
     if (dangerLevel > 65) {
       container.classList.add('critical');
+      barElement.style.backgroundColor = '#c44536';
     } else {
       container.classList.remove('critical');
+      const color = this.getDangerColor(dangerLevel);
+      barElement.style.backgroundColor = color;
     }
   },
 
@@ -553,8 +567,9 @@ const UI = {
   /**
    * Render action buttons
    * @param {Array} actions - array of action objects
+   * @param {boolean} stagger - if true, buttons start hidden for stagger reveal
    */
-  renderActions(actions) {
+  renderActions(actions, stagger = false) {
     const container = document.getElementById('action-buttons');
     if (!container) return;
 
@@ -567,7 +582,7 @@ const UI = {
     // Create button for each action
     actions.forEach((action, index) => {
       const button = document.createElement('button');
-      button.className = 'action-btn';
+      button.className = stagger ? 'action-btn pending-reveal' : 'action-btn';
 
       // Build button content
       let html = `<div class="action-name"><span class="action-key">${index + 1}</span> ${action.name}</div>`;
@@ -586,13 +601,26 @@ const UI = {
 
       // Wire up click handler
       button.onclick = () => {
-        if (button.classList.contains('disabled')) return;
+        if (button.classList.contains('disabled') || button.classList.contains('pending-reveal')) return;
         if (typeof Game !== 'undefined' && Game.processAction) {
           Game.processAction(action.key);
         }
       };
 
       container.appendChild(button);
+    });
+  },
+
+  /**
+   * Stagger-reveal action buttons one at a time
+   */
+  _revealActions() {
+    const buttons = document.querySelectorAll('#action-buttons .action-btn');
+    buttons.forEach((btn, i) => {
+      setTimeout(() => {
+        btn.classList.remove('pending-reveal');
+        btn.classList.add('reveal');
+      }, i * 250);
     });
   },
 
@@ -681,16 +709,6 @@ const UI = {
    * @param {Function} callback - called when typing finishes
    */
   typewriteText(element, text, speed, callback) {
-    // Skip typewriter entirely for users with reduced-motion preference
-    const prefersReducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
-    if (prefersReducedMotion) {
-      const p = document.createElement('p');
-      p.textContent = text;
-      element.appendChild(p);
-      if (callback) callback();
-      return;
-    }
-
     const p = document.createElement('p');
     element.appendChild(p);
 
@@ -1082,6 +1100,16 @@ const UI = {
     const btnLeaderboardBack = document.getElementById('btn-leaderboard-back');
     if (btnLeaderboardBack) {
       btnLeaderboardBack.onclick = () => this.renderTitle();
+    }
+
+    const btnLeaderboardClear = document.getElementById('btn-leaderboard-clear');
+    if (btnLeaderboardClear) {
+      btnLeaderboardClear.onclick = () => {
+        if (confirm('Clear all runs from the leaderboard? This cannot be undone.')) {
+          Score.clearLeaderboard();
+          this.renderLeaderboard();
+        }
+      };
     }
 
     // Options

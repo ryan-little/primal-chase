@@ -181,6 +181,14 @@ const Score = {
    * Load leaderboard from localStorage
    * @returns {Array<Object>} - array of score objects
    */
+  clearLeaderboard() {
+    try {
+      localStorage.removeItem('primalchase_leaderboard');
+    } catch (e) {
+      console.error('Failed to clear leaderboard:', e);
+    }
+  },
+
   loadLeaderboard() {
     try {
       const stored = localStorage.getItem('primalchase_leaderboard');
@@ -425,7 +433,18 @@ const Score = {
     canvas.toBlob(blob => {
       if (!blob) { feedback('Failed'); return; }
 
-      // Try clipboard (only works on HTTPS / secure contexts)
+      // Try Web Share API first (best mobile experience — native share sheet)
+      const file = new File([blob], 'primal-chase-score.png', { type: 'image/png' });
+      if (navigator.canShare && navigator.canShare({ files: [file] })) {
+        navigator.share({
+          files: [file],
+          title: 'Primal Chase',
+          text: `Day ${scoreData.days} — ${scoreData.distance} miles`
+        }).catch(() => {}); // User cancelled share sheet
+        return;
+      }
+
+      // Try clipboard (works on HTTPS / secure contexts)
       if (navigator.clipboard && typeof ClipboardItem !== 'undefined' && window.isSecureContext) {
         navigator.clipboard.write([new ClipboardItem({ 'image/png': blob })])
           .then(() => feedback('Copied!'))

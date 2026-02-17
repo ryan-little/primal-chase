@@ -4,6 +4,8 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Primal Chase</title>
+  <link rel="icon" type="image/png" sizes="48x48" href="assets/favicon.png">
+  <link rel="apple-touch-icon" href="assets/favicon.png">
   <link rel="stylesheet" href="css/style.css">
 </head>
 <body>
@@ -158,7 +160,10 @@
           </tbody>
         </table>
       </div>
-      <button id="btn-leaderboard-back" class="back-btn">Return to Title</button>
+      <div class="leaderboard-actions">
+        <button id="btn-leaderboard-back" class="back-btn">Return to Title</button>
+        <button id="btn-leaderboard-clear" class="back-btn leaderboard-clear">Clear All Runs</button>
+      </div>
     </div>
   </div>
 
@@ -170,61 +175,65 @@
         <p class="howto-intro">You are an apex predator — a big cat built for explosive speed. But the humans hunting you don't play by your rules. They track. They follow. They never stop. This is persistence hunting, and you cannot win. You can only survive one more day.</p>
 
         <div class="howto-columns">
-          <section>
-            <h2>THE CYCLE</h2>
-            <p>Each day has two phases: <strong class="day-text">DAY</strong> and <strong class="night-text">NIGHT</strong>. One action per phase. Days are brutal — heat builds, thirst climbs, everything costs more — but you cover the most ground. Nights are merciful — heat fades, thirst slows, and the hunters make camp. Use darkness to recover.</p>
-          </section>
+          <div class="howto-col">
+            <section>
+              <h2>THE CYCLE</h2>
+              <p>Each day has two phases: <strong class="day-text">DAY</strong> and <strong class="night-text">NIGHT</strong>. One action per phase. Days are brutal — heat builds, thirst climbs, everything costs more — but you cover the most ground. Nights are merciful — heat fades, thirst slows, and the hunters make camp. Use darkness to recover.</p>
+            </section>
 
-          <section>
-            <h2>YOUR VITALS</h2>
-            <ul>
-              <li><strong>Heat</strong> — Builds when you run. Heatstroke kills. Rest to cool.</li>
-              <li><strong>Stamina</strong> — Your energy. Exhaustion kills. Rest to recover.</li>
-              <li><strong>Thirst</strong> — Rises every phase. Find water or dehydrate.</li>
-              <li><strong>Hunger</strong> — Rises slowly. Scavenge when you can.</li>
-            </ul>
-          </section>
+            <section>
+              <h2>THE HUNTERS</h2>
+              <p>They start 25 miles back, moving at a steady pace that never stops. Lose them through encounters, but each time they find your trail again, they come back faster. The gap is everything.</p>
+            </section>
 
-          <section>
-            <h2>YOUR ACTIONS</h2>
-            <ul>
-              <li><strong>Push</strong> — Sprint. Maximum distance, maximum cost.</li>
-              <li><strong>Trot</strong> — Sustainable pace. Moderate everything.</li>
-              <li><strong>Rest</strong> — Recover heat and stamina, but hunters close in. The situation stays the same — Trot to find new opportunities.</li>
-              <li><strong>Drink / Eat</strong> — Appear when the land offers them. Cost time.</li>
-            </ul>
-            <p>Buttons show <strong>total real effects</strong> including passive drains.</p>
-          </section>
+            <section>
+              <h2>THE LAND</h2>
+              <p>Each phase brings new terrain with unique opportunities — water, food, ways to lose the hunters. Rare encounters can change everything. Resting keeps the same situation; you must move to find new ground.</p>
+            </section>
+          </div>
 
-          <section>
-            <h2>THE LAND</h2>
-            <p>Each phase brings new terrain with unique opportunities — water, food, ways to lose the hunters. Rare encounters can change everything. Resting keeps the same situation; you must move to find new ground.</p>
-          </section>
+          <div class="howto-col">
+            <section>
+              <h2>YOUR VITALS</h2>
+              <ul>
+                <li><strong>Heat</strong> — Builds when you run. Heatstroke kills. Rest to cool.</li>
+                <li><strong>Stamina</strong> — Your energy. Exhaustion kills. Rest to recover.</li>
+                <li><strong>Thirst</strong> — Rises every phase. Find water or dehydrate.</li>
+                <li><strong>Hunger</strong> — Rises slowly. Scavenge when you can.</li>
+              </ul>
+            </section>
 
-          <section>
-            <h2>THE HUNTERS</h2>
-            <p>They start 25 miles back, moving at a steady pace that never stops. Lose them through encounters, but each time they find your trail again, they come back faster. The gap is everything.</p>
-          </section>
-
-          <section class="howto-achievements">
-            <h2>ACHIEVEMENTS</h2>
-            <ul>
-              <li><strong>Week of Running</strong> — 7 days</li>
-              <li><strong>Into the Unknown</strong> — 10 days</li>
-              <li><strong>The Long Road</strong> — 15 days</li>
-              <li><strong>Legend</strong> — 20 days</li>
-              <li><strong>Myth</strong> — 30 days</li>
-              <li><strong>Distance Master / Long Strider / Century Runner</strong> — 50 / 75 / 100+ miles</li>
-              <li><strong>Shadow Walker / Ghost</strong> — Lose the hunters 3 / 5+ times</li>
-              <li><strong>Night Runner</strong> — Push through darkness 3+ times</li>
-              <li><strong>Iron Will</strong> — Never rest (3+ days)</li>
-              <li><strong>Desert Crosser</strong> — Survive extreme thirst</li>
-              <li><strong>On the Edge</strong> — Dance with death repeatedly</li>
-              <li><strong>Perfect Balance</strong> — Master the chase (5+ days)</li>
-              <li><strong>Too Fast, Too Soon</strong> — Die on Day 1</li>
-            </ul>
-          </section>
+            <section>
+              <h2>YOUR ACTIONS</h2>
+              <ul>
+                <li><strong>Push</strong> — Sprint. Maximum distance, maximum cost.</li>
+                <li><strong>Trot</strong> — Sustainable pace. Moderate everything.</li>
+                <li><strong>Rest</strong> — Recover heat and stamina, but hunters close in. The situation stays the same — Trot to find new opportunities.</li>
+                <li><strong>Drink / Eat</strong> — Appear when the land offers them. Cost time.</li>
+              </ul>
+              <p>Buttons show <strong>total real effects</strong> including passive drains.</p>
+            </section>
+          </div>
         </div>
+
+        <section class="howto-achievements">
+          <h2>ACHIEVEMENTS</h2>
+          <ul>
+            <li><strong>Week of Running</strong> — 7 days</li>
+            <li><strong>Into the Unknown</strong> — 10 days</li>
+            <li><strong>The Long Road</strong> — 15 days</li>
+            <li><strong>Legend</strong> — 20 days</li>
+            <li><strong>Myth</strong> — 30 days</li>
+            <li><strong>Distance Master / Long Strider / Century Runner</strong> — 50 / 75 / 100+ miles</li>
+            <li><strong>Shadow Walker / Ghost</strong> — Lose the hunters 3 / 5+ times</li>
+            <li><strong>Night Runner</strong> — Push through darkness 3+ times</li>
+            <li><strong>Iron Will</strong> — Never rest (3+ days)</li>
+            <li><strong>Desert Crosser</strong> — Survive extreme thirst</li>
+            <li><strong>On the Edge</strong> — Dance with death repeatedly</li>
+            <li><strong>Perfect Balance</strong> — Master the chase (5+ days)</li>
+            <li><strong>Too Fast, Too Soon</strong> — Die on Day 1</li>
+          </ul>
+        </section>
       </div>
       <button id="btn-howto-back" class="back-btn">Return to Title</button>
     </div>
@@ -297,7 +306,7 @@
   </main>
 
   <!-- Version badge (visible on all screens) -->
-  <div id="version-badge">v1.8.0</div>
+  <div id="version-badge">v1.8.1</div>
 
   <!-- Hidden canvas for share image generation -->
   <canvas id="share-canvas" style="display: none;"></canvas>

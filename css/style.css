@@ -215,13 +215,22 @@ body.night-mode .night-bg {
   to { opacity: 1; }
 }
 
+@keyframes slide-fade-in {
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
 .title-buttons {
   display: flex;
   flex-direction: column;
   gap: 0.8rem;
   align-items: center;
-  opacity: 0;
-  animation: fade-in 0.8s ease 0.8s forwards;
 }
 
 .title-btn {
@@ -243,7 +252,14 @@ body.night-mode .night-bg {
     inset 0 1px 0 rgba(255, 255, 255, 0.05),
     inset 0 -1px 0 rgba(0, 0, 0, 0.3),
     0 2px 8px rgba(0, 0, 0, 0.5);
+  opacity: 0;
+  animation: fade-in 0.8s ease forwards;
 }
+
+.title-btn:nth-child(1) { animation-delay: 0.6s; }
+.title-btn:nth-child(2) { animation-delay: 0.9s; }
+.title-btn:nth-child(3) { animation-delay: 1.2s; }
+.title-btn:nth-child(4) { animation-delay: 1.5s; }
 
 .title-btn:hover {
   background: rgba(74, 53, 38, 0.95);
@@ -275,7 +291,7 @@ body.night-mode .night-bg {
     inset 0 -1px 0 rgba(0, 0, 0, 0.3),
     0 0 15px rgba(212, 136, 58, 0.15),
     0 2px 8px rgba(0, 0, 0, 0.5);
-  animation: fade-in 0.8s ease 0.8s forwards, btn-glow 3s ease-in-out 2s infinite alternate;
+  animation: fade-in 0.8s ease 0.6s forwards, btn-glow 3s ease-in-out 2s infinite alternate;
 }
 
 @keyframes btn-glow {
@@ -300,7 +316,7 @@ body.night-mode .night-bg {
   margin-top: 1.5rem;
   letter-spacing: 0.5px;
   opacity: 0;
-  animation: fade-in 1s ease 1.5s forwards;
+  animation: fade-in 0.8s ease 1.8s forwards;
 }
 
 .creator-credit a {
@@ -391,17 +407,12 @@ body.night-mode .night-bg {
   gap: 0.2rem;
 }
 
-.status-bar-container.critical .status-label::before {
-  content: '⚠ ';
+.status-bar-container.critical .status-label {
   color: var(--text-danger);
-  font-size: 1.2em;
-  margin-right: 0.3em;
-  animation: warning-flash 0.8s ease-in-out infinite;
 }
 
-@keyframes warning-flash {
-  0%, 100% { opacity: 1; }
-  50% { opacity: 0.4; }
+.status-bar-container.critical .status-value {
+  color: var(--text-danger);
 }
 
 .status-label {
@@ -430,6 +441,15 @@ body.night-mode .night-bg {
 .status-bar-fill {
   height: 100%;
   transition: width 0.3s ease, background-color 0.3s ease;
+}
+
+.status-bar-container.critical .status-bar-fill {
+  animation: bar-pulse 1.5s ease-in-out infinite;
+}
+
+@keyframes bar-pulse {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.5; }
 }
 
 .status-bar-fill.transitioning {
@@ -500,6 +520,11 @@ body.night-mode .night-bg {
 /* ===== SITUATION & MONOLOGUE ===== */
 .situation-scroll {
   padding: 1.5rem 3rem;
+  transition: opacity 0.25s ease;
+}
+
+.situation-scroll.fading {
+  opacity: 0;
 }
 
 .situation-text {
@@ -549,6 +574,12 @@ body.night-mode .night-bg {
   padding: 1rem 2rem 1.2rem;
   border-top: 2px solid var(--border-color);
   background: rgba(10, 6, 3, 0.9);
+  transition: opacity 0.2s ease;
+}
+
+.action-buttons.fading {
+  opacity: 0;
+  pointer-events: none;
 }
 
 /* 2x2 grid for 4+ actions on desktop */
@@ -600,6 +631,16 @@ body.night-mode .night-bg {
   background: rgba(26, 15, 8, 0.7);
   pointer-events: none;
   cursor: not-allowed;
+}
+
+.action-btn.pending-reveal {
+  opacity: 0;
+  transform: translateY(8px);
+  pointer-events: none;
+}
+
+.action-btn.reveal {
+  animation: fade-in 0.6s ease forwards;
 }
 
 .action-name {
@@ -854,6 +895,27 @@ body.night-mode .night-bg {
   background: rgba(74, 53, 38, 0.3);
 }
 
+.leaderboard-actions {
+  display: flex;
+  gap: 1rem;
+  justify-content: center;
+  align-items: center;
+}
+
+.leaderboard-clear {
+  font-size: 0.85em;
+  opacity: 0.5;
+  border-color: var(--text-danger);
+  color: var(--text-danger);
+}
+
+.leaderboard-clear:hover {
+  opacity: 1;
+  border-color: var(--text-danger);
+  color: var(--text-danger);
+  background: rgba(196, 69, 54, 0.15);
+}
+
 /* ===== HOW TO PLAY SCREEN ===== */
 .howto-container {
   max-width: 900px;
@@ -890,13 +952,15 @@ body.night-mode .night-bg {
 }
 
 .howto-columns {
-  display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: 0.8rem 1.5rem;
+  display: flex;
+  gap: 1.5rem;
+}
+.howto-col {
+  flex: 1;
 }
 
 .howto-content section {
-  margin-bottom: 0;
+  margin-bottom: 0.6rem;
 }
 
 .howto-content h2 {
@@ -928,9 +992,25 @@ body.night-mode .night-bg {
   color: var(--text-primary);
 }
 
+.howto-achievements {
+  text-align: center;
+  margin-top: 1rem;
+  border-top: 1px solid var(--border-color);
+  padding-top: 1rem;
+}
+
+.howto-achievements ul {
+  columns: 2;
+  column-gap: 2rem;
+  text-align: left;
+  max-width: 700px;
+  margin: 0 auto;
+}
+
 .howto-achievements li {
   margin-bottom: 0.15rem;
   font-size: 0.88em;
+  break-inside: avoid;
 }
 
 /* ===== BACK BUTTON ===== */
@@ -1154,7 +1234,7 @@ body.night-mode .night-bg {
   }
 
   .howto-columns {
-    grid-template-columns: 1fr;
+    flex-direction: column;
   }
 
   .howto-content {
@@ -1309,7 +1389,7 @@ body.night-mode .night-bg {
 /* Skip link for keyboard navigation */
 .skip-link {
   position: absolute;
-  top: -40px;
+  top: -100px;
   left: 0;
   background: var(--text-primary);
   color: var(--bg-dark);
@@ -1325,20 +1405,10 @@ body.night-mode .night-bg {
 }
 
 /* ===== ACCESSIBILITY: REDUCED MOTION ===== */
+/* Game controls its own animation preferences via Options.
+   Only suppress non-essential decorative motion here. */
 @media (prefers-reduced-motion: reduce) {
-  *,
-  *::before,
-  *::after {
-    animation-duration: 0.01ms !important;
-    animation-iteration-count: 1 !important;
-    transition-duration: 0.01ms !important;
-  }
-
   .night-bg {
-    transition: none;
-  }
-
-  .status-bar-fill.transitioning {
     transition: none;
   }
 }
