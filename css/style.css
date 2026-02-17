@@ -431,6 +431,7 @@ body.night-mode .night-bg {
 }
 
 .status-bar-track {
+  position: relative;
   height: 18px;
   background: rgba(0, 0, 0, 0.5);
   border: 1px solid var(--border-color);
@@ -438,9 +439,35 @@ body.night-mode .night-bg {
   overflow: hidden;
 }
 
+.status-bar-track::after {
+  content: '';
+  position: absolute;
+  top: 0;
+  right: 0;
+  width: 35%;
+  height: 100%;
+  background: linear-gradient(to right, transparent, rgba(196, 69, 54, 0.15));
+  border-radius: inherit;
+  pointer-events: none;
+}
+
+
 .status-bar-fill {
   height: 100%;
-  transition: width 0.3s ease, background-color 0.3s ease;
+  transition: width 0.5s cubic-bezier(0.4, 0, 0.2, 1),
+              background-color 0.5s ease;
+}
+
+@keyframes stat-shake {
+  0%, 100% { transform: translateX(0); }
+  20% { transform: translateX(-2px); }
+  40% { transform: translateX(2px); }
+  60% { transform: translateX(-1px); }
+  80% { transform: translateX(1px); }
+}
+
+.status-bar-container.shaking {
+  animation: stat-shake var(--shake-speed, 0.4s) ease infinite;
 }
 
 .status-bar-container.critical .status-bar-fill {
@@ -502,6 +529,100 @@ body.night-mode .night-bg {
   }
 }
 
+/* ===== HUNTER DISTANCE TRACKER ===== */
+.hunter-tracker {
+  border-bottom: 1px solid var(--border-color);
+}
+
+.hunter-tracker-bar {
+  position: relative;
+  height: 10px;
+  background: rgba(0, 0, 0, 0.5);
+  border-bottom: 1px solid var(--border-color);
+  overflow: hidden;
+}
+
+.hunter-tracker-fill {
+  position: absolute;
+  top: 0;
+  right: 0;
+  height: 100%;
+  transition: width 0.8s cubic-bezier(0.4, 0, 0.2, 1),
+              background 0.8s ease;
+}
+
+/* Fill color based on proximity */
+.hunter-tracker.safe .hunter-tracker-fill {
+  background: linear-gradient(to left, rgba(74, 124, 63, 0.5), rgba(74, 124, 63, 0.15));
+}
+
+.hunter-tracker.caution .hunter-tracker-fill {
+  background: linear-gradient(to left, rgba(212, 136, 58, 0.6), rgba(212, 136, 58, 0.15));
+}
+
+.hunter-tracker.danger .hunter-tracker-fill {
+  background: linear-gradient(to left, rgba(196, 69, 54, 0.6), rgba(196, 69, 54, 0.2));
+}
+
+.hunter-tracker.critical .hunter-tracker-fill {
+  background: linear-gradient(to left, rgba(196, 69, 54, 0.8), rgba(196, 69, 54, 0.35));
+  animation: tracker-fill-pulse 1.5s ease-in-out infinite;
+}
+
+.hunter-tracker.tracking .hunter-tracker-fill {
+  background: linear-gradient(to left, rgba(107, 140, 174, 0.4), rgba(107, 140, 174, 0.1));
+}
+
+@keyframes tracker-fill-pulse {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.5; }
+}
+
+.hunter-tracker-labels {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 4px 12px;
+  font-family: 'Courier New', monospace;
+  font-size: 0.75em;
+}
+
+.tracker-label-you {
+  color: var(--text-safe);
+}
+
+.tracker-label-dist {
+  color: var(--text-secondary);
+  font-weight: bold;
+  font-size: 1.2em;
+  letter-spacing: 0.5px;
+}
+
+.hunter-tracker.critical .tracker-label-dist {
+  color: var(--text-danger);
+}
+
+.hunter-tracker.danger .tracker-label-dist {
+  color: var(--text-danger);
+}
+
+.hunter-tracker.caution .tracker-label-dist {
+  color: #c49a3a;
+}
+
+.hunter-tracker.tracking .tracker-label-dist {
+  color: var(--text-night);
+}
+
+.tracker-label-them {
+  color: var(--text-danger);
+}
+
+.hunter-tracker.tracking .tracker-label-them {
+  color: var(--text-night);
+  opacity: 0.5;
+}
+
 .hunt-flavor {
   color: var(--text-secondary);
   font-style: italic;
@@ -517,10 +638,19 @@ body.night-mode .night-bg {
   border-top: 1px solid rgba(74, 53, 38, 0.3);
 }
 
+/* ===== TERRAIN PALETTE ===== */
+#screen-game {
+  --terrain-accent: var(--text-primary);
+  --terrain-tint: transparent;
+  --terrain-text: var(--text-secondary);
+}
+
 /* ===== SITUATION & MONOLOGUE ===== */
 .situation-scroll {
   padding: 1.5rem 3rem;
-  transition: opacity 0.25s ease;
+  background: var(--terrain-tint);
+  border-left: 3px solid var(--terrain-accent, transparent);
+  transition: opacity 0.25s ease, background 1s ease, border-color 1s ease;
 }
 
 .situation-scroll.fading {
@@ -530,9 +660,10 @@ body.night-mode .night-bg {
 .situation-text {
   font-size: 1.2em;
   line-height: 1.8;
-  color: var(--text-secondary);
+  color: var(--terrain-text, var(--text-secondary));
   margin-bottom: 1.2rem;
   text-align: center;
+  transition: color 0.5s ease;
 }
 
 .situation-text p {
@@ -671,22 +802,42 @@ body.night-mode .night-bg {
 }
 
 .action-details {
-  font-size: 0.85em;
+  font-size: 0.95em;
+  font-weight: 600;
+  letter-spacing: 0.02em;
   line-height: 1.4;
   color: var(--text-secondary);
   font-family: 'Courier New', monospace;
 }
 
+.action-cost,
+.action-gain,
+.action-warning,
+.action-special {
+  font-weight: 700;
+  font-size: 1.05em;
+  padding: 1px 4px;
+  border-radius: 3px;
+}
+
 .action-cost {
   color: var(--text-danger);
+  background: rgba(196, 69, 54, 0.15);
 }
 
 .action-gain {
   color: var(--text-safe);
+  background: rgba(74, 124, 63, 0.15);
 }
 
 .action-warning {
   color: #c49a3a;
+  background: rgba(212, 136, 58, 0.15);
+}
+
+.action-separator {
+  opacity: 0.4;
+  margin: 0 2px;
 }
 
 /* ===== DEATH SCREEN ===== */
@@ -1332,6 +1483,83 @@ body.night-mode .night-bg {
   }
 }
 
+/* ===== VISUAL ESCALATION (VIGNETTE) ===== */
+.vignette-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  pointer-events: none;
+  z-index: 3;
+  box-shadow: inset 0 0 150px rgba(0, 0, 0, 0);
+  transition: box-shadow 1.5s ease;
+}
+
+/* ===== HUNTER PROXIMITY GLOW ===== */
+.hunter-glow {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  pointer-events: none;
+  z-index: 4;
+  box-shadow: inset 0 0 80px rgba(196, 69, 54, 0);
+  transition: box-shadow 1.5s ease;
+}
+
+/* Hunter glow: intensity set by JS, pulse animation when very close */
+.hunter-glow.glow-pulse {
+  animation: glow-pulse 1.5s ease-in-out infinite;
+}
+
+@keyframes glow-pulse {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.5; }
+}
+
+/* ===== NIGHT FIREFLY PARTICLES ===== */
+.particle-container {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  pointer-events: none;
+  z-index: 1;
+  opacity: 0;
+  transition: opacity 2s ease;
+}
+
+body.night-mode .particle-container {
+  opacity: 1;
+}
+
+.firefly {
+  position: absolute;
+  width: 5px;
+  height: 5px;
+  background: #f0d8a0;
+  border-radius: 50%;
+  box-shadow: 0 0 10px 4px rgba(240, 216, 160, 0.7),
+              0 0 20px 8px rgba(212, 165, 116, 0.3);
+  animation: firefly-float var(--duration) ease-in-out infinite,
+             firefly-glow var(--glow-duration) ease-in-out infinite;
+}
+
+@keyframes firefly-float {
+  0%, 100% { transform: translate(0, 0); }
+  25% { transform: translate(var(--dx1), var(--dy1)); }
+  50% { transform: translate(var(--dx2), var(--dy2)); }
+  75% { transform: translate(var(--dx3), var(--dy3)); }
+}
+
+@keyframes firefly-glow {
+  0%, 100% { opacity: 0.3; }
+  50% { opacity: 1; }
+}
+
 /* ===== VERSION BADGE ===== */
 #version-badge {
   position: fixed;
@@ -1410,6 +1638,23 @@ body.night-mode .night-bg {
 @media (prefers-reduced-motion: reduce) {
   .night-bg {
     transition: none;
+  }
+
+  .status-bar-container.shaking {
+    animation: none;
+  }
+
+  .hunter-glow.glow-pulse {
+    animation: none;
+  }
+
+  .firefly {
+    animation: none;
+    display: none;
+  }
+
+  .hunter-tracker.critical .hunter-tracker-fill {
+    animation: none;
   }
 }
 

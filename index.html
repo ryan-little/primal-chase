@@ -16,6 +16,13 @@
   <!-- Night background overlay (fades via opacity) -->
   <div class="night-bg"></div>
 
+  <!-- Visual escalation overlays -->
+  <div id="vignette-overlay" class="vignette-overlay"></div>
+  <div id="hunter-glow" class="hunter-glow"></div>
+
+  <!-- Night particle container -->
+  <div id="particle-container" class="particle-container"></div>
+
   <!-- Typewriter cinematic intro -->
   <div id="typewriter-overlay" class="typewriter-overlay">
     <div class="typewriter-content" id="typewriter-content"></div>
@@ -55,8 +62,8 @@
           </div>
 
           <div class="status-bar-container" role="group" aria-labelledby="stamina-label">
-            <div id="stamina-label" class="status-label">Stamina</div>
-            <div class="status-value" id="stamina-value" aria-live="polite">100%</div>
+            <div id="stamina-label" class="status-label">Fatigue</div>
+            <div class="status-value" id="stamina-value" aria-live="polite">0%</div>
             <div class="status-bar-track">
               <div id="stamina-bar" class="status-bar-fill stamina-bar" style="width: 100%"></div>
             </div>

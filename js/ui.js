@@ -66,6 +66,18 @@ const INTRO_SETS = [
   ]
 ];
 
+/**
+ * Reverse lookup: terrain ID → category name
+ */
+function getTerrainCategory(terrainId) {
+  if (!terrainId) return null;
+  const cats = CONFIG.terrainCategories;
+  for (const cat in cats) {
+    if (cats[cat].indexOf(terrainId) !== -1) return cat;
+  }
+  return null;
+}
+
 const UI = {
   /**
    * Show a specific screen, hide all others
@@ -92,6 +104,7 @@ const UI = {
 
     this.showScreen('screen-title');
     document.body.classList.remove('night-mode');
+    this.resetVisualOverlays();
     // Random logo selection
     const logos = [
       'assets/primalchaselogo.png',
@@ -247,6 +260,7 @@ const UI = {
   renderGame(gameState, opts = {}) {
     this.showScreen('screen-game');
     this.renderPhaseHeader(gameState);
+    this.applyTerrainPalette(gameState);
 
     if (opts.transition) {
       // Animate bars slowly
@@ -280,6 +294,10 @@ const UI = {
       this.renderHunt(gameState);
       this._renderSituation(gameState);
     }
+
+    // Visual overlays (applied after every render)
+    this.updateVisualEscalation(gameState);
+    this.updateHunterGlow(gameState);
   },
 
   /**
@@ -387,13 +405,16 @@ const UI = {
     phaseIndicator.className = 'phase-indicator';
     phaseIndicator.classList.add(isDay ? 'day' : 'night');
 
-    // Toggle night mode on body
+    // Toggle night mode on body and particles
     if (isDay) {
       document.body.classList.remove('night-mode');
+      // Clear fireflies after fade-out transition
+      setTimeout(() => { if (document.body.classList.contains('night-mode') === false) this.clearFireflies(); }, 2000);
     } else {
+      // Spawn fireflies BEFORE adding night-mode so the opacity transition fades them in
+      this.spawnFireflies();
       document.body.classList.add('night-mode');
     }
-
   },
 
   /**
@@ -429,24 +450,33 @@ const UI = {
     // Clamp value to 0-100
     const clampedValue = Math.max(0, Math.min(100, value));
 
-    // Update text
-    valueElement.textContent = `${Math.round(clampedValue)}%`;
-
-    // Update bar width
-    barElement.style.width = `${clampedValue}%`;
-
-    // Calculate danger level (0 = safe, 100 = death)
+    // All bars display as danger level: 0% = safe, 100% = death
+    // For inverted stats (stamina→fatigue), flip the display
     const dangerLevel = inverted ? (100 - clampedValue) : clampedValue;
 
-    // Add critical class when stat is in danger
+    // Update text and bar width to show danger uniformly
+    valueElement.textContent = `${Math.round(dangerLevel)}%`;
+    barElement.style.width = `${dangerLevel}%`;
+
+    // Color based on danger
     const container = barElement.parentElement.parentElement;
     if (dangerLevel > 65) {
       container.classList.add('critical');
       barElement.style.backgroundColor = '#c44536';
     } else {
       container.classList.remove('critical');
-      const color = this.getDangerColor(dangerLevel);
-      barElement.style.backgroundColor = color;
+      barElement.style.backgroundColor = this.getDangerColor(dangerLevel);
+    }
+
+    // Continuous shake when in danger — intensity scales with danger level
+    if (dangerLevel > 50) {
+      const intensity = (dangerLevel - 50) / 50; // 0→1 as danger grows
+      const speed = 0.5 - (intensity * 0.35);    // 0.5s→0.15s
+      container.style.setProperty('--shake-speed', speed + 's');
+      container.classList.add('shaking');
+    } else {
+      container.classList.remove('shaking');
+      container.style.removeProperty('--shake-speed');
     }
   },
 
@@ -539,6 +569,9 @@ const UI = {
       flavorElement.textContent = flavorText;
     }
 
+    // Hunter distance tracker bar
+    this.renderHunterTracker(gameState);
+
     if (distanceCoveredContainer) {
       const dist = Math.round(gameState.distanceCovered * 10) / 10;
       const unit = dist === 1 ? 'mile' : 'miles';
@@ -546,7 +579,213 @@ const UI = {
     }
   },
 
+  /**
+   * Render the visual hunter distance tracker bar
+   */
+  renderHunterTracker(gameState) {
+    // Create tracker under game-header if it doesn't exist yet
+    let tracker = document.getElementById('hunter-tracker');
+    if (!tracker) {
+      tracker = document.createElement('div');
+      tracker.id = 'hunter-tracker';
+      tracker.className = 'hunter-tracker';
+      tracker.innerHTML = `
+        <div class="hunter-tracker-bar">
+          <div class="hunter-tracker-fill"></div>
+        </div>
+        <div class="hunter-tracker-labels">
+          <span class="tracker-label-you">You</span>
+          <span class="tracker-label-dist"></span>
+          <span class="tracker-label-them">Hunters</span>
+        </div>
+      `;
+      // Insert after game-header, before game-top
+      const header = document.querySelector('.game-header');
+      const gameTop = document.querySelector('.game-top');
+      if (header && gameTop) {
+        header.parentNode.insertBefore(tracker, gameTop);
+      }
+    }
+
+    const maxDist = CONFIG.ui.hunterTracker.maxDisplayDistance;
+    const dist = Math.min(gameState.hunterDistance, maxDist);
+    // Pursuit pressure: 0% = far away (safe), 100% = caught
+    const pressure = ((maxDist - dist) / maxDist) * 100;
+
+    // Fill bar grows from right as hunters close in
+    const fill = tracker.querySelector('.hunter-tracker-fill');
+    if (fill) fill.style.width = pressure + '%';
+
+    // Distance label
+    const distLabel = tracker.querySelector('.tracker-label-dist');
+    if (distLabel) {
+      const rounded = Math.round(dist * 10) / 10;
+      distLabel.textContent = rounded + ' mi';
+    }
+
+    // Color classes based on proximity
+    tracker.classList.remove('safe', 'caution', 'danger', 'critical', 'tracking');
+    if (gameState.hunterState === 'tracking') {
+      tracker.classList.add('tracking');
+    } else if (dist <= 5) {
+      tracker.classList.add('critical');
+    } else if (dist <= 10) {
+      tracker.classList.add('danger');
+    } else if (dist <= 18) {
+      tracker.classList.add('caution');
+    } else {
+      tracker.classList.add('safe');
+    }
+  },
+
   // renderSituation is handled inline in renderGame
+
+  /**
+   * Update visual escalation based on worst stat danger
+   */
+  updateVisualEscalation(gameState) {
+    const dangers = [
+      gameState.heat / 100,
+      (100 - gameState.stamina) / 100,
+      gameState.thirst / 100,
+      gameState.hunger / 100
+    ];
+    const worst = Math.max(...dangers);
+    const hunterDanger = Math.max(0, 1 - (gameState.hunterDistance / 15));
+    const desperation = Math.max(worst, hunterDanger);
+
+    const stages = CONFIG.ui.visualEscalation.stages;
+    let stage = null;
+    for (let i = stages.length - 1; i >= 0; i--) {
+      if (desperation >= stages[i].threshold) {
+        stage = stages[i];
+        break;
+      }
+    }
+
+    const overlay = document.getElementById('vignette-overlay');
+    const gameScreen = document.getElementById('screen-game');
+
+    if (stage) {
+      const v = stage.vignette;
+      // Wider spread + stronger opacity for visible vignette
+      const spread = 80 + v * 200;
+      if (overlay) overlay.style.boxShadow = `inset 0 0 ${spread}px rgba(0, 0, 0, ${v})`;
+      if (gameScreen && stage.desaturation > 0) {
+        gameScreen.style.filter = `saturate(${1 - stage.desaturation})`;
+      } else if (gameScreen) {
+        gameScreen.style.filter = '';
+      }
+    } else {
+      if (overlay) overlay.style.boxShadow = 'inset 0 0 150px rgba(0, 0, 0, 0)';
+      if (gameScreen) gameScreen.style.filter = '';
+    }
+  },
+
+  /**
+   * Update hunter proximity visual glow
+   */
+  updateHunterGlow(gameState) {
+    const glow = document.getElementById('hunter-glow');
+    if (!glow) return;
+
+    // No glow in tracking mode or when far away
+    if (gameState.hunterState === 'tracking' || gameState.hunterDistance > 15) {
+      glow.style.boxShadow = 'inset 0 0 80px rgba(196, 69, 54, 0)';
+      glow.classList.remove('glow-pulse');
+      return;
+    }
+
+    // Continuous intensity: 0 at 15mi, 1 at 0mi
+    const intensity = Math.max(0, 1 - (gameState.hunterDistance / 15));
+    const isNight = gameState.phase === 'night';
+
+    // Scale spread and opacity continuously
+    const spread = 60 + intensity * 100;   // 60px → 160px
+    const opacity = intensity * 0.6;        // 0 → 0.6
+
+    const r = isNight ? 212 : 196;
+    const g = isNight ? 136 : 69;
+    const b = isNight ? 58 : 54;
+
+    glow.style.boxShadow = `inset 0 0 ${spread}px rgba(${r}, ${g}, ${b}, ${opacity.toFixed(2)})`;
+
+    // Add pulse when very close (<6mi)
+    if (gameState.hunterDistance <= 6) {
+      glow.classList.add('glow-pulse');
+    } else {
+      glow.classList.remove('glow-pulse');
+    }
+  },
+
+  /**
+   * Spawn firefly particles for night phase
+   */
+  spawnFireflies() {
+    const container = document.getElementById('particle-container');
+    if (!container) return;
+    container.innerHTML = '';
+    const count = 15 + Math.floor(Math.random() * 10); // 15-24 fireflies
+    for (let i = 0; i < count; i++) {
+      const fly = document.createElement('div');
+      fly.className = 'firefly';
+      fly.style.left = Math.random() * 100 + '%';
+      fly.style.top = Math.random() * 100 + '%';
+      fly.style.setProperty('--duration', (6 + Math.random() * 8) + 's');
+      fly.style.setProperty('--glow-duration', (2 + Math.random() * 3) + 's');
+      fly.style.setProperty('--dx1', (Math.random() * 60 - 30) + 'px');
+      fly.style.setProperty('--dy1', (Math.random() * 60 - 30) + 'px');
+      fly.style.setProperty('--dx2', (Math.random() * 60 - 30) + 'px');
+      fly.style.setProperty('--dy2', (Math.random() * 60 - 30) + 'px');
+      fly.style.setProperty('--dx3', (Math.random() * 60 - 30) + 'px');
+      fly.style.setProperty('--dy3', (Math.random() * 60 - 30) + 'px');
+      fly.style.animationDelay = Math.random() * 5 + 's';
+      container.appendChild(fly);
+    }
+  },
+
+  /**
+   * Clear firefly particles
+   */
+  clearFireflies() {
+    const container = document.getElementById('particle-container');
+    if (container) container.innerHTML = '';
+  },
+
+  /**
+   * Reset all visual overlays (for title/death screens)
+   */
+  resetVisualOverlays() {
+    const overlay = document.getElementById('vignette-overlay');
+    const glow = document.getElementById('hunter-glow');
+    if (overlay) overlay.style.boxShadow = 'inset 0 0 150px rgba(0, 0, 0, 0)';
+    if (glow) glow.className = 'hunter-glow';
+    this.clearFireflies();
+    const gameScreen = document.getElementById('screen-game');
+    if (gameScreen) gameScreen.style.filter = '';
+  },
+
+  /**
+   * Apply terrain-specific color palette to the game screen
+   */
+  applyTerrainPalette(gameState) {
+    const gameScreen = document.getElementById('screen-game');
+    if (!gameScreen) return;
+
+    const terrain = gameState.currentEncounter?.terrain;
+    const category = getTerrainCategory(terrain?.id);
+    const palette = CONFIG.terrainPalettes[category];
+
+    if (palette) {
+      gameScreen.style.setProperty('--terrain-accent', palette.accent);
+      gameScreen.style.setProperty('--terrain-tint', palette.tint);
+      gameScreen.style.setProperty('--terrain-text', palette.text);
+    } else {
+      gameScreen.style.setProperty('--terrain-accent', 'transparent');
+      gameScreen.style.removeProperty('--terrain-tint');
+      gameScreen.style.removeProperty('--terrain-text');
+    }
+  },
 
   /**
    * Render internal monologue
@@ -696,7 +935,7 @@ const UI = {
       parts.push(`<span class="action-cost">${Math.round(action.risk.chance * 100)}% risk</span>`);
     }
 
-    return parts.join(' | ');
+    return parts.join('<span class="action-separator"> | </span>');
   },
 
   // renderOutcome is handled inline in renderGame
@@ -755,6 +994,7 @@ const UI = {
   renderDeath(gameState) {
     this.showScreen('screen-death');
     document.body.classList.remove('night-mode');
+    this.resetVisualOverlays();
 
     // Remove results-visible class from previous death screen
     const deathContainer = document.querySelector('.death-container');

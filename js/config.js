@@ -67,6 +67,22 @@ const CONFIG = {
     maxLeaderboardEntries: 10
   },
 
+  // UI visual settings
+  ui: {
+    statWarningThreshold: 0.65,
+    hunterTracker: {
+      maxDisplayDistance: 30  // bar shows 0-30mi range
+    },
+    visualEscalation: {
+      stages: [
+        { threshold: 0.4,  vignette: 0.15, desaturation: 0 },
+        { threshold: 0.55, vignette: 0.3,  desaturation: 0.1 },
+        { threshold: 0.7,  vignette: 0.45, desaturation: 0.2 },
+        { threshold: 0.85, vignette: 0.6,  desaturation: 0.35 }
+      ]
+    }
+  },
+
   // Typewriter effect
   typewriter: {
     speed: 30,           // ms per character for death text
@@ -94,6 +110,15 @@ const CONFIG = {
     weather: ['storm_approaching', 'midday_sun', 'cool_breeze', 'moonless_night', 'dusk_light'],
     hunter_sign: ['hunters_gaining', 'scent_on_wind', 'ground_vibrations'],
     decay: ['flies_swarming', 'circling_vultures_personal']
+  },
+
+  // Terrain color palettes (subtle tints per terrain category)
+  terrainPalettes: {
+    water:   { accent: '#4a8c9c', tint: 'rgba(74, 140, 156, 0.18)', text: '#7cb8c4' },
+    open:    { accent: '#c49a3a', tint: 'rgba(196, 154, 58, 0.15)', text: '#d4b06a' },
+    dense:   { accent: '#4a7c3f', tint: 'rgba(74, 124, 63, 0.15)', text: '#7aaa6f' },
+    rocky:   { accent: '#8a7a6a', tint: 'rgba(138, 122, 106, 0.12)', text: '#a89a8a' },
+    shelter: { accent: '#7a6a5a', tint: 'rgba(122, 106, 90, 0.12)', text: '#9a8a7a' }
   },
 
   // Difficulty overrides (applied on game start)
