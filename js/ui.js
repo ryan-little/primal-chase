@@ -103,6 +103,8 @@ const UI = {
   _currentWeather: null,
   _currentEncounter: null,
   _lightningInterval: null,
+  _lightningActive: false,
+  _typewriterTimer: null,
   _starsSpawned: false,
   _cloudsSpawned: false,
   _firefliesSpawned: false,
@@ -156,6 +158,9 @@ const UI = {
         btn.style.opacity = '1';
       });
     }
+
+    // Ambient atmosphere on title screen
+    this.spawnTitleAtmosphere();
   },
 
   /**
@@ -447,6 +452,9 @@ const UI = {
       // Reset spawn guards immediately so next night gets fresh rolls
       this._starsSpawned = false;
       this._firefliesSpawned = false;
+      // Reset day spawn guards so fresh terrain-reactive particles spawn
+      this._insectsSpawned = false;
+      this._pollenSpawned = false;
       if (!this._cloudsSpawned) {
         this.spawnClouds();
       }
@@ -460,6 +468,9 @@ const UI = {
     } else {
       this.clearClouds();
       this._cloudsSpawned = false;
+      // Clear day particles on transition to night
+      this.clearInsects();
+      this.clearPollen();
       if (!this._starsSpawned) {
         this.spawnStars();
       }
@@ -541,60 +552,29 @@ const UI = {
     }
   },
 
+  // Pre-parsed danger gradient colors (avoids regex on every stat bar update)
+  _dangerColors: {
+    green: { r: 74, g: 124, b: 63 },   // #4a7c3f
+    amber: { r: 212, g: 136, b: 58 },   // #d4883a
+    red:   { r: 196, g: 69, b: 54 }     // #c44536
+  },
+
   /**
    * Get color for a danger level (0-100)
    * @param {number} danger - 0 = safe, 100 = death
    * @returns {string} - hex color
    */
   getDangerColor(danger) {
-    // Green at 0%, amber at 50%, red at 100%
-    const green = '#4a7c3f';
-    const amber = '#d4883a';
-    const red = '#c44536';
-
+    const c = this._dangerColors;
+    let c1, c2, factor;
     if (danger <= 50) {
-      // Interpolate green → amber
-      return this.interpolateColor(green, amber, danger / 50);
+      c1 = c.green; c2 = c.amber; factor = danger / 50;
     } else {
-      // Interpolate amber → red
-      return this.interpolateColor(amber, red, (danger - 50) / 50);
+      c1 = c.amber; c2 = c.red; factor = (danger - 50) / 50;
     }
-  },
-
-  /**
-   * Interpolate between two hex colors
-   * @param {string} color1 - start color (hex)
-   * @param {string} color2 - end color (hex)
-   * @param {number} factor - 0-1, where 0 = color1, 1 = color2
-   * @returns {string} - interpolated hex color
-   */
-  interpolateColor(color1, color2, factor) {
-    const c1 = this.hexToRgb(color1);
-    const c2 = this.hexToRgb(color2);
-
     const r = Math.round(c1.r + (c2.r - c1.r) * factor);
     const g = Math.round(c1.g + (c2.g - c1.g) * factor);
     const b = Math.round(c1.b + (c2.b - c1.b) * factor);
-
-    return this.rgbToHex(r, g, b);
-  },
-
-  /**
-   * Convert hex color to RGB object
-   */
-  hexToRgb(hex) {
-    const result = /^#?([a-f\d]{2})([a-f\d]{2})([a-f\d]{2})$/i.exec(hex);
-    return result ? {
-      r: parseInt(result[1], 16),
-      g: parseInt(result[2], 16),
-      b: parseInt(result[3], 16)
-    } : { r: 0, g: 0, b: 0 };
-  },
-
-  /**
-   * Convert RGB to hex color
-   */
-  rgbToHex(r, g, b) {
     return "#" + ((1 << 24) + (r << 16) + (g << 8) + b).toString(16).slice(1);
   },
 
@@ -624,7 +604,6 @@ const UI = {
   renderHunterTracker(gameState) {
     const maxDist = CONFIG.ui.hunterTracker.maxDisplayDistance;
     const dist = Math.min(gameState.hunterDistance, maxDist);
-    const pressure = ((maxDist - dist) / maxDist) * 100;
 
     // Determine proximity tier
     let tier;
@@ -844,6 +823,7 @@ const UI = {
     this._starsSpawned = true;
     container.innerHTML = '';
     const cfg = CONFIG.ui.weather.stars;
+    const reduceMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
     const count = cfg.minCount + Math.floor(Math.random() * (cfg.maxCount - cfg.minCount + 1));
     for (let i = 0; i < count; i++) {
       const star = document.createElement('div');
@@ -865,18 +845,20 @@ const UI = {
         star.classList.add('bright');
       }
 
-      // Drift animation — must be set inline (CSS animation on dynamic elements unreliable)
-      const driftDur = 20 + Math.random() * 20;
-      const driftDelay = -(Math.random() * driftDur);
+      // Drift + twinkle animations — must be set inline (CSS animation on dynamic elements unreliable)
+      // Skip animations for prefers-reduced-motion users
+      if (!reduceMotion) {
+        const driftDur = 20 + Math.random() * 20;
+        const driftDelay = -(Math.random() * driftDur);
 
-      // Twinkle animation on some stars
-      if (Math.random() < cfg.twinkleChance) {
-        const twinkleDur = 2 + Math.random() * 4;
-        const twinkleDelay = -(Math.random() * twinkleDur);
-        star.style.animation = `star-drift ${driftDur}s linear ${driftDelay}s infinite, star-twinkle ${twinkleDur}s ease-in-out ${twinkleDelay}s infinite`;
-        star.style.setProperty('--star-base-opacity', baseOpacity);
-      } else {
-        star.style.animation = `star-drift ${driftDur}s linear ${driftDelay}s infinite`;
+        if (Math.random() < cfg.twinkleChance) {
+          const twinkleDur = 2 + Math.random() * 4;
+          const twinkleDelay = -(Math.random() * twinkleDur);
+          star.style.animation = `star-drift ${driftDur}s linear ${driftDelay}s infinite, star-twinkle ${twinkleDur}s ease-in-out ${twinkleDelay}s infinite`;
+          star.style.setProperty('--star-base-opacity', baseOpacity);
+        } else {
+          star.style.animation = `star-drift ${driftDur}s linear ${driftDelay}s infinite`;
+        }
       }
 
       container.appendChild(star);
@@ -910,13 +892,13 @@ const UI = {
       mote.style.left = Math.random() * 100 + '%';
       mote.style.top = Math.random() * 100 + '%';
 
-      const w = 2 + Math.random() * 4;
+      const w = 3 + Math.random() * 5;
       const h = w * (0.3 + Math.random() * 0.5);
       mote.style.width = w + 'px';
       mote.style.height = h + 'px';
       mote.style.transform = `rotate(${Math.random() * 360}deg)`;
 
-      const opacity = 0.15 + Math.random() * 0.25;
+      const opacity = 0.25 + Math.random() * 0.3;
       mote.style.setProperty('--dust-opacity', opacity);
       const dx = (40 + Math.random() * 80) * (Math.random() < 0.5 ? 1 : -1);
       const dy = -20 + Math.random() * 40;
@@ -1100,7 +1082,7 @@ const UI = {
   /**
    * Update all day atmosphere effects
    */
-  _lastDustCategory: null,
+  _lastDustCategory: '__unset__',
 
   updateDayAtmosphere(gameState) {
     const isDay = gameState.phase === 'day';
@@ -1108,17 +1090,27 @@ const UI = {
     const category = getTerrainCategory(terrain?.id);
 
     if (isDay) {
-      // Only re-spawn dust when terrain category changes
+      const raining = document.body.classList.contains('weather-rain');
+      // Only re-spawn dust/pollen when terrain category changes (skip during rain)
       if (category !== this._lastDustCategory) {
         this._lastDustCategory = category;
-        this.spawnDust(category);
+        if (!raining) {
+          this.spawnDust(category);
+          this.spawnPollen(category);
+        }
+      }
+      // Insects spawn once per day phase (terrain-reactive count, skip during rain)
+      if (!this._insectsSpawned && !raining) {
+        this.spawnInsects(category);
       }
       this.updateSunRays(category, true);
     } else {
-      if (this._lastDustCategory !== null) {
-        this._lastDustCategory = null;
+      if (this._lastDustCategory !== '__unset__') {
+        this._lastDustCategory = '__unset__';
         this.clearDust();
+        this.clearPollen();
       }
+      this.clearInsects();
       this.updateSunRays(null, false);
     }
 
@@ -1169,8 +1161,15 @@ const UI = {
       container.appendChild(drop);
     }
     document.body.classList.add('weather-rain');
-    // Rain and fireflies don't mix
+    // Rain clears ambient particles (CSS fades containers, JS clears elements)
     this.clearFireflies();
+    this.clearInsects();
+    this.clearPollen();
+    // Clear stars during night rain to keep total animated elements within mobile budget
+    if (document.body.classList.contains('night-mode')) {
+      this.clearStars();
+      this._starsSpawned = false;
+    }
   },
 
   /**
@@ -1181,6 +1180,10 @@ const UI = {
     if (container) container.innerHTML = '';
     document.body.classList.remove('weather-rain');
     this.stopLightning();
+    // Reset day particle spawn guards so they re-spawn after rain
+    this._insectsSpawned = false;
+    this._pollenSpawned = false;
+    this._lastDustCategory = '__unset__';
   },
 
   /**
@@ -1194,6 +1197,8 @@ const UI = {
     const weather = gameState.day === 1 ? getWeatherCondition(encounter, true) : getWeatherCondition(encounter);
     // Skip if same weather AND same encounter (no need to re-spawn)
     if (weather === this._currentWeather && !encounterChanged) return;
+    // Skip re-spawn if weather persists across encounter change (prevents visible blink)
+    if (weather === this._currentWeather && encounterChanged) return;
     this._currentWeather = weather;
 
     if (weather) {
@@ -1210,6 +1215,7 @@ const UI = {
    */
   startLightning(intensity) {
     this.stopLightning();
+    this._lightningActive = true;
     const cfg = CONFIG.ui.weather.lightning;
     const scheduleNext = () => {
       const minI = intensity === 'heavy' ? cfg.minInterval : cfg.minInterval + 2;
@@ -1230,6 +1236,7 @@ const UI = {
    * Stop lightning flashes
    */
   stopLightning() {
+    this._lightningActive = false;
     if (this._lightningInterval) {
       clearTimeout(this._lightningInterval);
       this._lightningInterval = null;
@@ -1245,6 +1252,7 @@ const UI = {
    * Trigger a single lightning flash (one of three tiers)
    */
   triggerLightning() {
+    if (!this._lightningActive) return;
     const overlay = document.getElementById('lightning-overlay');
     if (!overlay) return;
     const cfg = CONFIG.ui.weather.lightning;
@@ -1285,6 +1293,11 @@ const UI = {
    * Reset all visual overlays (for title/death screens)
    */
   resetVisualOverlays() {
+    // Cancel any running typewriter
+    if (this._typewriterTimer) {
+      clearTimeout(this._typewriterTimer);
+      this._typewriterTimer = null;
+    }
     const overlay = document.getElementById('vignette-overlay');
     const glow = document.getElementById('hunter-glow');
     // Kill transitions so overlays vanish instantly on screen change
@@ -1304,12 +1317,16 @@ const UI = {
     this._starsSpawned = false;
     this._cloudsSpawned = false;
     this._firefliesSpawned = false;
+    this._insectsSpawned = false;
+    this._pollenSpawned = false;
     this._lastVignetteShadow = null;
     this._lastGlowShadow = null;
     this.clearFireflies();
     this.clearStars();
     this.clearRain();
     this.clearDust();
+    this.clearPollen();
+    this.clearInsects();
     this.clearClouds();
     this.updateSunRays(null, false);
     const shimmer = document.querySelector('.situation-scroll');
@@ -1318,6 +1335,30 @@ const UI = {
     this._currentEncounter = null;
     const gameScreen = document.getElementById('screen-game');
     if (gameScreen) gameScreen.style.filter = '';
+  },
+
+  /**
+   * Spawn ambient atmosphere effects on the title screen.
+   * Uses same systems as in-game: dust, pollen, insects, clouds, and random rain.
+   * No sun rays or heat shimmer.
+   */
+  spawnTitleAtmosphere() {
+    // Pick a random terrain category for particle density
+    const categories = ['open', 'dense', 'water', 'rocky', 'shelter'];
+    const category = categories[Math.floor(Math.random() * categories.length)];
+
+    // Day particles
+    this.spawnDust(category);
+    this.spawnPollen(category);
+    this.spawnInsects(category);
+    this.spawnClouds();
+
+    // Random rain chance (same as in-game CONFIG)
+    if (Math.random() < CONFIG.ui.weather.rain.randomChance) {
+      const intensity = Math.random() < 0.3 ? 'heavy' : 'light';
+      this.spawnRain(intensity);
+      this.startLightning(intensity);
+    }
   },
 
   /**
@@ -1504,6 +1545,12 @@ const UI = {
    * @param {Function} callback - called when typing finishes
    */
   typewriteText(element, text, speed, callback) {
+    // Cancel any running typewriter to prevent overlapping chains
+    if (this._typewriterTimer) {
+      clearTimeout(this._typewriterTimer);
+      this._typewriterTimer = null;
+    }
+
     const p = document.createElement('p');
     element.appendChild(p);
 
@@ -1526,18 +1573,20 @@ const UI = {
       if (this._situationSkipped) {
         p.textContent = text;
         this._situationTypewriterDone = true;
+        this._typewriterTimer = null;
         if (callback) callback();
         return;
       }
       if (charIndex >= text.length) {
         p.textContent = text;
         this._situationTypewriterDone = true;
+        this._typewriterTimer = null;
         if (callback) callback();
         return;
       }
       charIndex++;
       render();
-      setTimeout(typeNext, speed);
+      this._typewriterTimer = setTimeout(typeNext, speed);
     };
 
     typeNext();

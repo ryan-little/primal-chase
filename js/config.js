@@ -83,8 +83,8 @@ const CONFIG = {
     },
     weather: {
       stars: {
-        minCount: 200,
-        maxCount: 500,
+        minCount: 100,
+        maxCount: 250,
         twinkleChance: 0.3,
         brightChance: 0.08
       },
@@ -93,8 +93,8 @@ const CONFIG = {
       },
       rain: {
         randomChance: 0.20,
-        lightCount: [50, 120],
-        heavyCount: [150, 300],
+        lightCount: [40, 100],
+        heavyCount: [100, 200],
         angle: [5, 20],
         speedMultiplier: [0.7, 1.4]
       },
@@ -108,7 +108,7 @@ const CONFIG = {
         strikeOpacity: 0.3
       },
       dust: {
-        baseCount: 70,
+        baseCount: 50,
         terrainMultiplier: { open: 2.5, rocky: 2, water: 0.3, dense: 0.5, shelter: 0.5 }
       },
       pollen: {

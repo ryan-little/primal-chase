@@ -357,6 +357,7 @@ body.night-mode .night-bg {
   background: rgba(10, 6, 3, 0.8);
   border: none;
   box-shadow: none;
+  contain: layout style;
 }
 
 .game-header {
@@ -480,6 +481,7 @@ body.night-mode .night-bg {
 
 .status-bar-container.shaking {
   animation: stat-shake var(--shake-speed, 0.4s) ease infinite;
+  will-change: transform;
 }
 
 .status-bar-container.critical .status-bar-fill {
@@ -564,7 +566,8 @@ body.night-mode .night-bg {
   height: 0;
   border-top: 2px dotted var(--text-secondary);
   opacity: 0.5;
-  transition: width 0.8s cubic-bezier(0.4, 0, 0.2, 1),
+  transition: left 0.8s cubic-bezier(0.4, 0, 0.2, 1),
+              width 0.8s cubic-bezier(0.4, 0, 0.2, 1),
               border-color 0.5s ease;
 }
 
@@ -604,11 +607,11 @@ body.night-mode .night-bg {
   height: 14px;
 }
 
-/* Cat marker — moves based on distance */
+/* Cat marker — moves based on distance, icon center anchored to line */
 .pursuit-trail-cat {
   position: absolute;
-  top: 65%;
-  transform: translate(-50%, -50%);
+  top: calc(65% - 7px);
+  transform: translateX(-50%);
   z-index: 1;
   transition: left 0.8s cubic-bezier(0.4, 0, 0.2, 1);
   display: flex;
@@ -656,11 +659,11 @@ body.night-mode .night-bg {
   opacity: 0.5;
 }
 
-/* Hunter marker — positioned based on distance */
+/* Hunter marker — positioned based on distance, icon center anchored to line */
 .pursuit-trail-hunters {
   position: absolute;
-  top: 65%;
-  transform: translate(-50%, -50%);
+  top: calc(65% - 14px);
+  transform: translateX(-50%);
   z-index: 1;
   transition: left 0.8s cubic-bezier(0.4, 0, 0.2, 1);
   display: flex;
@@ -1587,6 +1590,7 @@ body.night-mode .night-bg {
   z-index: 3;
   box-shadow: inset 0 0 150px rgba(0, 0, 0, 0);
   transition: box-shadow 1.5s ease;
+  transform: translateZ(0);
 }
 
 /* ===== HUNTER PROXIMITY GLOW ===== */
@@ -1600,6 +1604,7 @@ body.night-mode .night-bg {
   z-index: 4;
   box-shadow: inset 0 0 80px rgba(196, 69, 54, 0);
   transition: box-shadow 1.5s ease;
+  transform: translateZ(0);
 }
 
 /* Hunter glow: intensity set by JS, pulse animation when very close */
@@ -1682,7 +1687,6 @@ body.night-mode.weather-rain .star-container {
   position: absolute;
   border-radius: 50%;
   background: rgba(200, 220, 255, 0.8);
-  will-change: transform;
 }
 
 .star.bright {
@@ -1713,6 +1717,7 @@ body.night-mode.weather-rain .star-container {
   z-index: 1;
   overflow: hidden;
   contain: strict;
+  transform: translateZ(0);
 }
 
 body.night-mode .dust-container {
@@ -1729,7 +1734,6 @@ body.weather-rain .dust-container {
   position: absolute;
   border-radius: 40%;
   background: rgba(180, 150, 100, 0.35);
-  will-change: transform;
 }
 
 @keyframes dust-float {
@@ -1750,6 +1754,7 @@ body.weather-rain .dust-container {
   z-index: 1;
   overflow: hidden;
   contain: strict;
+  transform: translateZ(0);
 }
 
 body.night-mode .pollen-container {
@@ -1766,7 +1771,6 @@ body.weather-rain .pollen-container {
   position: absolute;
   border-radius: 50%;
   background: radial-gradient(circle, rgba(255, 240, 180, 0.6) 0%, rgba(255, 220, 120, 0.2) 70%, transparent 100%);
-  will-change: transform;
 }
 
 @keyframes pollen-rise {
@@ -1787,6 +1791,7 @@ body.weather-rain .pollen-container {
   z-index: 1;
   overflow: hidden;
   contain: strict;
+  transform: translateZ(0);
 }
 
 body.night-mode .insect-container {
@@ -1806,7 +1811,6 @@ body.weather-rain .insect-container {
   border-radius: 50%;
   background: rgba(255, 230, 160, 0.85);
   box-shadow: 0 0 4px rgba(255, 210, 100, 0.5);
-  will-change: transform;
 }
 
 @keyframes insect-drift {
@@ -1836,6 +1840,7 @@ body.weather-rain .insect-container {
   z-index: 1;
   overflow: hidden;
   contain: strict;
+  transform: translateZ(0);
 }
 
 body.night-mode .cloud-container {
@@ -1853,7 +1858,6 @@ body.weather-rain .cloud-container {
   border-radius: 50%;
   background: radial-gradient(ellipse, rgba(0, 0, 0, 0.08) 0%, transparent 70%);
   pointer-events: none;
-  will-change: transform;
 }
 
 @keyframes cloud-drift {
@@ -1893,13 +1897,14 @@ body.weather-rain .sun-rays {
 /* ===== DAY ATMOSPHERE: HEAT SHIMMER ===== */
 .heat-shimmer {
   animation: heat-shimmer-wave 3s ease-in-out infinite;
+  will-change: transform;
 }
 
 @keyframes heat-shimmer-wave {
-  0%, 100% { filter: none; }
-  25% { filter: blur(0.3px) brightness(1.01); }
-  50% { filter: none; }
-  75% { filter: blur(0.4px) brightness(1.02); }
+  0%, 100% { transform: translateZ(0); }
+  25% { transform: translateZ(0) scale(1.001) translateY(-0.3px); }
+  50% { transform: translateZ(0); }
+  75% { transform: translateZ(0) scale(1.002) translateY(0.3px); }
 }
 
 /* ===== RAIN PARTICLES ===== */
@@ -1913,6 +1918,7 @@ body.weather-rain .sun-rays {
   z-index: 2;
   overflow: hidden;
   contain: strict;
+  transform: translateZ(0);
 }
 
 .rain-overlay-dim {
@@ -1933,7 +1939,6 @@ body.weather-rain .rain-overlay-dim {
   top: -20px;
   width: 2px;
   background: linear-gradient(to bottom, transparent 0%, rgba(200, 215, 230, 0.8) 40%, rgba(180, 200, 220, 0.9) 100%);
-  will-change: transform;
   /* animation set inline via JS */
 }
 
@@ -1966,6 +1971,7 @@ body.night-mode .raindrop {
   z-index: 5;
   background: rgba(255, 255, 255, 0);
   transition: none;
+  transform: translateZ(0);
 }
 
 @keyframes lightning-sheet {
@@ -1989,13 +1995,19 @@ body.night-mode .raindrop {
 
 /* ===== REDUCED MOTION ===== */
 @media (prefers-reduced-motion: reduce) {
-  .star.twinkle {
-    animation: none;
-  }
   .raindrop {
     animation: none;
     opacity: 0.3;
   }
+  .status-bar-container.shaking { animation: none; }
+  .heat-shimmer { animation: none; }
+  .firefly { animation: none; opacity: 0.6; }
+  .dust-mote { animation: none; opacity: 0.2; }
+  .pollen-seed { animation: none; opacity: 0.3; }
+  .insect { animation: none; }
+  .cloud-shadow { animation: none; }
+  .hunter-glow.glow-pulse { animation: none; }
+  .status-bar-container.critical .status-bar-fill { animation: none; }
 }
 
 /* ===== VERSION BADGE ===== */
