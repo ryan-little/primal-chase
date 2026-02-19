@@ -78,7 +78,32 @@ function getTerrainCategory(terrainId) {
   return null;
 }
 
+/**
+ * Determine weather condition from current encounter
+ * @param {Object} encounter - currentEncounter from game state
+ * @returns {null|'light'|'heavy'} weather condition
+ */
+function getWeatherCondition(encounter, skipRandom) {
+  if (!encounter) return null;
+  if (encounter.id === 'sig_rainstorm' || encounter.id === 'rare_lightning_fire') {
+    return 'heavy';
+  }
+  if (encounter.pressure?.id === 'storm_approaching') {
+    return 'light';
+  }
+  if (skipRandom) return null;
+  // Random rain chance (rolled once per encounter via cached flag)
+  if (encounter._weatherRoll === undefined) {
+    encounter._weatherRoll = Math.random() < CONFIG.ui.weather.rain.randomChance ? 'light' : null;
+  }
+  return encounter._weatherRoll;
+}
+
 const UI = {
+  _currentWeather: null,
+  _currentEncounter: null,
+  _lightningInterval: null,
+
   /**
    * Show a specific screen, hide all others
    * @param {string} screenId - ID of the screen to show
@@ -276,18 +301,24 @@ const UI = {
         });
       }, CONFIG.transition.barAnimationDuration);
 
-      // Fade out situation text and action buttons
-      const scroll = document.querySelector('.situation-scroll');
-      const actionsContainer = document.getElementById('action-buttons');
-      if (scroll) scroll.classList.add('fading');
-      if (actionsContainer) actionsContainer.classList.add('fading');
+      const useTypewriter = Options.get('typewriterEffect') && Options.get('situationTypewriter');
 
-      // After fade out, render new content with staggered actions
-      setTimeout(() => {
+      if (useTypewriter) {
+        // Fade out, then typewrite new content with staggered actions
+        const scroll = document.querySelector('.situation-scroll');
+        const actionsContainer = document.getElementById('action-buttons');
+        if (scroll) scroll.classList.add('fading');
+        if (actionsContainer) actionsContainer.classList.add('fading');
+
+        setTimeout(() => {
+          this._renderSituation(gameState, { stagger: true });
+          if (scroll) scroll.classList.remove('fading');
+          if (actionsContainer) actionsContainer.classList.remove('fading');
+        }, 300);
+      } else {
+        // No typewriter — render situation immediately, stagger action buttons
         this._renderSituation(gameState, { stagger: true });
-        if (scroll) scroll.classList.remove('fading');
-        if (actionsContainer) actionsContainer.classList.remove('fading');
-      }, 300);
+      }
     } else {
       // No transition — render everything immediately
       this.renderVitals(gameState);
@@ -298,6 +329,8 @@ const UI = {
     // Visual overlays (applied after every render)
     this.updateVisualEscalation(gameState);
     this.updateHunterGlow(gameState);
+    this.updateWeatherEffects(gameState);
+    this.updateDayAtmosphere(gameState);
   },
 
   /**
@@ -334,25 +367,21 @@ const UI = {
 
       const speed = Options.get('typewriterSpeed') || CONFIG.typewriter.speed;
       this.typewriteText(situationElement, encounterText, speed, () => {
+        // Reveal actions as soon as situation text finishes (don't wait for monologue)
+        this._revealActions();
+
         // Typewrite monologue after situation finishes (or show instantly if skipped)
         if (gameState.monologue) {
           if (this._situationSkipped) {
             this.renderMonologue(gameState.monologue);
-            this._revealActions();
           } else {
             const monologueEl = document.getElementById('monologue');
             if (monologueEl) {
               monologueEl.innerHTML = '<span class="monologue-label">Inner voice</span>';
               monologueEl.style.display = 'block';
-              this.typewriteText(monologueEl, gameState.monologue, speed, () => {
-                this._revealActions();
-              });
-            } else {
-              this._revealActions();
+              this.typewriteText(monologueEl, gameState.monologue, speed);
             }
           }
-        } else {
-          this._revealActions();
         }
       });
     } else {
@@ -408,11 +437,19 @@ const UI = {
     // Toggle night mode on body and particles
     if (isDay) {
       document.body.classList.remove('night-mode');
-      // Clear fireflies after fade-out transition
-      setTimeout(() => { if (document.body.classList.contains('night-mode') === false) this.clearFireflies(); }, 2000);
+      this.spawnClouds();
+      setTimeout(() => {
+        if (document.body.classList.contains('night-mode') === false) {
+          this.clearFireflies();
+          this.clearStars();
+        }
+      }, 2000);
     } else {
-      // Spawn fireflies BEFORE adding night-mode so the opacity transition fades them in
-      this.spawnFireflies();
+      this.clearClouds();
+      this.spawnStars();
+      if (Math.random() < CONFIG.ui.weather.fireflies.chance) {
+        this.spawnFireflies();
+      }
       document.body.classList.add('night-mode');
     }
   },
@@ -458,6 +495,13 @@ const UI = {
     valueElement.textContent = `${Math.round(dangerLevel)}%`;
     barElement.style.width = `${dangerLevel}%`;
 
+    // Position value at midpoint of filled bar (left-aligned when near 0)
+    if (dangerLevel <= 5) {
+      valueElement.style.left = '4px';
+    } else {
+      valueElement.style.left = `${dangerLevel / 2}%`;
+    }
+
     // Color based on danger
     const container = barElement.parentElement.parentElement;
     if (dangerLevel > 65) {
@@ -468,10 +512,11 @@ const UI = {
       barElement.style.backgroundColor = this.getDangerColor(dangerLevel);
     }
 
-    // Continuous shake when in danger — intensity scales with danger level
-    if (dangerLevel > 50) {
-      const intensity = (dangerLevel - 50) / 50; // 0→1 as danger grows
-      const speed = 0.5 - (intensity * 0.35);    // 0.5s→0.15s
+    // Continuous shake when in danger — starts at 75%, ramps up rapidly toward 100%
+    if (dangerLevel > 75) {
+      const t = (dangerLevel - 75) / 25;          // 0→1 over 75%→100%
+      const intensity = t * t;                     // quadratic ramp: slow start, rapid finish
+      const speed = 0.5 - (intensity * 0.4);      // 0.5s→0.1s
       container.style.setProperty('--shake-speed', speed + 's');
       container.classList.add('shaking');
     } else {
@@ -542,23 +587,7 @@ const UI = {
    * @param {Object} gameState - current game state
    */
   renderHunt(gameState) {
-    const huntDistanceContainer = document.querySelector('.hunt-distance');
     const flavorElement = document.getElementById('hunt-flavor');
-    const distanceCoveredContainer = document.querySelector('.distance-covered');
-
-    if (huntDistanceContainer) {
-      const dist = Math.round(gameState.hunterDistance * 10) / 10;
-      const unit = dist === 1 ? 'mile' : 'miles';
-      huntDistanceContainer.innerHTML = `Hunters are <span id="hunter-distance">${dist}</span> ${unit} behind`;
-
-      // Add warning classes when hunters are close
-      huntDistanceContainer.classList.remove('critical', 'caution');
-      if (dist < 5) {
-        huntDistanceContainer.classList.add('critical');
-      } else if (dist < 10) {
-        huntDistanceContainer.classList.add('caution');
-      }
-    }
 
     if (flavorElement && typeof Hunters !== 'undefined') {
       const flavorText = Hunters.getHunterFlavorText(
@@ -571,70 +600,85 @@ const UI = {
 
     // Hunter distance tracker bar
     this.renderHunterTracker(gameState);
-
-    if (distanceCoveredContainer) {
-      const dist = Math.round(gameState.distanceCovered * 10) / 10;
-      const unit = dist === 1 ? 'mile' : 'miles';
-      distanceCoveredContainer.innerHTML = `You have covered <span id="distance-covered">${dist}</span> ${unit} on the chase so far`;
-    }
   },
 
   /**
    * Render the visual hunter distance tracker bar
    */
   renderHunterTracker(gameState) {
-    // Create tracker under game-header if it doesn't exist yet
-    let tracker = document.getElementById('hunter-tracker');
-    if (!tracker) {
-      tracker = document.createElement('div');
-      tracker.id = 'hunter-tracker';
-      tracker.className = 'hunter-tracker';
-      tracker.innerHTML = `
-        <div class="hunter-tracker-bar">
-          <div class="hunter-tracker-fill"></div>
-        </div>
-        <div class="hunter-tracker-labels">
-          <span class="tracker-label-you">You</span>
-          <span class="tracker-label-dist"></span>
-          <span class="tracker-label-them">Hunters</span>
-        </div>
+    const maxDist = CONFIG.ui.hunterTracker.maxDisplayDistance;
+    const dist = Math.min(gameState.hunterDistance, maxDist);
+    const pressure = ((maxDist - dist) / maxDist) * 100;
+
+    // Determine proximity tier
+    let tier;
+    if (gameState.hunterState === 'tracking') {
+      tier = 'tracking';
+    } else if (dist <= 5) {
+      tier = 'critical';
+    } else if (dist <= 10) {
+      tier = 'danger';
+    } else if (dist <= 18) {
+      tier = 'caution';
+    } else {
+      tier = 'safe';
+    }
+
+    // Remove legacy tracker strip if present
+    const oldTracker = document.getElementById('hunter-tracker');
+    if (oldTracker) oldTracker.remove();
+
+    // --- Pursuit trail inside hunt-info ---
+    let trail = document.getElementById('pursuit-trail');
+    if (!trail) {
+      trail = document.createElement('div');
+      trail.id = 'pursuit-trail';
+      trail.className = 'pursuit-trail';
+      trail.innerHTML = `
+        <div class="pursuit-trail-path"></div>
+        <span class="pursuit-trail-cat"><img src="assets/jaguar.png" alt="You" class="pursuit-icon"><span class="pursuit-label">You</span></span>
+        <span class="pursuit-trail-distance"></span>
+        <span class="pursuit-trail-hunters"><img src="assets/hunter.png" alt="Hunters" class="pursuit-icon"><span class="pursuit-label">Hunters</span></span>
       `;
-      // Insert after game-header, before game-top
-      const header = document.querySelector('.game-header');
-      const gameTop = document.querySelector('.game-top');
-      if (header && gameTop) {
-        header.parentNode.insertBefore(tracker, gameTop);
+      const huntInfo = document.getElementById('hunt-info');
+      if (huntInfo) {
+        huntInfo.appendChild(trail);
       }
     }
 
-    const maxDist = CONFIG.ui.hunterTracker.maxDisplayDistance;
-    const dist = Math.min(gameState.hunterDistance, maxDist);
-    // Pursuit pressure: 0% = far away (safe), 100% = caught
-    const pressure = ((maxDist - dist) / maxDist) * 100;
+    // Both markers move — midpoint stays at 50%, gap shrinks as hunters close
+    const maxSpread = 40; // each marker can be up to 40% from center
+    const halfGap = Math.max(2, (dist / maxDist) * maxSpread);
+    const catPos = 50 - halfGap;
+    const hunterPos = 50 + halfGap;
 
-    // Fill bar grows from right as hunters close in
-    const fill = tracker.querySelector('.hunter-tracker-fill');
-    if (fill) fill.style.width = pressure + '%';
+    const catMarker = trail.querySelector('.pursuit-trail-cat');
+    if (catMarker) catMarker.style.left = catPos + '%';
 
-    // Distance label
-    const distLabel = tracker.querySelector('.tracker-label-dist');
-    if (distLabel) {
-      const rounded = Math.round(dist * 10) / 10;
-      distLabel.textContent = rounded + ' mi';
+    const hunterMarker = trail.querySelector('.pursuit-trail-hunters');
+    if (hunterMarker) {
+      hunterMarker.style.left = hunterPos + '%';
+      hunterMarker.classList.remove('trail-safe', 'trail-caution', 'trail-danger', 'trail-critical', 'trail-tracking');
+      hunterMarker.classList.add('trail-' + tier);
     }
 
-    // Color classes based on proximity
-    tracker.classList.remove('safe', 'caution', 'danger', 'critical', 'tracking');
-    if (gameState.hunterState === 'tracking') {
-      tracker.classList.add('tracking');
-    } else if (dist <= 5) {
-      tracker.classList.add('critical');
-    } else if (dist <= 10) {
-      tracker.classList.add('danger');
-    } else if (dist <= 18) {
-      tracker.classList.add('caution');
-    } else {
-      tracker.classList.add('safe');
+    // Colored dotted line connecting the two markers
+    const path = trail.querySelector('.pursuit-trail-path');
+    if (path) {
+      path.style.left = catPos + '%';
+      path.style.width = (halfGap * 2) + '%';
+      path.classList.remove('trail-safe', 'trail-caution', 'trail-danger', 'trail-critical', 'trail-tracking');
+      path.classList.add('trail-' + tier);
+    }
+
+    // Distance label at the midpoint (always center)
+    const distLabel = trail.querySelector('.pursuit-trail-distance');
+    if (distLabel) {
+      const roundedDist = Math.round(gameState.hunterDistance * 10) / 10;
+      distLabel.textContent = `${roundedDist} mi`;
+      distLabel.style.left = '50%';
+      distLabel.classList.remove('trail-safe', 'trail-caution', 'trail-danger', 'trail-critical', 'trail-tracking');
+      distLabel.classList.add('trail-' + tier);
     }
   },
 
@@ -731,6 +775,11 @@ const UI = {
       fly.className = 'firefly';
       fly.style.left = Math.random() * 100 + '%';
       fly.style.top = Math.random() * 100 + '%';
+      // Random static frame from one of 24 sprites (2 sheets x 12 frames)
+      const sheet = Math.random() < 0.5 ? 1 : 2;
+      const frame = Math.floor(Math.random() * 12);
+      fly.style.backgroundImage = `url(assets/firefly${sheet}-${String(frame).padStart(2, '0')}.png)`;
+      fly.style.setProperty('--flip', Math.random() < 0.5 ? 'scaleX(-1)' : 'scaleX(1)');
       fly.style.setProperty('--duration', (6 + Math.random() * 8) + 's');
       fly.style.setProperty('--glow-duration', (2 + Math.random() * 3) + 's');
       fly.style.setProperty('--dx1', (Math.random() * 60 - 30) + 'px');
@@ -753,14 +802,365 @@ const UI = {
   },
 
   /**
+   * Spawn dynamic star field for night sky
+   * Count varies per phase to simulate traveling
+   */
+  spawnStars() {
+    const container = document.getElementById('star-container');
+    if (!container) return;
+    container.innerHTML = '';
+    const cfg = CONFIG.ui.weather.stars;
+    const count = cfg.minCount + Math.floor(Math.random() * (cfg.maxCount - cfg.minCount + 1));
+    for (let i = 0; i < count; i++) {
+      const star = document.createElement('div');
+      star.className = 'star';
+      star.style.left = Math.random() * 100 + '%';
+      star.style.top = Math.random() * 100 + '%';
+
+      // Size: 1-3px, most are 1px
+      const size = Math.random() < 0.7 ? 1 : (Math.random() < 0.7 ? 2 : 3);
+      star.style.width = size + 'px';
+      star.style.height = size + 'px';
+
+      // Brightness
+      const baseOpacity = 0.2 + Math.random() * 0.7;
+      star.style.opacity = baseOpacity;
+
+      // Bright stars get glow
+      if (Math.random() < cfg.brightChance) {
+        star.classList.add('bright');
+      }
+
+      // Twinkle animation on some stars — set inline to avoid CSS var() issues
+      if (Math.random() < cfg.twinkleChance) {
+        const twinkleDur = 2 + Math.random() * 4;
+        const twinkleDelay = -(Math.random() * twinkleDur);
+        star.style.animation = `star-drift 60s linear infinite, star-twinkle ${twinkleDur}s ease-in-out ${twinkleDelay}s infinite`;
+        star.style.setProperty('--star-base-opacity', baseOpacity);
+      }
+
+      container.appendChild(star);
+    }
+  },
+
+  /**
+   * Clear star field
+   */
+  clearStars() {
+    const container = document.getElementById('star-container');
+    if (container) container.innerHTML = '';
+  },
+
+  // ---- Day atmosphere effects ----
+
+  /**
+   * Spawn floating dust motes — density based on terrain category
+   */
+  spawnDust(terrainCategory) {
+    const container = document.getElementById('dust-container');
+    if (!container) return;
+    container.innerHTML = '';
+    const cfg = CONFIG.ui.weather.dust;
+    const mult = cfg.terrainMultiplier[terrainCategory] || 1;
+    const count = Math.round(cfg.baseCount * mult);
+
+    for (let i = 0; i < count; i++) {
+      const mote = document.createElement('div');
+      mote.className = 'dust-mote';
+      mote.style.left = Math.random() * 100 + '%';
+      mote.style.top = Math.random() * 100 + '%';
+
+      const size = 1 + Math.random() * 3;
+      mote.style.width = size + 'px';
+      mote.style.height = size + 'px';
+
+      const opacity = 0.2 + Math.random() * 0.4;
+      mote.style.setProperty('--dust-opacity', opacity);
+      const dx = (40 + Math.random() * 80) * (Math.random() < 0.5 ? 1 : -1);
+      const dy = -20 + Math.random() * 40;
+      mote.style.setProperty('--dust-dx', dx + 'px');
+      mote.style.setProperty('--dust-dy', dy + 'px');
+
+      const duration = 8 + Math.random() * 16;
+      const delay = -(Math.random() * duration);
+      mote.style.animation = `dust-float ${duration}s linear ${delay}s infinite`;
+
+      container.appendChild(mote);
+    }
+  },
+
+  clearDust() {
+    const container = document.getElementById('dust-container');
+    if (container) container.innerHTML = '';
+  },
+
+  /**
+   * Spawn drifting cloud shadows
+   */
+  spawnClouds() {
+    const container = document.getElementById('cloud-container');
+    if (!container) return;
+    container.innerHTML = '';
+    const cfg = CONFIG.ui.weather.clouds;
+    if (Math.random() > cfg.chance) return;
+
+    const count = cfg.minCount + Math.floor(Math.random() * (cfg.maxCount - cfg.minCount + 1));
+    for (let i = 0; i < count; i++) {
+      const cloud = document.createElement('div');
+      cloud.className = 'cloud-shadow';
+
+      const w = 200 + Math.random() * 400;
+      const h = w * (0.4 + Math.random() * 0.3);
+      cloud.style.width = w + 'px';
+      cloud.style.height = h + 'px';
+      cloud.style.top = (Math.random() * 80) + '%';
+
+      const duration = cfg.durationRange[0] + Math.random() * (cfg.durationRange[1] - cfg.durationRange[0]);
+      const delay = -(Math.random() * duration);
+      cloud.style.animation = `cloud-drift ${duration}s linear ${delay}s infinite`;
+
+      container.appendChild(cloud);
+    }
+  },
+
+  clearClouds() {
+    const container = document.getElementById('cloud-container');
+    if (container) container.innerHTML = '';
+  },
+
+  /**
+   * Toggle sun rays based on terrain category
+   */
+  updateSunRays(terrainCategory, isDay) {
+    const rays = document.getElementById('sun-rays');
+    if (!rays) return;
+    const cfg = CONFIG.ui.weather.sunRays;
+    if (isDay && cfg.terrains.includes(terrainCategory)) {
+      rays.classList.add('active');
+    } else {
+      rays.classList.remove('active');
+    }
+  },
+
+  /**
+   * Update heat shimmer effect on situation area
+   */
+  updateHeatShimmer(gameState) {
+    const situationScroll = document.querySelector('.situation-scroll');
+    if (!situationScroll) return;
+    const cfg = CONFIG.ui.weather.heatShimmer;
+    if (gameState.phase === 'day' && gameState.heat >= cfg.threshold) {
+      situationScroll.classList.add('heat-shimmer');
+    } else {
+      situationScroll.classList.remove('heat-shimmer');
+    }
+  },
+
+  /**
+   * Update all day atmosphere effects
+   */
+  _lastDustCategory: null,
+
+  updateDayAtmosphere(gameState) {
+    const isDay = gameState.phase === 'day';
+    const terrain = gameState.currentEncounter?.terrain;
+    const category = getTerrainCategory(terrain?.id);
+
+    if (isDay) {
+      // Only re-spawn dust when terrain category changes
+      if (category !== this._lastDustCategory) {
+        this._lastDustCategory = category;
+        this.spawnDust(category);
+      }
+      this.updateSunRays(category, true);
+    } else {
+      if (this._lastDustCategory !== null) {
+        this._lastDustCategory = null;
+        this.clearDust();
+      }
+      this.updateSunRays(null, false);
+    }
+
+    // Heat shimmer updates every render (reacts to heat changes)
+    this.updateHeatShimmer(gameState);
+  },
+
+  /**
+   * Spawn rain particles
+   * @param {'light'|'heavy'} intensity
+   */
+  spawnRain(intensity) {
+    const container = document.getElementById('rain-container');
+    if (!container) return;
+    container.innerHTML = '';
+    const cfg = CONFIG.ui.weather.rain;
+    const reduceMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+
+    // Randomize density, angle, and speed for this rain event
+    const range = intensity === 'heavy' ? cfg.heavyCount : cfg.lightCount;
+    let count = range[0] + Math.floor(Math.random() * (range[1] - range[0] + 1));
+    if (reduceMotion) count = Math.floor(count / 4);
+    const angle = cfg.angle[0] + Math.random() * (cfg.angle[1] - cfg.angle[0]);
+    const direction = Math.random() < 0.5 ? 1 : -1;
+    const speedMult = cfg.speedMultiplier[0] + Math.random() * (cfg.speedMultiplier[1] - cfg.speedMultiplier[0]);
+    const driftPx = Math.tan(angle * Math.PI / 180) * window.innerHeight * direction;
+
+    for (let i = 0; i < count; i++) {
+      const drop = document.createElement('div');
+      drop.className = 'raindrop';
+      drop.style.left = (Math.random() * 120 - 10) + '%';
+
+      const height = intensity === 'heavy'
+        ? (15 + Math.random() * 10)
+        : (10 + Math.random() * 8);
+      drop.style.height = height + 'px';
+
+      const baseDuration = intensity === 'heavy'
+        ? (0.4 + Math.random() * 0.4)
+        : (0.6 + Math.random() * 0.6);
+      const duration = baseDuration / speedMult;
+      const delay = -(Math.random() * duration);
+      const drift = driftPx * (0.8 + Math.random() * 0.4);
+
+      drop.style.animation = `rain-fall ${duration}s linear ${delay}s infinite`;
+      drop.style.setProperty('--rain-drift', drift + 'px');
+
+      container.appendChild(drop);
+    }
+    document.body.classList.add('weather-rain');
+    // Rain and fireflies don't mix
+    this.clearFireflies();
+  },
+
+  /**
+   * Clear rain particles and weather state
+   */
+  clearRain() {
+    const container = document.getElementById('rain-container');
+    if (container) container.innerHTML = '';
+    document.body.classList.remove('weather-rain');
+    this.stopLightning();
+  },
+
+  /**
+   * Update weather visual effects based on current encounter
+   * Called every renderGame()
+   */
+  updateWeatherEffects(gameState) {
+    const encounter = gameState.currentEncounter;
+    const encounterChanged = encounter !== this._currentEncounter;
+    this._currentEncounter = encounter;
+    const weather = gameState.day === 1 ? getWeatherCondition(encounter, true) : getWeatherCondition(encounter);
+    // Skip if same weather AND same encounter (no need to re-spawn)
+    if (weather === this._currentWeather && !encounterChanged) return;
+    this._currentWeather = weather;
+
+    if (weather) {
+      this.spawnRain(weather);
+      this.startLightning(weather);
+    } else {
+      this.clearRain();
+    }
+  },
+
+  /**
+   * Start periodic lightning flashes during rain
+   * @param {'light'|'heavy'} intensity
+   */
+  startLightning(intensity) {
+    this.stopLightning();
+    const cfg = CONFIG.ui.weather.lightning;
+    const scheduleNext = () => {
+      const minI = intensity === 'heavy' ? cfg.minInterval : cfg.minInterval + 2;
+      const maxI = intensity === 'heavy' ? cfg.maxInterval : cfg.maxInterval + 3;
+      const delay = (minI + Math.random() * (maxI - minI)) * 1000;
+      this._lightningInterval = setTimeout(() => {
+        this.triggerLightning();
+        scheduleNext();
+      }, delay);
+    };
+    this._lightningInterval = setTimeout(() => {
+      this.triggerLightning();
+      scheduleNext();
+    }, (2 + Math.random() * 4) * 1000);
+  },
+
+  /**
+   * Stop lightning flashes
+   */
+  stopLightning() {
+    if (this._lightningInterval) {
+      clearTimeout(this._lightningInterval);
+      this._lightningInterval = null;
+    }
+    const overlay = document.getElementById('lightning-overlay');
+    if (overlay) {
+      overlay.style.animation = '';
+      overlay.style.background = 'rgba(255, 255, 255, 0)';
+    }
+  },
+
+  /**
+   * Trigger a single lightning flash (one of three tiers)
+   */
+  triggerLightning() {
+    const overlay = document.getElementById('lightning-overlay');
+    if (!overlay) return;
+    const cfg = CONFIG.ui.weather.lightning;
+
+    const roll = Math.random();
+    let tier;
+    if (roll < cfg.thunderChance) {
+      tier = 'thunder';
+    } else if (roll < cfg.thunderChance + cfg.strikeChance) {
+      tier = 'strike';
+    } else {
+      tier = 'sheet';
+    }
+
+    overlay.style.animation = '';
+    void overlay.offsetWidth; // force reflow to reset animation
+
+    if (tier === 'sheet') {
+      overlay.style.setProperty('--flash-opacity', cfg.sheetOpacity);
+      overlay.style.animation = 'lightning-sheet 200ms ease-out forwards';
+    } else if (tier === 'strike') {
+      overlay.style.setProperty('--flash-opacity', cfg.strikeOpacity);
+      overlay.style.animation = 'lightning-strike 500ms ease-out forwards';
+    } else {
+      overlay.style.setProperty('--flash-opacity', cfg.strikeOpacity);
+      overlay.style.animation = 'lightning-strike 400ms ease-out forwards';
+      if (!window.matchMedia('(prefers-reduced-motion: reduce)').matches) {
+        const main = document.querySelector('main');
+        if (main) {
+          main.style.animation = 'lightning-shake 150ms ease-in-out';
+          setTimeout(() => { main.style.animation = ''; }, 150);
+        }
+      }
+    }
+  },
+
+  /**
    * Reset all visual overlays (for title/death screens)
    */
   resetVisualOverlays() {
     const overlay = document.getElementById('vignette-overlay');
     const glow = document.getElementById('hunter-glow');
     if (overlay) overlay.style.boxShadow = 'inset 0 0 150px rgba(0, 0, 0, 0)';
-    if (glow) glow.className = 'hunter-glow';
+    if (glow) {
+      glow.className = 'hunter-glow';
+      glow.style.boxShadow = 'inset 0 0 80px rgba(196, 69, 54, 0)';
+    }
     this.clearFireflies();
+    this.clearStars();
+    this.clearRain();
+    this.clearDust();
+    this.clearClouds();
+    this.updateSunRays(null, false);
+    const shimmer = document.querySelector('.situation-scroll');
+    if (shimmer) shimmer.classList.remove('heat-shimmer');
+    this._currentWeather = null;
+    this._currentEncounter = null;
     const gameScreen = document.getElementById('screen-game');
     if (gameScreen) gameScreen.style.filter = '';
   },
@@ -859,7 +1259,7 @@ const UI = {
       setTimeout(() => {
         btn.classList.remove('pending-reveal');
         btn.classList.add('reveal');
-      }, i * 250);
+      }, i * 120);
     });
   },
 
@@ -893,11 +1293,12 @@ const UI = {
       parts.push(`<span class="${cls}">${heat > 0 ? '+' : ''}${heat} heat</span>`);
     }
 
-    // Stamina (action + passive)
+    // Fatigue (inverted stamina: losing stamina = gaining fatigue)
     const stam = (effects.stamina || 0) + (passive.stamina || 0);
     if (stam !== 0) {
-      const cls = stam < 0 ? 'action-cost' : 'action-gain';
-      parts.push(`<span class="${cls}">${stam > 0 ? '+' : ''}${stam} stam</span>`);
+      const fatigue = -stam; // flip sign: stamina loss → fatigue gain
+      const cls = fatigue > 0 ? 'action-cost' : 'action-gain';
+      parts.push(`<span class="${cls}">${fatigue > 0 ? '+' : ''}${fatigue} fatigue</span>`);
     }
 
     // Thirst (action + passive)
@@ -995,6 +1396,13 @@ const UI = {
     this.showScreen('screen-death');
     document.body.classList.remove('night-mode');
     this.resetVisualOverlays();
+
+    // Build feedback mailto at runtime to prevent scraper harvesting
+    const fb = document.getElementById('feedback-email');
+    if (fb && !fb.dataset.set) {
+      fb.href = 'mai' + 'lto:' + 'ryan' + '@' + 'ryanpdlittle' + '.com';
+      fb.dataset.set = '1';
+    }
 
     // Remove results-visible class from previous death screen
     const deathContainer = document.querySelector('.death-container');

@@ -97,17 +97,6 @@ body::after {
   transition: opacity 2s ease;
   background:
     url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='0.04'/%3E%3C/svg%3E"),
-    /* Star-like dots */
-    radial-gradient(1px 1px at 20% 30%, rgba(200, 220, 255, 0.4), transparent),
-    radial-gradient(1px 1px at 40% 70%, rgba(200, 220, 255, 0.3), transparent),
-    radial-gradient(1px 1px at 60% 20%, rgba(200, 220, 255, 0.5), transparent),
-    radial-gradient(1px 1px at 80% 50%, rgba(200, 220, 255, 0.3), transparent),
-    radial-gradient(1px 1px at 15% 80%, rgba(200, 220, 255, 0.4), transparent),
-    radial-gradient(1px 1px at 70% 90%, rgba(200, 220, 255, 0.3), transparent),
-    radial-gradient(1px 1px at 90% 10%, rgba(200, 220, 255, 0.5), transparent),
-    radial-gradient(1px 1px at 50% 40%, rgba(200, 220, 255, 0.3), transparent),
-    radial-gradient(1px 1px at 30% 60%, rgba(200, 220, 255, 0.4), transparent),
-    radial-gradient(1px 1px at 85% 75%, rgba(200, 220, 255, 0.3), transparent),
     linear-gradient(175deg, #0d1420 0%, #0a0e18 40%, #0c1220 70%, #101828 100%);
 }
 
@@ -199,16 +188,59 @@ body.night-mode .night-bg {
   display: flex;
   flex-direction: column;
   align-items: center;
-  gap: 2rem;
+  gap: 1rem;
+}
+
+.title-logo-wrap {
+  position: relative;
+  display: inline-block;
+  max-width: 85%;
+  width: 100%;
+}
+
+.title-btn-start {
+  position: absolute;
+  bottom: 8%;
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 2;
+  background: none;
+  border: none;
+  padding: 0;
+  cursor: pointer;
+  opacity: 0;
+  animation: fade-in 0.8s ease 0.5s forwards;
+  transition: transform 0.2s ease, filter 0.2s ease;
+}
+
+.title-btn-start img {
+  display: block;
+  max-width: 380px;
+  width: 100%;
+  height: auto;
+  filter: drop-shadow(0 4px 12px rgba(0, 0, 0, 0.6));
+}
+
+.title-btn-start:hover {
+  transform: translateX(-50%) scale(1.05);
+}
+
+.title-btn-start:hover img {
+  filter: drop-shadow(0 4px 16px rgba(212, 136, 58, 0.5));
+}
+
+.title-btn-start:active {
+  transform: translateX(-50%) scale(0.98);
 }
 
 .logo {
-  max-width: 70%;
+  max-width: 100%;
   width: 100%;
   height: auto;
   filter: drop-shadow(0 0 20px rgba(212, 136, 58, 0.4));
   opacity: 0;
   animation: fade-in 1s ease 0.2s forwards;
+  display: block;
 }
 
 @keyframes fade-in {
@@ -228,9 +260,11 @@ body.night-mode .night-bg {
 
 .title-buttons {
   display: flex;
-  flex-direction: column;
+  flex-direction: row;
   gap: 0.8rem;
   align-items: center;
+  justify-content: center;
+  flex-wrap: wrap;
 }
 
 .title-btn {
@@ -256,10 +290,9 @@ body.night-mode .night-bg {
   animation: fade-in 0.8s ease forwards;
 }
 
-.title-btn:nth-child(1) { animation-delay: 0.6s; }
-.title-btn:nth-child(2) { animation-delay: 0.9s; }
-.title-btn:nth-child(3) { animation-delay: 1.2s; }
-.title-btn:nth-child(4) { animation-delay: 1.5s; }
+.title-buttons .title-btn:nth-child(1) { animation-delay: 0.8s; }
+.title-buttons .title-btn:nth-child(2) { animation-delay: 1.0s; }
+.title-buttons .title-btn:nth-child(3) { animation-delay: 1.2s; }
 
 .title-btn:hover {
   background: rgba(74, 53, 38, 0.95);
@@ -277,35 +310,6 @@ body.night-mode .night-bg {
   box-shadow:
     inset 0 2px 4px rgba(0, 0, 0, 0.5),
     0 1px 2px rgba(0, 0, 0, 0.4);
-}
-
-.title-btn-primary {
-  color: var(--text-primary);
-  border-color: var(--text-primary);
-  font-size: 1.15em;
-  font-weight: bold;
-  padding: 1.1rem 2.2rem;
-  background: rgba(42, 26, 14, 0.9);
-  box-shadow:
-    inset 0 1px 0 rgba(255, 255, 255, 0.08),
-    inset 0 -1px 0 rgba(0, 0, 0, 0.3),
-    0 0 15px rgba(212, 136, 58, 0.15),
-    0 2px 8px rgba(0, 0, 0, 0.5);
-  animation: fade-in 0.8s ease 0.6s forwards, btn-glow 3s ease-in-out 2s infinite alternate;
-}
-
-@keyframes btn-glow {
-  0% { box-shadow: inset 0 1px 0 rgba(255,255,255,0.08), inset 0 -1px 0 rgba(0,0,0,0.3), 0 0 15px rgba(212,136,58,0.15), 0 2px 8px rgba(0,0,0,0.5); }
-  100% { box-shadow: inset 0 1px 0 rgba(255,255,255,0.08), inset 0 -1px 0 rgba(0,0,0,0.3), 0 0 25px rgba(212,136,58,0.3), 0 2px 12px rgba(0,0,0,0.5); }
-}
-
-.title-btn-primary:hover {
-  background: rgba(74, 53, 38, 1);
-  box-shadow:
-    inset 0 1px 0 rgba(255, 255, 255, 0.1),
-    inset 0 -1px 0 rgba(0, 0, 0, 0.3),
-    0 0 30px rgba(212, 136, 58, 0.35),
-    0 6px 16px rgba(0, 0, 0, 0.6);
 }
 
 /* ===== CREATOR CREDIT ===== */
@@ -386,18 +390,17 @@ body.night-mode .night-bg {
 
 /* ===== GAME TOP: VITALS + SIDEBAR ===== */
 .game-top {
-  display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: 0;
+  display: flex;
+  flex-direction: column;
   border-bottom: 2px solid var(--border-color);
 }
 
 .vitals-grid {
   display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: 0.8rem;
-  padding: 1.2rem 1.5rem;
-  border-right: 1px solid var(--border-color);
+  grid-template-columns: repeat(4, 1fr);
+  gap: 1rem;
+  padding: 1rem 1.5rem;
+  border-bottom: 1px solid var(--border-color);
 }
 
 /* ===== STATUS BARS ===== */
@@ -412,22 +415,31 @@ body.night-mode .night-bg {
 }
 
 .status-bar-container.critical .status-value {
-  color: var(--text-danger);
+  color: #fff;
 }
 
 .status-label {
   font-family: 'Courier New', monospace;
   font-weight: bold;
   color: var(--text-secondary);
+  text-align: center;
   font-size: 0.95em;
-  display: flex;
-  justify-content: space-between;
 }
 
 .status-value {
+  position: absolute;
+  top: 50%;
+  transform: translateY(-50%);
   font-family: 'Courier New', monospace;
   font-weight: bold;
-  font-size: 0.95em;
+  font-size: 0.8em;
+  color: #fff;
+  text-shadow: 0 1px 3px rgba(0, 0, 0, 0.8);
+  z-index: 2;
+  pointer-events: none;
+  white-space: nowrap;
+  left: 4px;
+  transition: left 0.5s cubic-bezier(0.4, 0, 0.2, 1);
 }
 
 .status-bar-track {
@@ -483,12 +495,13 @@ body.night-mode .night-bg {
   transition: width 1.5s ease-in-out, background-color 1.5s ease-in-out;
 }
 
+.status-bar-fill.transitioning ~ .status-value {
+  transition: left 1.5s ease-in-out;
+}
+
 /* ===== GAME SIDEBAR ===== */
 .game-sidebar {
-  padding: 1.2rem 1.5rem;
-  display: flex;
-  flex-direction: column;
-  gap: 0.8rem;
+  padding: 0.8rem 1.5rem;
 }
 
 /* ===== HUNT INFO ===== */
@@ -498,14 +511,18 @@ body.night-mode .night-bg {
   background: rgba(0, 0, 0, 0.25);
   border: 1px solid rgba(74, 53, 38, 0.4);
   border-radius: 2px;
-  padding: 1rem 1.2rem;
+  padding: 0.8rem 1.2rem;
+  display: flex;
+  align-items: center;
+  gap: 1.5rem;
+  flex-wrap: wrap;
 }
 
 .hunt-distance {
   font-weight: bold;
   color: var(--text-danger);
-  margin-bottom: 0.5rem;
   font-size: 1.1em;
+  white-space: nowrap;
 }
 
 .hunt-distance.caution {
@@ -529,113 +546,160 @@ body.night-mode .night-bg {
   }
 }
 
-/* ===== HUNTER DISTANCE TRACKER ===== */
-.hunter-tracker {
-  border-bottom: 1px solid var(--border-color);
-}
-
-.hunter-tracker-bar {
+/* ===== PURSUIT TRAIL (inside hunt-info) ===== */
+.pursuit-trail {
   position: relative;
-  height: 10px;
-  background: rgba(0, 0, 0, 0.5);
-  border-bottom: 1px solid var(--border-color);
-  overflow: hidden;
+  height: 50px;
+  width: 100%;
+  flex-basis: 100%;
+  border-top: 1px solid rgba(74, 53, 38, 0.3);
+  padding-top: 0.3rem;
+  overflow: visible;
 }
 
-.hunter-tracker-fill {
+/* Dotted path connecting cat to hunters — length is dynamic */
+.pursuit-trail-path {
   position: absolute;
-  top: 0;
-  right: 0;
-  height: 100%;
+  top: 65%;
+  height: 0;
+  border-top: 2px dotted var(--text-secondary);
+  opacity: 0.5;
   transition: width 0.8s cubic-bezier(0.4, 0, 0.2, 1),
-              background 0.8s ease;
+              border-color 0.5s ease;
 }
 
-/* Fill color based on proximity */
-.hunter-tracker.safe .hunter-tracker-fill {
-  background: linear-gradient(to left, rgba(74, 124, 63, 0.5), rgba(74, 124, 63, 0.15));
+.pursuit-trail-path.trail-safe {
+  border-color: var(--text-safe);
 }
 
-.hunter-tracker.caution .hunter-tracker-fill {
-  background: linear-gradient(to left, rgba(212, 136, 58, 0.6), rgba(212, 136, 58, 0.15));
+.pursuit-trail-path.trail-caution {
+  border-color: #c49a3a;
+  opacity: 0.6;
 }
 
-.hunter-tracker.danger .hunter-tracker-fill {
-  background: linear-gradient(to left, rgba(196, 69, 54, 0.6), rgba(196, 69, 54, 0.2));
+.pursuit-trail-path.trail-danger {
+  border-color: var(--text-danger);
+  opacity: 0.7;
 }
 
-.hunter-tracker.critical .hunter-tracker-fill {
-  background: linear-gradient(to left, rgba(196, 69, 54, 0.8), rgba(196, 69, 54, 0.35));
-  animation: tracker-fill-pulse 1.5s ease-in-out infinite;
+.pursuit-trail-path.trail-critical {
+  border-color: #ff6b5b;
+  opacity: 0.9;
 }
 
-.hunter-tracker.tracking .hunter-tracker-fill {
-  background: linear-gradient(to left, rgba(107, 140, 174, 0.4), rgba(107, 140, 174, 0.1));
+.pursuit-trail-path.trail-tracking {
+  border-color: var(--text-night);
+  opacity: 0.3;
 }
 
-@keyframes tracker-fill-pulse {
-  0%, 100% { opacity: 1; }
-  50% { opacity: 0.5; }
+/* Pixel art icons in pursuit trail */
+.pursuit-icon {
+  height: 28px;
+  width: auto;
+  image-rendering: pixelated;
+  display: block;
 }
 
-.hunter-tracker-labels {
+.pursuit-trail-cat .pursuit-icon {
+  height: 14px;
+}
+
+/* Cat marker — moves based on distance */
+.pursuit-trail-cat {
+  position: absolute;
+  top: 65%;
+  transform: translate(-50%, -50%);
+  z-index: 1;
+  transition: left 0.8s cubic-bezier(0.4, 0, 0.2, 1);
   display: flex;
-  justify-content: space-between;
+  flex-direction: column;
   align-items: center;
-  padding: 4px 12px;
+}
+
+/* Subtitle labels under markers */
+.pursuit-label {
+  display: block;
+  font-family: 'Courier New', monospace;
+  font-size: 0.6em;
+  color: var(--text-secondary);
+  text-align: center;
+  margin-top: 1px;
+  white-space: nowrap;
+}
+
+/* Distance label — positioned between cat and hunters */
+.pursuit-trail-distance {
+  position: absolute;
+  top: 65%;
+  transform: translate(-50%, -50%);
   font-family: 'Courier New', monospace;
   font-size: 0.75em;
-}
-
-.tracker-label-you {
-  color: var(--text-safe);
-}
-
-.tracker-label-dist {
   color: var(--text-secondary);
-  font-weight: bold;
-  font-size: 1.2em;
-  letter-spacing: 0.5px;
+  white-space: nowrap;
+  transition: left 0.5s ease;
 }
 
-.hunter-tracker.critical .tracker-label-dist {
-  color: var(--text-danger);
-}
-
-.hunter-tracker.danger .tracker-label-dist {
-  color: var(--text-danger);
-}
-
-.hunter-tracker.caution .tracker-label-dist {
+.pursuit-trail-distance.trail-caution {
   color: #c49a3a;
 }
 
-.hunter-tracker.tracking .tracker-label-dist {
-  color: var(--text-night);
-}
-
-.tracker-label-them {
+.pursuit-trail-distance.trail-danger {
   color: var(--text-danger);
 }
 
-.hunter-tracker.tracking .tracker-label-them {
+.pursuit-trail-distance.trail-critical {
+  color: #ff6b5b;
+}
+
+.pursuit-trail-distance.trail-tracking {
   color: var(--text-night);
   opacity: 0.5;
+}
+
+/* Hunter marker — positioned based on distance */
+.pursuit-trail-hunters {
+  position: absolute;
+  top: 65%;
+  transform: translate(-50%, -50%);
+  z-index: 1;
+  transition: left 0.8s cubic-bezier(0.4, 0, 0.2, 1);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+
+/* Proximity effects for hunter marker */
+.pursuit-trail-hunters.trail-danger {
+  animation: trail-danger-pulse 2s ease-in-out infinite;
+}
+
+.pursuit-trail-hunters.trail-critical {
+  animation: trail-danger-pulse 1s ease-in-out infinite;
+}
+
+.pursuit-trail-hunters.trail-tracking {
+  opacity: 0.5;
+}
+
+@keyframes trail-danger-pulse {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.5; }
 }
 
 .hunt-flavor {
   color: var(--text-secondary);
   font-style: italic;
   font-size: 0.95em;
-  margin-bottom: 0.6rem;
   line-height: 1.5;
+  flex: 1;
+  min-width: 200px;
+  text-align: center;
 }
 
 .distance-covered {
   color: var(--text-safe);
-  font-size: 1em;
-  padding-top: 0.5rem;
-  border-top: 1px solid rgba(74, 53, 38, 0.3);
+  font-size: 0.95em;
+  white-space: nowrap;
 }
 
 /* ===== TERRAIN PALETTE ===== */
@@ -650,6 +714,7 @@ body.night-mode .night-bg {
   padding: 1.5rem 3rem;
   background: var(--terrain-tint);
   border-left: 3px solid var(--terrain-accent, transparent);
+  border-right: 3px solid var(--terrain-accent, transparent);
   transition: opacity 0.25s ease, background 1s ease, border-color 1s ease;
 }
 
@@ -990,6 +1055,35 @@ body.night-mode .night-bg {
 .death-btn.primary:hover {
   background: var(--text-primary);
   color: var(--bg-darker);
+}
+
+.death-btn-img {
+  background: none;
+  border: none;
+  padding: 0;
+  cursor: pointer;
+  transition: transform 0.2s ease, filter 0.2s ease;
+  align-self: center;
+}
+
+.death-btn-img img {
+  display: block;
+  max-width: 260px;
+  width: 100%;
+  height: auto;
+  filter: drop-shadow(0 4px 12px rgba(0, 0, 0, 0.6));
+}
+
+.death-btn-img:hover {
+  transform: scale(1.05);
+}
+
+.death-btn-img:hover img {
+  filter: drop-shadow(0 4px 16px rgba(212, 136, 58, 0.5));
+}
+
+.death-btn-img:active {
+  transform: scale(0.98);
 }
 
 /* ===== LEADERBOARD SCREEN ===== */
@@ -1367,17 +1461,12 @@ body.night-mode .night-bg {
   }
 
   /* Stack vitals and sidebar vertically on tablet */
-  .game-top {
-    grid-template-columns: 1fr;
-  }
-
   .vitals-grid {
-    border-right: none;
-    border-bottom: 1px solid var(--border-color);
+    grid-template-columns: repeat(2, 1fr);
   }
 
-  .logo {
-    max-width: 70%;
+  .title-logo-wrap {
+    max-width: 75%;
   }
 
   .phase-indicator {
@@ -1399,8 +1488,12 @@ body.night-mode .night-bg {
     padding: 10px;
   }
 
-  .logo {
-    max-width: 85%;
+  .title-logo-wrap {
+    max-width: 90%;
+  }
+
+  .title-btn-start img {
+    max-width: 200px;
   }
 
   .title-btn,
@@ -1425,7 +1518,7 @@ body.night-mode .night-bg {
   }
 
   .status-value {
-    font-size: 0.75em;
+    font-size: 0.65em;
   }
 
   .status-bar-track {
@@ -1538,26 +1631,266 @@ body.night-mode .particle-container {
 
 .firefly {
   position: absolute;
-  width: 5px;
-  height: 5px;
-  background: #f0d8a0;
-  border-radius: 50%;
-  box-shadow: 0 0 10px 4px rgba(240, 216, 160, 0.7),
-              0 0 20px 8px rgba(212, 165, 116, 0.3);
+  width: 27px;
+  height: 24px;
+  background-size: contain;
+  background-repeat: no-repeat;
+  background-position: center;
+  image-rendering: pixelated;
+  filter: drop-shadow(0 0 6px rgba(240, 216, 160, 0.6))
+          drop-shadow(0 0 12px rgba(212, 165, 116, 0.25));
   animation: firefly-float var(--duration) ease-in-out infinite,
              firefly-glow var(--glow-duration) ease-in-out infinite;
 }
 
 @keyframes firefly-float {
-  0%, 100% { transform: translate(0, 0); }
-  25% { transform: translate(var(--dx1), var(--dy1)); }
-  50% { transform: translate(var(--dx2), var(--dy2)); }
-  75% { transform: translate(var(--dx3), var(--dy3)); }
+  0%, 100% { transform: translate(0, 0) var(--flip); }
+  25% { transform: translate(var(--dx1), var(--dy1)) var(--flip); }
+  50% { transform: translate(var(--dx2), var(--dy2)) var(--flip); }
+  75% { transform: translate(var(--dx3), var(--dy3)) var(--flip); }
 }
 
 @keyframes firefly-glow {
-  0%, 100% { opacity: 0.3; }
+  0%, 100% { opacity: 0.4; }
   50% { opacity: 1; }
+}
+
+/* ===== DYNAMIC STAR FIELD ===== */
+.star-container {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  pointer-events: none;
+  z-index: -1;
+  opacity: 0;
+  transition: opacity 2s ease;
+}
+
+body.night-mode .star-container {
+  opacity: 1;
+}
+
+body.night-mode.weather-rain .star-container {
+  opacity: 0.3;
+}
+
+.star {
+  position: absolute;
+  border-radius: 50%;
+  background: rgba(200, 220, 255, 0.8);
+}
+
+.star.bright {
+  box-shadow: 0 0 3px rgba(200, 220, 255, 0.6),
+              0 0 6px rgba(200, 220, 255, 0.3);
+}
+
+.star {
+  animation: star-drift 60s linear infinite;
+}
+
+/* .star.twinkle animation set inline via JS */
+
+@keyframes star-drift {
+  0% { transform: translateX(0); }
+  100% { transform: translateX(-30px); }
+}
+
+@keyframes star-twinkle {
+  0%, 100% { opacity: var(--star-base-opacity); }
+  50% { opacity: calc(var(--star-base-opacity) * 0.3); }
+}
+
+/* ===== DAY ATMOSPHERE: DUST ===== */
+.dust-container {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  pointer-events: none;
+  z-index: 1;
+  overflow: hidden;
+}
+
+body.night-mode .dust-container {
+  opacity: 0;
+  transition: opacity 2s ease;
+}
+
+.dust-mote {
+  position: absolute;
+  border-radius: 50%;
+  background: rgba(200, 180, 140, 0.4);
+}
+
+@keyframes dust-float {
+  0% { transform: translate(0, 0); opacity: 0; }
+  15% { opacity: var(--dust-opacity); }
+  85% { opacity: var(--dust-opacity); }
+  100% { transform: translate(var(--dust-dx), var(--dust-dy)); opacity: 0; }
+}
+
+/* ===== DAY ATMOSPHERE: CLOUDS ===== */
+.cloud-container {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  pointer-events: none;
+  z-index: 1;
+  overflow: hidden;
+}
+
+body.night-mode .cloud-container {
+  opacity: 0;
+  transition: opacity 2s ease;
+}
+
+.cloud-shadow {
+  position: absolute;
+  border-radius: 50%;
+  background: radial-gradient(ellipse, rgba(0, 0, 0, 0.08) 0%, transparent 70%);
+  pointer-events: none;
+}
+
+@keyframes cloud-drift {
+  0% { transform: translateX(-100%); }
+  100% { transform: translateX(calc(100vw + 100%)); }
+}
+
+/* ===== DAY ATMOSPHERE: SUN RAYS ===== */
+.sun-rays {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  pointer-events: none;
+  z-index: 1;
+  opacity: 0;
+  transition: opacity 2s ease;
+  background:
+    linear-gradient(135deg, rgba(255, 220, 140, 0.06) 0%, transparent 40%),
+    linear-gradient(125deg, rgba(255, 200, 100, 0.04) 0%, transparent 35%),
+    linear-gradient(145deg, rgba(255, 240, 180, 0.03) 0%, transparent 30%);
+}
+
+.sun-rays.active {
+  opacity: 1;
+}
+
+body.night-mode .sun-rays {
+  opacity: 0 !important;
+}
+
+/* ===== DAY ATMOSPHERE: HEAT SHIMMER ===== */
+.heat-shimmer {
+  animation: heat-shimmer-wave 3s ease-in-out infinite;
+}
+
+@keyframes heat-shimmer-wave {
+  0%, 100% { filter: none; }
+  25% { filter: blur(0.3px) brightness(1.01); }
+  50% { filter: none; }
+  75% { filter: blur(0.4px) brightness(1.02); }
+}
+
+/* ===== RAIN PARTICLES ===== */
+.rain-container {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  pointer-events: none;
+  z-index: 2;
+  overflow: hidden;
+}
+
+.rain-overlay-dim {
+  position: fixed;
+  inset: 0;
+  pointer-events: none;
+  z-index: -1;
+  background: rgba(0, 0, 0, 0);
+  transition: background 1.5s ease;
+}
+
+body.weather-rain .rain-overlay-dim {
+  background: rgba(0, 0, 0, 0.12);
+}
+
+.raindrop {
+  position: absolute;
+  top: -20px;
+  width: 2px;
+  background: linear-gradient(to bottom, transparent 0%, rgba(200, 215, 230, 0.8) 40%, rgba(180, 200, 220, 0.9) 100%);
+  /* animation set inline via JS */
+}
+
+body.night-mode .raindrop {
+  background: linear-gradient(to bottom, transparent 0%, rgba(160, 185, 220, 0.7) 40%, rgba(140, 170, 210, 0.85) 100%);
+}
+
+@keyframes rain-fall {
+  0% {
+    transform: translateY(0) translateX(0);
+    opacity: 0;
+  }
+  10% {
+    opacity: 1;
+  }
+  90% {
+    opacity: 1;
+  }
+  100% {
+    transform: translateY(calc(100vh + 20px)) translateX(var(--rain-drift));
+    opacity: 0;
+  }
+}
+
+/* ===== LIGHTNING FLASH ===== */
+.lightning-overlay {
+  position: fixed;
+  inset: 0;
+  pointer-events: none;
+  z-index: 5;
+  background: rgba(255, 255, 255, 0);
+  transition: none;
+}
+
+@keyframes lightning-sheet {
+  0% { background: rgba(255, 255, 255, var(--flash-opacity)); }
+  100% { background: rgba(255, 255, 255, 0); }
+}
+
+@keyframes lightning-strike {
+  0% { background: rgba(255, 255, 255, var(--flash-opacity)); }
+  40% { background: rgba(255, 255, 255, 0); }
+  50% { background: rgba(0, 0, 0, 0.15); }
+  100% { background: rgba(0, 0, 0, 0); }
+}
+
+@keyframes lightning-shake {
+  0%, 100% { transform: translate(0, 0); }
+  25% { transform: translate(-2px, 1px); }
+  50% { transform: translate(2px, -1px); }
+  75% { transform: translate(-1px, 2px); }
+}
+
+/* ===== REDUCED MOTION ===== */
+@media (prefers-reduced-motion: reduce) {
+  .star.twinkle {
+    animation: none;
+  }
+  .raindrop {
+    animation: none;
+    opacity: 0.3;
+  }
 }
 
 /* ===== VERSION BADGE ===== */
@@ -1632,29 +1965,4 @@ body.night-mode .particle-container {
   top: 0;
 }
 
-/* ===== ACCESSIBILITY: REDUCED MOTION ===== */
-/* Game controls its own animation preferences via Options.
-   Only suppress non-essential decorative motion here. */
-@media (prefers-reduced-motion: reduce) {
-  .night-bg {
-    transition: none;
-  }
-
-  .status-bar-container.shaking {
-    animation: none;
-  }
-
-  .hunter-glow.glow-pulse {
-    animation: none;
-  }
-
-  .firefly {
-    animation: none;
-    display: none;
-  }
-
-  .hunter-tracker.critical .hunter-tracker-fill {
-    animation: none;
-  }
-}
 
