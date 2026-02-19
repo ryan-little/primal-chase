@@ -477,6 +477,9 @@ const UI = {
       if (!this._firefliesSpawned && Math.random() < CONFIG.ui.weather.fireflies.chance) {
         this.spawnFireflies();
       }
+      // Clear inline opacity override so CSS night-mode class can fade in
+      const nightBg = document.querySelector('.night-bg');
+      if (nightBg) nightBg.style.opacity = '';
       document.body.classList.add('night-mode');
     }
   },
@@ -1344,6 +1347,15 @@ const UI = {
     this._currentEncounter = null;
     const gameScreen = document.getElementById('screen-game');
     if (gameScreen) gameScreen.style.filter = '';
+    // Force night overlay invisible (belt-and-suspenders — CSS class should handle this,
+    // but mobile Safari can miss transitions during heavy DOM manipulation)
+    const nightBg = document.querySelector('.night-bg');
+    if (nightBg) {
+      nightBg.style.transition = 'none';
+      nightBg.style.opacity = '0';
+      nightBg.offsetHeight;
+      nightBg.style.transition = '';
+    }
   },
 
   /**
