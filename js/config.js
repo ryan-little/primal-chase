@@ -75,7 +75,7 @@ const CONFIG = {
     },
     visualEscalation: {
       stages: [
-        { threshold: 0.4,  vignette: 0.15, desaturation: 0 },
+        { threshold: 0.5,  vignette: 0.15, desaturation: 0 },
         { threshold: 0.55, vignette: 0.3,  desaturation: 0.1 },
         { threshold: 0.7,  vignette: 0.45, desaturation: 0.2 },
         { threshold: 0.85, vignette: 0.6,  desaturation: 0.35 }
@@ -92,7 +92,7 @@ const CONFIG = {
         chance: 0.2
       },
       rain: {
-        randomChance: 0.15,
+        randomChance: 0.20,
         lightCount: [50, 120],
         heavyCount: [150, 300],
         angle: [5, 20],
@@ -108,8 +108,16 @@ const CONFIG = {
         strikeOpacity: 0.3
       },
       dust: {
-        baseCount: 15,
+        baseCount: 70,
         terrainMultiplier: { open: 2.5, rocky: 2, water: 0.3, dense: 0.5, shelter: 0.5 }
+      },
+      pollen: {
+        baseCount: 30,
+        terrainMultiplier: { open: 2, dense: 1.5, shelter: 1, rocky: 0.3, water: 0.3 }
+      },
+      insects: {
+        baseCount: 20,
+        terrainMultiplier: { water: 2, open: 1.5, dense: 1, rocky: 0.5, shelter: 0.5 }
       },
       clouds: {
         chance: 0.4,

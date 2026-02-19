@@ -713,8 +713,8 @@ body.night-mode .night-bg {
 .situation-scroll {
   padding: 1.5rem 3rem;
   background: var(--terrain-tint);
-  border-left: 3px solid var(--terrain-accent, transparent);
-  border-right: 3px solid var(--terrain-accent, transparent);
+  border-left: 4px solid var(--terrain-accent, transparent);
+  border-right: 4px solid var(--terrain-accent, transparent);
   transition: opacity 0.25s ease, background 1s ease, border-color 1s ease;
 }
 
@@ -887,17 +887,17 @@ body.night-mode .night-bg {
 
 .action-cost {
   color: var(--text-danger);
-  background: rgba(196, 69, 54, 0.15);
+  background: rgba(196, 69, 54, 0.25);
 }
 
 .action-gain {
   color: var(--text-safe);
-  background: rgba(74, 124, 63, 0.15);
+  background: rgba(74, 124, 63, 0.25);
 }
 
 .action-warning {
   color: #c49a3a;
-  background: rgba(212, 136, 58, 0.15);
+  background: rgba(212, 136, 58, 0.25);
 }
 
 .action-separator {
@@ -1530,7 +1530,7 @@ body.night-mode .night-bg {
   }
 
   .hunt-info {
-    font-size: 0.8em;
+    font-size: 0.85em;
   }
 
   .situation-scroll {
@@ -1543,7 +1543,7 @@ body.night-mode .night-bg {
 
   .situation-text,
   .monologue {
-    font-size: 0.95em;
+    font-size: 1em;
   }
 
   .action-buttons {
@@ -1623,6 +1623,7 @@ body.night-mode .night-bg {
   z-index: 1;
   opacity: 0;
   transition: opacity 2s ease;
+  contain: strict;
 }
 
 body.night-mode .particle-container {
@@ -1666,6 +1667,7 @@ body.night-mode .particle-container {
   z-index: -1;
   opacity: 0;
   transition: opacity 2s ease;
+  contain: strict;
 }
 
 body.night-mode .star-container {
@@ -1680,6 +1682,7 @@ body.night-mode.weather-rain .star-container {
   position: absolute;
   border-radius: 50%;
   background: rgba(200, 220, 255, 0.8);
+  will-change: transform;
 }
 
 .star.bright {
@@ -1687,15 +1690,11 @@ body.night-mode.weather-rain .star-container {
               0 0 6px rgba(200, 220, 255, 0.3);
 }
 
-.star {
-  animation: star-drift 60s linear infinite;
-}
-
-/* .star.twinkle animation set inline via JS */
+/* .star drift + twinkle animations set inline via JS */
 
 @keyframes star-drift {
-  0% { transform: translateX(0); }
-  100% { transform: translateX(-30px); }
+  0% { transform: translate(0, 0); }
+  100% { transform: translate(-120px, 30px); }
 }
 
 @keyframes star-twinkle {
@@ -1713,6 +1712,7 @@ body.night-mode.weather-rain .star-container {
   pointer-events: none;
   z-index: 1;
   overflow: hidden;
+  contain: strict;
 }
 
 body.night-mode .dust-container {
@@ -1720,10 +1720,16 @@ body.night-mode .dust-container {
   transition: opacity 2s ease;
 }
 
+body.weather-rain .dust-container {
+  opacity: 0;
+  transition: opacity 1s ease;
+}
+
 .dust-mote {
   position: absolute;
-  border-radius: 50%;
-  background: rgba(200, 180, 140, 0.4);
+  border-radius: 40%;
+  background: rgba(180, 150, 100, 0.35);
+  will-change: transform;
 }
 
 @keyframes dust-float {
@@ -1731,6 +1737,92 @@ body.night-mode .dust-container {
   15% { opacity: var(--dust-opacity); }
   85% { opacity: var(--dust-opacity); }
   100% { transform: translate(var(--dust-dx), var(--dust-dy)); opacity: 0; }
+}
+
+/* ===== DAY ATMOSPHERE: POLLEN ===== */
+.pollen-container {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  pointer-events: none;
+  z-index: 1;
+  overflow: hidden;
+  contain: strict;
+}
+
+body.night-mode .pollen-container {
+  opacity: 0;
+  transition: opacity 2s ease;
+}
+
+body.weather-rain .pollen-container {
+  opacity: 0;
+  transition: opacity 1s ease;
+}
+
+.pollen-seed {
+  position: absolute;
+  border-radius: 50%;
+  background: radial-gradient(circle, rgba(255, 240, 180, 0.6) 0%, rgba(255, 220, 120, 0.2) 70%, transparent 100%);
+  will-change: transform;
+}
+
+@keyframes pollen-rise {
+  0% { transform: translate(0, 0); opacity: 0; }
+  10% { opacity: var(--pollen-opacity); }
+  90% { opacity: var(--pollen-opacity); }
+  100% { transform: translate(var(--pollen-dx), var(--pollen-dy)); opacity: 0; }
+}
+
+/* ===== DAY ATMOSPHERE: INSECTS ===== */
+.insect-container {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  pointer-events: none;
+  z-index: 1;
+  overflow: hidden;
+  contain: strict;
+}
+
+body.night-mode .insect-container {
+  opacity: 0;
+  transition: opacity 2s ease;
+}
+
+body.weather-rain .insect-container {
+  opacity: 0;
+  transition: opacity 1s ease;
+}
+
+.insect {
+  position: absolute;
+  width: 3px;
+  height: 3px;
+  border-radius: 50%;
+  background: rgba(255, 230, 160, 0.85);
+  box-shadow: 0 0 4px rgba(255, 210, 100, 0.5);
+  will-change: transform;
+}
+
+@keyframes insect-drift {
+  0% { transform: translate(0, 0); }
+  20% { transform: translate(var(--i-x1), var(--i-y1)); }
+  40% { transform: translate(var(--i-x2), var(--i-y2)); }
+  60% { transform: translate(var(--i-x3), var(--i-y3)); }
+  80% { transform: translate(var(--i-x4), var(--i-y4)); }
+  100% { transform: translate(0, 0); }
+}
+
+@keyframes insect-jitter {
+  0%, 100% { margin-left: 0; margin-top: 0; }
+  25% { margin-left: 3px; margin-top: -2px; }
+  50% { margin-left: -2px; margin-top: 3px; }
+  75% { margin-left: 2px; margin-top: 1px; }
 }
 
 /* ===== DAY ATMOSPHERE: CLOUDS ===== */
@@ -1743,6 +1835,7 @@ body.night-mode .dust-container {
   pointer-events: none;
   z-index: 1;
   overflow: hidden;
+  contain: strict;
 }
 
 body.night-mode .cloud-container {
@@ -1750,11 +1843,17 @@ body.night-mode .cloud-container {
   transition: opacity 2s ease;
 }
 
+body.weather-rain .cloud-container {
+  opacity: 0;
+  transition: opacity 1s ease;
+}
+
 .cloud-shadow {
   position: absolute;
   border-radius: 50%;
   background: radial-gradient(ellipse, rgba(0, 0, 0, 0.08) 0%, transparent 70%);
   pointer-events: none;
+  will-change: transform;
 }
 
 @keyframes cloud-drift {
@@ -1774,9 +1873,9 @@ body.night-mode .cloud-container {
   opacity: 0;
   transition: opacity 2s ease;
   background:
-    linear-gradient(135deg, rgba(255, 220, 140, 0.06) 0%, transparent 40%),
-    linear-gradient(125deg, rgba(255, 200, 100, 0.04) 0%, transparent 35%),
-    linear-gradient(145deg, rgba(255, 240, 180, 0.03) 0%, transparent 30%);
+    linear-gradient(135deg, rgba(255, 220, 140, 0.15) 0%, transparent 40%),
+    linear-gradient(125deg, rgba(255, 200, 100, 0.12) 0%, transparent 35%),
+    linear-gradient(145deg, rgba(255, 240, 180, 0.08) 0%, transparent 30%);
 }
 
 .sun-rays.active {
@@ -1784,6 +1883,10 @@ body.night-mode .cloud-container {
 }
 
 body.night-mode .sun-rays {
+  opacity: 0 !important;
+}
+
+body.weather-rain .sun-rays {
   opacity: 0 !important;
 }
 
@@ -1809,19 +1912,20 @@ body.night-mode .sun-rays {
   pointer-events: none;
   z-index: 2;
   overflow: hidden;
+  contain: strict;
 }
 
 .rain-overlay-dim {
   position: fixed;
   inset: 0;
   pointer-events: none;
-  z-index: -1;
+  z-index: 0;
   background: rgba(0, 0, 0, 0);
   transition: background 1.5s ease;
 }
 
 body.weather-rain .rain-overlay-dim {
-  background: rgba(0, 0, 0, 0.12);
+  background: rgba(0, 0, 0, 0.2);
 }
 
 .raindrop {
@@ -1829,6 +1933,7 @@ body.weather-rain .rain-overlay-dim {
   top: -20px;
   width: 2px;
   background: linear-gradient(to bottom, transparent 0%, rgba(200, 215, 230, 0.8) 40%, rgba(180, 200, 220, 0.9) 100%);
+  will-change: transform;
   /* animation set inline via JS */
 }
 

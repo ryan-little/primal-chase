@@ -1685,14 +1685,16 @@ const Encounters = {
     const actions = [];
     for (const choice of encounter.choices) {
       if (choice.effects === null) {
-        // This is a "use standard action" choice
+        // This is a "use standard action" choice — map to CONFIG action or fall back to trot
         const standardKey = choice.key;
-        if (CONFIG.actions[gameState.phase] && CONFIG.actions[gameState.phase][standardKey]) {
+        const phaseActions = CONFIG.actions[gameState.phase] || {};
+        const effects = phaseActions[standardKey] || phaseActions['trot'];
+        if (effects) {
           actions.push({
             key: standardKey,
             name: choice.name,
             description: choice.description,
-            effects: CONFIG.actions[gameState.phase][standardKey],
+            effects: effects,
             isStandard: true
           });
         }

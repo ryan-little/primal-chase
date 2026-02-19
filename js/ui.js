@@ -103,6 +103,13 @@ const UI = {
   _currentWeather: null,
   _currentEncounter: null,
   _lightningInterval: null,
+  _starsSpawned: false,
+  _cloudsSpawned: false,
+  _firefliesSpawned: false,
+  _insectsSpawned: false,
+  _pollenSpawned: false,
+  _lastVignetteShadow: null,
+  _lastGlowShadow: null,
 
   /**
    * Show a specific screen, hide all others
@@ -437,7 +444,13 @@ const UI = {
     // Toggle night mode on body and particles
     if (isDay) {
       document.body.classList.remove('night-mode');
-      this.spawnClouds();
+      // Reset spawn guards immediately so next night gets fresh rolls
+      this._starsSpawned = false;
+      this._firefliesSpawned = false;
+      if (!this._cloudsSpawned) {
+        this.spawnClouds();
+      }
+      // Delay DOM cleanup so CSS opacity fade finishes before removing elements
       setTimeout(() => {
         if (document.body.classList.contains('night-mode') === false) {
           this.clearFireflies();
@@ -446,8 +459,11 @@ const UI = {
       }, 2000);
     } else {
       this.clearClouds();
-      this.spawnStars();
-      if (Math.random() < CONFIG.ui.weather.fireflies.chance) {
+      this._cloudsSpawned = false;
+      if (!this._starsSpawned) {
+        this.spawnStars();
+      }
+      if (!this._firefliesSpawned && Math.random() < CONFIG.ui.weather.fireflies.chance) {
         this.spawnFireflies();
       }
       document.body.classList.add('night-mode');
@@ -714,14 +730,22 @@ const UI = {
       const v = stage.vignette;
       // Wider spread + stronger opacity for visible vignette
       const spread = 80 + v * 200;
-      if (overlay) overlay.style.boxShadow = `inset 0 0 ${spread}px rgba(0, 0, 0, ${v})`;
+      const shadowStr = `inset 0 0 ${spread}px rgba(0, 0, 0, ${v})`;
+      if (overlay && shadowStr !== this._lastVignetteShadow) {
+        overlay.style.boxShadow = shadowStr;
+        this._lastVignetteShadow = shadowStr;
+      }
       if (gameScreen && stage.desaturation > 0) {
         gameScreen.style.filter = `saturate(${1 - stage.desaturation})`;
       } else if (gameScreen) {
         gameScreen.style.filter = '';
       }
     } else {
-      if (overlay) overlay.style.boxShadow = 'inset 0 0 150px rgba(0, 0, 0, 0)';
+      const clearShadow = 'inset 0 0 150px rgba(0, 0, 0, 0)';
+      if (overlay && clearShadow !== this._lastVignetteShadow) {
+        overlay.style.boxShadow = clearShadow;
+        this._lastVignetteShadow = clearShadow;
+      }
       if (gameScreen) gameScreen.style.filter = '';
     }
   },
@@ -735,24 +759,32 @@ const UI = {
 
     // No glow in tracking mode or when far away
     if (gameState.hunterState === 'tracking' || gameState.hunterDistance > 15) {
-      glow.style.boxShadow = 'inset 0 0 80px rgba(196, 69, 54, 0)';
+      const clearShadow = 'inset 0 0 80px rgba(196, 69, 54, 0)';
+      if (clearShadow !== this._lastGlowShadow) {
+        glow.style.boxShadow = clearShadow;
+        this._lastGlowShadow = clearShadow;
+      }
       glow.classList.remove('glow-pulse');
       return;
     }
 
-    // Continuous intensity: 0 at 15mi, 1 at 0mi
-    const intensity = Math.max(0, 1 - (gameState.hunterDistance / 15));
+    // Continuous intensity: 0.07 at 14mi, 1 at 0mi (min floor so glow is noticeable early)
+    const intensity = Math.max(0.07, 1 - (gameState.hunterDistance / 15));
     const isNight = gameState.phase === 'night';
 
     // Scale spread and opacity continuously
-    const spread = 60 + intensity * 100;   // 60px → 160px
-    const opacity = intensity * 0.6;        // 0 → 0.6
+    const spread = 60 + intensity * 120;   // 60px → 180px
+    const opacity = intensity * 0.8;        // 0 → 0.8
 
     const r = isNight ? 212 : 196;
     const g = isNight ? 136 : 69;
     const b = isNight ? 58 : 54;
 
-    glow.style.boxShadow = `inset 0 0 ${spread}px rgba(${r}, ${g}, ${b}, ${opacity.toFixed(2)})`;
+    const shadowStr = `inset 0 0 ${spread}px rgba(${r}, ${g}, ${b}, ${opacity.toFixed(2)})`;
+    if (shadowStr !== this._lastGlowShadow) {
+      glow.style.boxShadow = shadowStr;
+      this._lastGlowShadow = shadowStr;
+    }
 
     // Add pulse when very close (<6mi)
     if (gameState.hunterDistance <= 6) {
@@ -768,6 +800,7 @@ const UI = {
   spawnFireflies() {
     const container = document.getElementById('particle-container');
     if (!container) return;
+    this._firefliesSpawned = true;
     container.innerHTML = '';
     const count = 15 + Math.floor(Math.random() * 10); // 15-24 fireflies
     for (let i = 0; i < count; i++) {
@@ -808,6 +841,7 @@ const UI = {
   spawnStars() {
     const container = document.getElementById('star-container');
     if (!container) return;
+    this._starsSpawned = true;
     container.innerHTML = '';
     const cfg = CONFIG.ui.weather.stars;
     const count = cfg.minCount + Math.floor(Math.random() * (cfg.maxCount - cfg.minCount + 1));
@@ -831,12 +865,18 @@ const UI = {
         star.classList.add('bright');
       }
 
-      // Twinkle animation on some stars — set inline to avoid CSS var() issues
+      // Drift animation — must be set inline (CSS animation on dynamic elements unreliable)
+      const driftDur = 20 + Math.random() * 20;
+      const driftDelay = -(Math.random() * driftDur);
+
+      // Twinkle animation on some stars
       if (Math.random() < cfg.twinkleChance) {
         const twinkleDur = 2 + Math.random() * 4;
         const twinkleDelay = -(Math.random() * twinkleDur);
-        star.style.animation = `star-drift 60s linear infinite, star-twinkle ${twinkleDur}s ease-in-out ${twinkleDelay}s infinite`;
+        star.style.animation = `star-drift ${driftDur}s linear ${driftDelay}s infinite, star-twinkle ${twinkleDur}s ease-in-out ${twinkleDelay}s infinite`;
         star.style.setProperty('--star-base-opacity', baseOpacity);
+      } else {
+        star.style.animation = `star-drift ${driftDur}s linear ${driftDelay}s infinite`;
       }
 
       container.appendChild(star);
@@ -870,11 +910,13 @@ const UI = {
       mote.style.left = Math.random() * 100 + '%';
       mote.style.top = Math.random() * 100 + '%';
 
-      const size = 1 + Math.random() * 3;
-      mote.style.width = size + 'px';
-      mote.style.height = size + 'px';
+      const w = 2 + Math.random() * 4;
+      const h = w * (0.3 + Math.random() * 0.5);
+      mote.style.width = w + 'px';
+      mote.style.height = h + 'px';
+      mote.style.transform = `rotate(${Math.random() * 360}deg)`;
 
-      const opacity = 0.2 + Math.random() * 0.4;
+      const opacity = 0.15 + Math.random() * 0.25;
       mote.style.setProperty('--dust-opacity', opacity);
       const dx = (40 + Math.random() * 80) * (Math.random() < 0.5 ? 1 : -1);
       const dy = -20 + Math.random() * 40;
@@ -895,11 +937,110 @@ const UI = {
   },
 
   /**
+   * Spawn floating pollen/seeds — light particles that drift upward
+   */
+  spawnPollen(terrainCategory) {
+    const container = document.getElementById('pollen-container');
+    if (!container) return;
+    this._pollenSpawned = true;
+    container.innerHTML = '';
+    const cfg = CONFIG.ui.weather.pollen;
+    const mult = cfg.terrainMultiplier[terrainCategory] || 1;
+    const count = Math.round(cfg.baseCount * mult);
+
+    for (let i = 0; i < count; i++) {
+      const seed = document.createElement('div');
+      seed.className = 'pollen-seed';
+      seed.style.left = Math.random() * 100 + '%';
+      seed.style.top = (20 + Math.random() * 80) + '%';
+
+      const size = 2 + Math.random() * 3;
+      seed.style.width = size + 'px';
+      seed.style.height = size + 'px';
+
+      const opacity = 0.3 + Math.random() * 0.4;
+      seed.style.setProperty('--pollen-opacity', opacity);
+      const dx = (20 + Math.random() * 60) * (Math.random() < 0.5 ? 1 : -1);
+      const dy = -(40 + Math.random() * 80);
+      seed.style.setProperty('--pollen-dx', dx + 'px');
+      seed.style.setProperty('--pollen-dy', dy + 'px');
+
+      const duration = 10 + Math.random() * 20;
+      const delay = -(Math.random() * duration);
+      seed.style.animation = `pollen-rise ${duration}s linear ${delay}s infinite`;
+
+      container.appendChild(seed);
+    }
+  },
+
+  clearPollen() {
+    const container = document.getElementById('pollen-container');
+    if (container) container.innerHTML = '';
+    this._pollenSpawned = false;
+  },
+
+  /**
+   * Spawn erratic flying insects — day equivalent of fireflies
+   */
+  spawnInsects(terrainCategory) {
+    const container = document.getElementById('insect-container');
+    if (!container) return;
+    this._insectsSpawned = true;
+    container.innerHTML = '';
+    const cfg = CONFIG.ui.weather.insects;
+    const mult = cfg.terrainMultiplier[terrainCategory] || 1;
+    const count = Math.round(cfg.baseCount * mult);
+    const reduceMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+
+    for (let i = 0; i < count; i++) {
+      const bug = document.createElement('div');
+      bug.className = 'insect';
+      bug.style.left = (5 + Math.random() * 90) + '%';
+      bug.style.top = (10 + Math.random() * 80) + '%';
+
+      // Random size variation (2-4px)
+      const size = 2 + Math.random() * 2;
+      bug.style.width = size + 'px';
+      bug.style.height = size + 'px';
+
+      // Generate random waypoints for erratic drift
+      const range = 60;
+      bug.style.setProperty('--i-x1', (Math.random() * range - range / 2) + 'px');
+      bug.style.setProperty('--i-y1', (Math.random() * range - range / 2) + 'px');
+      bug.style.setProperty('--i-x2', (Math.random() * range - range / 2) + 'px');
+      bug.style.setProperty('--i-y2', (Math.random() * range - range / 2) + 'px');
+      bug.style.setProperty('--i-x3', (Math.random() * range - range / 2) + 'px');
+      bug.style.setProperty('--i-y3', (Math.random() * range - range / 2) + 'px');
+      bug.style.setProperty('--i-x4', (Math.random() * range - range / 2) + 'px');
+      bug.style.setProperty('--i-y4', (Math.random() * range - range / 2) + 'px');
+
+      const driftDuration = 6 + Math.random() * 10;
+      const jitterDuration = 0.3 + Math.random() * 0.5;
+      const delay = -(Math.random() * driftDuration);
+
+      if (reduceMotion) {
+        bug.style.animation = `insect-drift ${driftDuration}s ease-in-out ${delay}s infinite`;
+      } else {
+        bug.style.animation = `insect-drift ${driftDuration}s ease-in-out ${delay}s infinite, insect-jitter ${jitterDuration}s ease-in-out ${delay}s infinite`;
+      }
+
+      container.appendChild(bug);
+    }
+  },
+
+  clearInsects() {
+    const container = document.getElementById('insect-container');
+    if (container) container.innerHTML = '';
+    this._insectsSpawned = false;
+  },
+
+  /**
    * Spawn drifting cloud shadows
    */
   spawnClouds() {
     const container = document.getElementById('cloud-container');
     if (!container) return;
+    this._cloudsSpawned = true;
     container.innerHTML = '';
     const cfg = CONFIG.ui.weather.clouds;
     if (Math.random() > cfg.chance) return;
@@ -1146,11 +1287,25 @@ const UI = {
   resetVisualOverlays() {
     const overlay = document.getElementById('vignette-overlay');
     const glow = document.getElementById('hunter-glow');
-    if (overlay) overlay.style.boxShadow = 'inset 0 0 150px rgba(0, 0, 0, 0)';
+    // Kill transitions so overlays vanish instantly on screen change
+    if (overlay) {
+      overlay.style.transition = 'none';
+      overlay.style.boxShadow = 'inset 0 0 150px rgba(0, 0, 0, 0)';
+      overlay.offsetHeight;
+      overlay.style.transition = '';
+    }
     if (glow) {
       glow.className = 'hunter-glow';
+      glow.style.transition = 'none';
       glow.style.boxShadow = 'inset 0 0 80px rgba(196, 69, 54, 0)';
+      glow.offsetHeight;
+      glow.style.transition = '';
     }
+    this._starsSpawned = false;
+    this._cloudsSpawned = false;
+    this._firefliesSpawned = false;
+    this._lastVignetteShadow = null;
+    this._lastGlowShadow = null;
     this.clearFireflies();
     this.clearStars();
     this.clearRain();

@@ -115,6 +115,8 @@ const Score = {
     const dayPct = this.getPercentile(scoreData.days, BASELINE_PERCENTILES.days);
     if (dayPct > 0) {
       results.push(`You survived longer than ${dayPct}% of runs`);
+    } else if (scoreData.days >= 1) {
+      results.push('You survived longer than less than 1% of runs');
     }
 
     // Distance percentile
