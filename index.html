@@ -16,6 +16,32 @@
   <!-- Night background overlay (fades via opacity) -->
   <div class="night-bg"></div>
 
+  <!-- Rain darkening overlay -->
+  <div class="rain-overlay-dim"></div>
+
+  <!-- Visual escalation overlays -->
+  <div id="vignette-overlay" class="vignette-overlay"></div>
+  <div id="hunter-glow" class="hunter-glow"></div>
+
+  <!-- Night particle container -->
+  <div id="particle-container" class="particle-container"></div>
+
+  <!-- Star field (dynamic, behind content) -->
+  <div id="star-container" class="star-container"></div>
+
+  <!-- Day atmosphere -->
+  <div id="dust-container" class="dust-container"></div>
+  <div id="pollen-container" class="pollen-container"></div>
+  <div id="insect-container" class="insect-container"></div>
+  <div id="cloud-container" class="cloud-container"></div>
+  <div id="sun-rays" class="sun-rays"></div>
+
+  <!-- Rain particles -->
+  <div id="rain-container" class="rain-container"></div>
+
+  <!-- Lightning flash overlay -->
+  <div id="lightning-overlay" class="lightning-overlay"></div>
+
   <!-- Typewriter cinematic intro -->
   <div id="typewriter-overlay" class="typewriter-overlay">
     <div class="typewriter-content" id="typewriter-content"></div>
@@ -26,12 +52,14 @@
   <!-- Title Screen -->
   <div id="screen-title" class="screen active">
     <div class="title-container">
-      <img id="title-logo" src="assets/primalchaselogoout.png" alt="Primal Chase" class="logo">
+      <div class="title-logo-wrap">
+        <img id="title-logo" src="assets/primalchaselogoout.png" alt="Primal Chase" class="logo">
+        <button id="btn-start" class="title-btn-start"><img src="assets/startthehunt.png" alt="Start the Hunt"></button>
+      </div>
       <div class="title-buttons">
-        <button id="btn-start" class="title-btn title-btn-primary">Start the Hunt</button>
         <button id="btn-howto" class="title-btn">Learn to Run</button>
-        <button id="btn-leaderboard" class="title-btn">The Longest Strides</button>
         <button id="btn-options" class="title-btn">Options</button>
+        <button id="btn-leaderboard" class="title-btn">The Longest Strides</button>
       </div>
       <div class="creator-credit">A game by <a href="https://ryan-little.com" target="_blank" rel="noopener">Ryan Little</a></div>
     </div>
@@ -48,42 +76,40 @@
         <div class="vitals-grid">
           <div class="status-bar-container" role="group" aria-labelledby="heat-label">
             <div id="heat-label" class="status-label">Heat</div>
-            <div class="status-value" id="heat-value" aria-live="polite">0%</div>
             <div class="status-bar-track">
               <div id="heat-bar" class="status-bar-fill heat-bar" style="width: 0%"></div>
+              <div class="status-value" id="heat-value" aria-live="polite">0%</div>
             </div>
           </div>
 
           <div class="status-bar-container" role="group" aria-labelledby="stamina-label">
-            <div id="stamina-label" class="status-label">Stamina</div>
-            <div class="status-value" id="stamina-value" aria-live="polite">100%</div>
+            <div id="stamina-label" class="status-label">Fatigue</div>
             <div class="status-bar-track">
-              <div id="stamina-bar" class="status-bar-fill stamina-bar" style="width: 100%"></div>
+              <div id="stamina-bar" class="status-bar-fill stamina-bar" style="width: 0%"></div>
+              <div class="status-value" id="stamina-value" aria-live="polite">0%</div>
             </div>
           </div>
 
           <div class="status-bar-container" role="group" aria-labelledby="thirst-label">
             <div id="thirst-label" class="status-label">Thirst</div>
-            <div class="status-value" id="thirst-value" aria-live="polite">0%</div>
             <div class="status-bar-track">
               <div id="thirst-bar" class="status-bar-fill thirst-bar" style="width: 0%"></div>
+              <div class="status-value" id="thirst-value" aria-live="polite">0%</div>
             </div>
           </div>
 
           <div class="status-bar-container" role="group" aria-labelledby="hunger-label">
             <div id="hunger-label" class="status-label">Hunger</div>
-            <div class="status-value" id="hunger-value" aria-live="polite">0%</div>
             <div class="status-bar-track">
               <div id="hunger-bar" class="status-bar-fill hunger-bar" style="width: 0%"></div>
+              <div class="status-value" id="hunger-value" aria-live="polite">0%</div>
             </div>
           </div>
         </div>
 
         <div class="game-sidebar">
           <div id="hunt-info" class="hunt-info" aria-live="polite" aria-atomic="true">
-            <div class="hunt-distance">Hunters are <span id="hunter-distance">25</span> miles behind</div>
             <div class="hunt-flavor" id="hunt-flavor">You can barely sense them. But they are there.</div>
-            <div class="distance-covered">You have covered <span id="distance-covered">0</span> miles on the chase so far</div>
           </div>
         </div>
       </div>
@@ -127,14 +153,14 @@
       </div>
 
       <div class="death-buttons">
-        <button id="btn-try-again" class="death-btn primary">Try Again</button>
+        <button id="btn-try-again" class="death-btn-img"><img src="assets/tryagain.png" alt="Try Again"></button>
         <div class="death-buttons-row">
           <button id="btn-share-text" class="death-btn">Share Text</button>
           <button id="btn-share-image" class="death-btn">Share Image</button>
         </div>
         <button id="btn-return-title" class="death-btn">Return to Title</button>
       </div>
-      <div class="feedback-link">Have an idea or found a bug? <a href="mailto:ryan@ryanpdlittle.com">Let me know!</a></div>
+      <div class="feedback-link">Have an idea or found a bug? <a id="feedback-email" href="#">Let me know!</a></div>
       <div class="creator-credit">Made by <a href="https://ryan-little.com" target="_blank" rel="noopener">Ryan Little</a></div>
     </div>
   </div>
@@ -197,7 +223,7 @@
               <h2>YOUR VITALS</h2>
               <ul>
                 <li><strong>Heat</strong> — Builds when you run. Heatstroke kills. Rest to cool.</li>
-                <li><strong>Stamina</strong> — Your energy. Exhaustion kills. Rest to recover.</li>
+                <li><strong>Fatigue</strong> — Your exhaustion level. Too much fatigue kills. Rest to recover.</li>
                 <li><strong>Thirst</strong> — Rises every phase. Find water or dehydrate.</li>
                 <li><strong>Hunger</strong> — Rises slowly. Scavenge when you can.</li>
               </ul>
@@ -208,7 +234,7 @@
               <ul>
                 <li><strong>Push</strong> — Sprint. Maximum distance, maximum cost.</li>
                 <li><strong>Trot</strong> — Sustainable pace. Moderate everything.</li>
-                <li><strong>Rest</strong> — Recover heat and stamina, but hunters close in. The situation stays the same — Trot to find new opportunities.</li>
+                <li><strong>Rest</strong> — Recover heat and reduce fatigue, but hunters close in. The situation stays the same — Trot to find new opportunities.</li>
                 <li><strong>Drink / Eat</strong> — Appear when the land offers them. Cost time.</li>
               </ul>
               <p>Buttons show <strong>total real effects</strong> including passive drains.</p>
@@ -306,7 +332,7 @@
   </main>
 
   <!-- Version badge (visible on all screens) -->
-  <div id="version-badge">v1.8.1</div>
+  <div id="version-badge">v1.9.0</div>
 
   <!-- Hidden canvas for share image generation -->
   <canvas id="share-canvas" style="display: none;"></canvas>
