@@ -792,15 +792,17 @@ const UI = {
       const frame = Math.floor(Math.random() * 12);
       fly.style.backgroundImage = `url(assets/firefly${sheet}-${String(frame).padStart(2, '0')}.png)`;
       fly.style.setProperty('--flip', Math.random() < 0.5 ? 'scaleX(-1)' : 'scaleX(1)');
-      fly.style.setProperty('--duration', (6 + Math.random() * 8) + 's');
-      fly.style.setProperty('--glow-duration', (2 + Math.random() * 3) + 's');
       fly.style.setProperty('--dx1', (Math.random() * 60 - 30) + 'px');
       fly.style.setProperty('--dy1', (Math.random() * 60 - 30) + 'px');
       fly.style.setProperty('--dx2', (Math.random() * 60 - 30) + 'px');
       fly.style.setProperty('--dy2', (Math.random() * 60 - 30) + 'px');
       fly.style.setProperty('--dx3', (Math.random() * 60 - 30) + 'px');
       fly.style.setProperty('--dy3', (Math.random() * 60 - 30) + 'px');
-      fly.style.animationDelay = Math.random() * 5 + 's';
+      const dur = (6 + Math.random() * 8) + 's';
+      const glowDur = (2 + Math.random() * 3) + 's';
+      const delay = Math.random() * 5 + 's';
+      fly.style.animation = `firefly-float ${dur} ease-in-out infinite, firefly-glow ${glowDur} ease-in-out infinite`;
+      fly.style.animationDelay = delay;
       container.appendChild(fly);
     }
   },
