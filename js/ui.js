@@ -1163,6 +1163,9 @@ const UI = {
       container.appendChild(drop);
     }
     document.body.classList.add('weather-rain');
+    // Clear inline override so CSS class controls the dim overlay
+    const dim = document.querySelector('.rain-overlay-dim');
+    if (dim) dim.style.backgroundColor = '';
     // Rain clears ambient particles (CSS fades containers, JS clears elements)
     this.clearFireflies();
     this.clearInsects();
@@ -1181,6 +1184,9 @@ const UI = {
     const container = document.getElementById('rain-container');
     if (container) container.innerHTML = '';
     document.body.classList.remove('weather-rain');
+    // Force rain dim overlay transparent (mobile Safari doesn't always transition background)
+    const dim = document.querySelector('.rain-overlay-dim');
+    if (dim) dim.style.backgroundColor = 'rgba(0, 0, 0, 0)';
     this.stopLightning();
     // Reset day particle spawn guards so they re-spawn after rain
     this._insectsSpawned = false;
