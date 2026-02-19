@@ -1645,8 +1645,7 @@ body.night-mode .particle-container {
   image-rendering: pixelated;
   filter: drop-shadow(0 0 6px rgba(240, 216, 160, 0.6))
           drop-shadow(0 0 12px rgba(212, 165, 116, 0.25));
-  animation: firefly-float var(--duration) ease-in-out infinite,
-             firefly-glow var(--glow-duration) ease-in-out infinite;
+  /* animation set inline via JS — CSS var() in shorthand unreliable on dynamic elements */
 }
 
 @keyframes firefly-float {
