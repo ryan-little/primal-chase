@@ -1218,6 +1218,7 @@ const UI = {
     this._lightningActive = true;
     const cfg = CONFIG.ui.weather.lightning;
     const scheduleNext = () => {
+      if (!this._lightningActive) return;
       const minI = intensity === 'heavy' ? cfg.minInterval : cfg.minInterval + 2;
       const maxI = intensity === 'heavy' ? cfg.maxInterval : cfg.maxInterval + 3;
       const delay = (minI + Math.random() * (maxI - minI)) * 1000;
@@ -1710,6 +1711,7 @@ const UI = {
    * Render the leaderboard screen
    */
   renderLeaderboard() {
+    this.resetVisualOverlays();
     this.showScreen('screen-leaderboard');
 
     if (typeof Score === 'undefined' || !Score.loadLeaderboard) return;
@@ -1763,6 +1765,7 @@ const UI = {
    * Render how-to-play screen (static content)
    */
   renderHowTo() {
+    this.resetVisualOverlays();
     this.showScreen('screen-howto');
   },
 
@@ -1770,6 +1773,7 @@ const UI = {
    * Render options screen with synced toggle states
    */
   renderOptions() {
+    this.resetVisualOverlays();
     this.showScreen('screen-options');
     // Sync difficulty button active state
     const currentDifficulty = Options.get('difficulty');

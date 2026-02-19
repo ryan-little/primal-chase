@@ -79,6 +79,7 @@ const Game = {
     }
 
     if (typeof UI !== 'undefined') {
+      UI.resetVisualOverlays();
       UI.renderGame(this.state);
     }
   },
