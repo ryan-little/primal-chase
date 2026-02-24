@@ -2045,7 +2045,7 @@ const UI = {
         if (typeof Score !== 'undefined' && Score.copyToClipboard && typeof Game !== 'undefined') {
           const scoreData = Score.calculate(Game.state);
           const shareText = Score.generateShareText(scoreData);
-          Score.copyToClipboard(shareText, btnShareText);
+          Score.copyToClipboard(shareText);
 
           // Add visual confirmation
           const originalText = 'Share Text';
@@ -2089,6 +2089,10 @@ const UI = {
     document.addEventListener('keydown', (e) => {
       const gameScreen = document.getElementById('screen-game');
       if (!gameScreen || !gameScreen.classList.contains('active')) return;
+
+      // Don't process game shortcuts while intro overlay is active
+      const overlay = document.getElementById('typewriter-overlay');
+      if (overlay && overlay.classList.contains('active')) return;
 
       // Spacebar skips situation typewriter
       if (e.code === 'Space' && !this._situationTypewriterDone) {
