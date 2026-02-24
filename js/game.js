@@ -207,6 +207,9 @@ const Game = {
     // Track whether the last action succeeded (for monologue system)
     this.state.lastActionSucceeded = chanceSucceeded;
 
+    // Track chance-based failure for UI flash feedback
+    this.state.lastActionFailed = (action.chance !== undefined && action.chance < 1.0 && !chanceSucceeded);
+
     // Build outcome text
     this.state.lastOutcome = this.buildOutcomeText(action, riskTriggered, chanceSucceeded);
 

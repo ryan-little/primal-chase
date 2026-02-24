@@ -738,6 +738,16 @@ body.night-mode .night-bg {
   margin-bottom: 1em;
 }
 
+.outcome-label {
+  display: block;
+  font-size: 0.7em;
+  color: var(--text-secondary);
+  opacity: 0.5;
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+  margin-bottom: 0.2em;
+}
+
 .outcome-text {
   color: var(--text-primary);
   font-weight: bold;
@@ -763,6 +773,20 @@ body.night-mode .night-bg {
   color: rgba(212, 165, 116, 0.5);
   margin-bottom: 0.3rem;
   text-align: center;
+}
+
+/* Keyboard shortcut hint — desktop only */
+.keyboard-hint {
+  display: block;
+  text-align: right;
+  font-size: 0.65em;
+  color: var(--text-secondary);
+  opacity: 0.4;
+  margin-bottom: 0.2rem;
+}
+
+@media (max-width: 480px) {
+  .keyboard-hint { display: none; }
 }
 
 /* ===== ACTION BUTTONS (ALWAYS VISIBLE) ===== */
@@ -840,6 +864,15 @@ body.night-mode .night-bg {
 
 .action-btn.reveal {
   animation: fade-in 0.6s ease forwards;
+}
+
+@keyframes action-fail-flash {
+  0% { background-color: rgba(196, 69, 54, 0.4); }
+  100% { background-color: transparent; }
+}
+
+.action-btn.fail-flash {
+  animation: action-fail-flash 300ms ease-out;
 }
 
 .action-name {
@@ -937,6 +970,18 @@ body.night-mode .night-bg {
   color: transparent;
 }
 
+.skip-hint {
+  text-align: center;
+  font-size: 0.75em;
+  color: var(--text-secondary);
+  opacity: 0;
+  transition: opacity 0.5s ease;
+  padding: 0.5rem 0;
+}
+.skip-hint.visible {
+  opacity: 0.5;
+}
+
 .death-narrative p {
   margin-bottom: 1em;
 }
@@ -1006,6 +1051,17 @@ body.night-mode .night-bg {
 .achievements-list li {
   color: var(--text-secondary);
   font-size: 0.9em;
+}
+
+#death-tip {
+  font-family: Georgia, serif;
+  font-size: 0.85em;
+  color: var(--text-secondary);
+  opacity: 0.7;
+  margin-top: 1rem;
+  padding: 0.6rem 1rem;
+  border-left: 2px solid var(--text-secondary);
+  font-style: italic;
 }
 
 .death-buttons-row {
@@ -1871,6 +1927,70 @@ body.weather-rain .cloud-container {
 @keyframes cloud-drift {
   0% { transform: translateX(-100%); }
   100% { transform: translateX(calc(100vw + 100%)); }
+}
+
+/* ===== CONFIRM MODAL ===== */
+.confirm-modal {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.8);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 500;
+}
+
+.confirm-modal-content {
+  background: var(--bg-darker);
+  border: 1px solid var(--text-secondary);
+  padding: 2rem;
+  max-width: 400px;
+  width: calc(100% - 2rem);
+  text-align: center;
+  font-family: Georgia, serif;
+  color: var(--text-primary);
+}
+
+.confirm-modal-content p {
+  margin-bottom: 1.5rem;
+  font-size: 1em;
+  line-height: 1.6;
+}
+
+.confirm-modal-buttons {
+  display: flex;
+  gap: 1rem;
+  justify-content: center;
+}
+
+.confirm-modal-btn {
+  padding: 0.6rem 1.5rem;
+  border: 1px solid var(--text-secondary);
+  background: transparent;
+  color: var(--text-primary);
+  font-family: Georgia, serif;
+  font-size: 0.95em;
+  cursor: pointer;
+  min-width: 80px;
+  transition: background 0.15s ease;
+}
+
+.confirm-modal-btn:hover {
+  background: rgba(255, 255, 255, 0.08);
+}
+
+.confirm-modal-btn:focus-visible {
+  outline: 2px solid var(--text-gold);
+  outline-offset: 2px;
+}
+
+.confirm-yes {
+  border-color: rgba(196, 69, 54, 0.6);
+  color: var(--text-danger);
+}
+
+.confirm-yes:hover {
+  background: rgba(196, 69, 54, 0.12);
 }
 
 /* ===== DAY ATMOSPHERE: SUN RAYS ===== */

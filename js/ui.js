@@ -370,7 +370,7 @@ const UI = {
       // Show outcome text instantly, then typewrite encounter text
       situationElement.innerHTML = '';
       if (gameState.lastOutcome) {
-        situationElement.innerHTML = `<p class="outcome-text">${gameState.lastOutcome}</p>`;
+        situationElement.innerHTML = `<span class="outcome-label">Previous:</span><p class="outcome-text">${gameState.lastOutcome}</p>`;
         gameState.lastOutcome = null;
       }
 
@@ -378,7 +378,12 @@ const UI = {
       this.renderMonologue(null);
 
       const speed = Options.get('typewriterSpeed') || CONFIG.typewriter.speed;
+      const situationScroll = situationElement.closest('.situation-scroll') || situationElement.parentNode;
+      const skipHint = this.showSkipHint(situationScroll);
       this.typewriteText(situationElement, encounterText, speed, () => {
+        // Remove skip hint as soon as situation text finishes
+        this.removeSkipHint(skipHint);
+
         // Reveal actions as soon as situation text finishes (don't wait for monologue)
         this._revealActions();
 
@@ -400,7 +405,7 @@ const UI = {
       // No typewriter — render everything instantly
       let html = '';
       if (gameState.lastOutcome) {
-        html += `<p class="outcome-text">${gameState.lastOutcome}</p>`;
+        html += `<span class="outcome-label">Previous:</span><p class="outcome-text">${gameState.lastOutcome}</p>`;
         gameState.lastOutcome = null;
       }
       situationElement.innerHTML = html + `<p>${encounterText}</p>`;
@@ -669,12 +674,13 @@ const UI = {
       path.classList.add('trail-' + tier);
     }
 
-    // Distance label at the midpoint (always center)
+    // Distance label at the midpoint (always center, shrink font at close range)
     const distLabel = trail.querySelector('.pursuit-trail-distance');
     if (distLabel) {
       const roundedDist = Math.round(gameState.hunterDistance * 10) / 10;
       distLabel.textContent = `${roundedDist} mi`;
       distLabel.style.left = '50%';
+      distLabel.style.fontSize = dist < 5 ? '0.65em' : '';
       distLabel.classList.remove('trail-safe', 'trail-caution', 'trail-danger', 'trail-critical', 'trail-tracking');
       distLabel.classList.add('trail-' + tier);
     }
@@ -1461,6 +1467,14 @@ const UI = {
         if (button.classList.contains('disabled') || button.classList.contains('pending-reveal')) return;
         if (typeof Game !== 'undefined' && Game.processAction) {
           Game.processAction(action.key);
+          // Flash the clicked button red if the chance-based action failed
+          if (Game.state && Game.state.lastActionFailed) {
+            button.classList.remove('fail-flash');
+            // Force reflow so re-adding the class restarts the animation
+            void button.offsetWidth;
+            button.classList.add('fail-flash');
+            setTimeout(() => button.classList.remove('fail-flash'), 300);
+          }
         }
       };
 
@@ -1558,6 +1572,34 @@ const UI = {
   },
 
   // renderOutcome is handled inline in renderGame
+
+  /**
+   * Show a "Tap to skip" / "Press SPACE to skip" hint that fades in after 1.5s.
+   * Appends a .skip-hint div to containerElement and returns it so callers can
+   * remove it when the typewriter finishes or is skipped.
+   * @param {HTMLElement} containerElement - parent element to append the hint to
+   * @returns {HTMLElement} the hint element
+   */
+  showSkipHint(containerElement) {
+    const hint = document.createElement('div');
+    hint.className = 'skip-hint';
+    hint.textContent = ('ontouchstart' in window) ? 'Tap to skip' : 'Press SPACE to skip';
+    containerElement.appendChild(hint);
+    // Delay so the hint doesn't flash on short texts
+    setTimeout(() => {
+      hint.classList.add('visible');
+    }, 1500);
+    return hint;
+  },
+
+  /**
+   * Remove a skip hint element created by showSkipHint().
+   * Safe to call even if the element has already been removed.
+   * @param {HTMLElement|null} hint
+   */
+  removeSkipHint(hint) {
+    if (hint && hint.parentNode) hint.parentNode.removeChild(hint);
+  },
 
   /**
    * General-purpose typewriter for any text element
@@ -1662,7 +1704,9 @@ const UI = {
         document.addEventListener('keydown', deathSkipHandler);
         document.getElementById('screen-death').addEventListener('click', deathSkipHandler);
 
+        const deathSkipHint = this.showSkipHint(narrativeElement);
         this.typewriteText(narrativeElement, narrative, CONFIG.typewriter.speed, () => {
+          this.removeSkipHint(deathSkipHint);
           cleanupSkipHandlers();
           showResults();
         });
@@ -1714,6 +1758,25 @@ const UI = {
 
       // Auto-save to leaderboard
       if (Score.save) Score.save(scoreData);
+    }
+
+    // Show a contextual tip for early deaths (day 1-3)
+    const tipEl = document.getElementById('death-tip');
+    if (tipEl) {
+      if (gameState.day <= 3) {
+        const tips = {
+          heatstroke:  'Tip: Nights are cooler. Consider resting or trotting when heat is high.',
+          exhaustion:  'Tip: Pushing every turn drains fatigue fast. Try trotting.',
+          dehydration: 'Tip: Look for Drink and Dig actions to reset thirst.',
+          caught:      'Tip: Push to gain distance when hunters are close.',
+          starvation:  'Tip: Eat and Scavenge actions reset hunger — use them when available.'
+        };
+        tipEl.textContent = tips[gameState.deathCause] || '';
+        tipEl.style.display = tipEl.textContent ? '' : 'none';
+      } else {
+        tipEl.textContent = '';
+        tipEl.style.display = 'none';
+      }
     }
   },
 
@@ -1984,10 +2047,13 @@ const UI = {
     const btnLeaderboardClear = document.getElementById('btn-leaderboard-clear');
     if (btnLeaderboardClear) {
       btnLeaderboardClear.onclick = () => {
-        if (confirm('Clear all runs from the leaderboard? This cannot be undone.')) {
-          Score.clearLeaderboard();
-          this.renderLeaderboard();
-        }
+        this.showConfirmModal(
+          'Clear all runs from the leaderboard? This cannot be undone.',
+          () => {
+            Score.clearLeaderboard();
+            this.renderLeaderboard();
+          }
+        );
       };
     }
 
@@ -2038,6 +2104,37 @@ const UI = {
         CONFIG.typewriter.speed = speed;
       };
     }
+  },
+
+  /**
+   * Show a styled in-game confirmation modal instead of browser confirm().
+   * @param {string} message   - Text to display in the modal.
+   * @param {Function} onConfirm - Called if the user clicks the confirm button.
+   */
+  showConfirmModal(message, onConfirm) {
+    const modal = document.getElementById('confirm-modal');
+    const textEl = document.getElementById('confirm-modal-text');
+    const yesBtn = document.getElementById('confirm-modal-yes');
+    const noBtn = document.getElementById('confirm-modal-no');
+    if (!modal || !textEl || !yesBtn || !noBtn) return;
+
+    textEl.textContent = message;
+    modal.style.display = 'flex';
+    noBtn.focus();
+
+    const hide = () => {
+      modal.style.display = 'none';
+      document.removeEventListener('keydown', onKeyDown);
+    };
+
+    const onKeyDown = (e) => {
+      if (e.key === 'Escape') hide();
+    };
+
+    // Replace handlers each call so stale closures don't accumulate
+    yesBtn.onclick = () => { hide(); onConfirm(); };
+    noBtn.onclick = () => hide();
+    document.addEventListener('keydown', onKeyDown);
   },
 
   /**

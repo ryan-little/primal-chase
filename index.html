@@ -125,6 +125,7 @@
       </div>
 
       <div id="action-buttons" class="action-buttons" role="region" aria-label="Available actions">
+        <span class="keyboard-hint">Press 1–5</span>
         <!-- Action buttons will be dynamically generated here -->
       </div>
     </div>
@@ -150,6 +151,8 @@
         <div id="achievements-list" class="achievements-list">
           <!-- Achievements will be injected here -->
         </div>
+
+        <div id="death-tip"></div>
       </div>
 
       <div class="death-buttons">
@@ -237,7 +240,7 @@
                 <li><strong>Rest</strong> — Recover heat and reduce fatigue, but hunters close in. The situation stays the same — Trot to find new opportunities.</li>
                 <li><strong>Drink / Eat</strong> — Appear when the land offers them. Cost time.</li>
               </ul>
-              <p>Buttons show <strong>total real effects</strong> including passive drains.</p>
+              <p>Buttons show <strong>total real effects</strong> including passive drains. On desktop, press <strong>1–5</strong> to select actions.</p>
             </section>
           </div>
         </div>
@@ -330,6 +333,17 @@
     </div>
   </div>
   </main>
+
+  <!-- Confirm modal (replaces browser confirm()) -->
+  <div id="confirm-modal" class="confirm-modal" style="display: none;" role="dialog" aria-modal="true" aria-labelledby="confirm-modal-text">
+    <div class="confirm-modal-content">
+      <p id="confirm-modal-text"></p>
+      <div class="confirm-modal-buttons">
+        <button id="confirm-modal-yes" class="confirm-modal-btn confirm-yes">Clear</button>
+        <button id="confirm-modal-no" class="confirm-modal-btn confirm-no">Cancel</button>
+      </div>
+    </div>
+  </div>
 
   <!-- Version badge (visible on all screens) -->
   <div id="version-badge">v1.9.0</div>
