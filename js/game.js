@@ -91,6 +91,12 @@ const Game = {
   processAction(actionKey) {
     if (!this.state || !this.state.isAlive) return;
 
+    // Decrement water boost counter at the START of each phase
+    // (so a freshly-set value survives the current phase and ticks down next phase)
+    if (this.state.hunterWaterBoostDays > 0) {
+      this.state.hunterWaterBoostDays -= 1;
+    }
+
     // Find the action data from the current encounter's actions array
     const action = this.findAction(actionKey);
     if (!action) {
@@ -108,15 +114,6 @@ const Game = {
       this.state.achievementStats.timesRested++;
     }
 
-    // Capture stats before effects for history tracking
-    const statsBefore = {
-      heat: this.state.heat,
-      stamina: this.state.stamina,
-      thirst: this.state.thirst,
-      hunger: this.state.hunger,
-      hunterDistance: this.state.hunterDistance
-    };
-
     // Get the effects — either from the action's effects object or CONFIG standard
     const effects = action.effects || {};
     const playerDistance = action.distance !== undefined ? action.distance : (effects.distance || 0);
@@ -131,6 +128,27 @@ const Game = {
     let chanceSucceeded = true;
     if (action.chance !== undefined && action.chance < 1.0) {
       chanceSucceeded = Math.random() < action.chance;
+    }
+
+    // Water boost for hunters when player drinks (set BEFORE distance calc so it applies this phase)
+    if (actionKey === 'drink' || action.key === 'drink') {
+      this.state.hunterWaterBoostDays = CONFIG.hunter.waterBoostDuration;
+    }
+
+    // Handle trail loss BEFORE distance calculation (so tracking speed applies this phase)
+    if (action.loseHunters && typeof Hunters !== 'undefined') {
+      Hunters.loseTrail(this.state);
+    }
+
+    // Calculate hunter distance change (uses current hunter state + water boost)
+    if (typeof Hunters !== 'undefined') {
+      const distanceChange = Hunters.calculateDistanceChange(playerDistance, this.state);
+      this.state.hunterDistance += distanceChange;
+    }
+
+    // Update hunter tracking countdown
+    if (typeof Hunters !== 'undefined') {
+      Hunters.updateTracking(this.state);
     }
 
     // Apply effects
@@ -157,43 +175,19 @@ const Game = {
     this.state.thirst += drains.thirst || 0;
     this.state.hunger += drains.hunger || 0;
 
-    // Calculate hunter distance change
-    if (typeof Hunters !== 'undefined') {
-      const distanceChange = Hunters.calculateDistanceChange(playerDistance, this.state);
-      this.state.hunterDistance += distanceChange;
-    }
-
-    // Update hunter tracking (every phase, not just night)
-    if (typeof Hunters !== 'undefined') {
-      Hunters.updateTracking(this.state);
-    }
-
-    // Handle trail loss from this specific action
-    if (action.loseHunters && typeof Hunters !== 'undefined') {
-      Hunters.loseTrail(this.state);
-    }
-
     // Track distance covered
     if (playerDistance > 0) {
       this.state.distanceCovered += playerDistance;
     }
 
-    // Water boost for hunters when player drinks
-    if (actionKey === 'drink' || action.key === 'drink') {
-      this.state.hunterWaterBoostDays = CONFIG.hunter.waterBoostDuration;
-    }
-    if (this.state.hunterWaterBoostDays > 0) {
-      this.state.hunterWaterBoostDays -= 1;
-    }
+    // Clamp stats
+    this.clampStats();
 
-    // Track near-death and high-thirst phases for achievements
+    // Track near-death and high-thirst phases for achievements (AFTER clamp)
     if (this.state.thirst >= 80) this.state.achievementStats.phasesWithHighThirst++;
     if (this.state.heat >= 90 || this.state.stamina <= 10 || this.state.thirst >= 90 || this.state.hunger >= 90 || this.state.hunterDistance <= 3) {
       this.state.achievementStats.phasesNearDeath++;
     }
-
-    // Clamp stats
-    this.clampStats();
 
     // Check death
     const deathCause = this.checkDeath();

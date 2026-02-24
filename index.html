@@ -66,7 +66,7 @@
   </div>
 
   <!-- Game Screen -->
-  <div id="screen-game" class="screen">
+  <div id="screen-game" class="screen" tabindex="-1">
     <div class="game-container">
       <div class="game-header">
         <div id="phase-indicator" class="phase-indicator" role="status" aria-live="polite" aria-label="Current phase">DAY 1</div>
@@ -221,7 +221,7 @@
 
             <section>
               <h2>THE LAND</h2>
-              <p>Each phase brings new terrain with unique opportunities — water, food, ways to lose the hunters. Rare encounters can change everything. Resting keeps the same situation; you must move to find new ground.</p>
+              <p>Each phase brings new terrain with unique opportunities — water, food, ways to lose the hunters. Rare encounters can change everything. Resting keeps the same terrain; you must move to find new ground.</p>
             </section>
           </div>
 
@@ -241,7 +241,7 @@
               <ul>
                 <li><strong>Push</strong> — Sprint. Maximum distance, maximum cost.</li>
                 <li><strong>Trot</strong> — Sustainable pace. Moderate everything.</li>
-                <li><strong>Rest</strong> — Recover heat and reduce fatigue, but hunters close in. The situation stays the same — Trot to find new opportunities.</li>
+                <li><strong>Rest</strong> — Recover heat and reduce fatigue, but hunters close in. The terrain stays the same — Trot to find new opportunities.</li>
                 <li><strong>Drink / Eat</strong> — Appear when the land offers them. Cost time.</li>
               </ul>
               <p>Buttons show <strong>total real effects</strong> including passive drains. On desktop, press <strong>1–5</strong> to select actions.</p>
@@ -294,7 +294,7 @@
             <span class="option-help">Display tutorial encounters on Day 1</span>
           </div>
           <div class="option-control">
-            <button class="option-toggle active" id="opt-tutorial" data-option="showTutorial">ON</button>
+            <button class="option-toggle active" id="opt-tutorial" data-option="showTutorial" aria-pressed="true">ON</button>
           </div>
         </div>
         <div class="option-row">
@@ -303,7 +303,7 @@
             <span class="option-help">Play cinematic intro before starting</span>
           </div>
           <div class="option-control">
-            <button class="option-toggle active" id="opt-opening" data-option="showOpening">ON</button>
+            <button class="option-toggle active" id="opt-opening" data-option="showOpening" aria-pressed="true">ON</button>
           </div>
         </div>
         <div class="option-row">
@@ -312,14 +312,14 @@
             <span class="option-help">Animate text character-by-character for cinematic opening</span>
           </div>
           <div class="option-control">
-            <button class="option-toggle active" id="opt-typewriter" data-option="typewriterEffect">ON</button>
+            <button class="option-toggle active" id="opt-typewriter" data-option="typewriterEffect" aria-pressed="true">ON</button>
           </div>
         </div>
         <div class="option-row speed-row" id="typewriter-speed-inline">
           <span class="option-label">Speed</span>
           <div class="option-control speed-control">
             <span class="slider-label">Fast</span>
-            <input type="range" id="opt-typewriter-speed" class="option-slider" min="5" max="50" value="30">
+            <input type="range" id="opt-typewriter-speed" class="option-slider" min="5" max="50" value="30" aria-label="Typewriter speed">
             <span class="slider-label">Slow</span>
           </div>
         </div>
@@ -329,7 +329,7 @@
             <span class="option-help">Animate encounter text during gameplay (slower pace)</span>
           </div>
           <div class="option-control">
-            <button class="option-toggle active" id="opt-situation-typewriter" data-option="situationTypewriter">ON</button>
+            <button class="option-toggle active" id="opt-situation-typewriter" data-option="situationTypewriter" aria-pressed="true">ON</button>
           </div>
         </div>
       </div>

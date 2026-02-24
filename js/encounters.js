@@ -11,6 +11,7 @@ const Encounters = {
   // Track recently used combinatorial pieces (avoid immediate repeats)
   recentTerrains: [],
   recentOpportunities: [],
+  recentPressures: [],
   recentAtmosphericPressures: [],
 
   // ============================================================
@@ -35,7 +36,7 @@ const Encounters = {
       nightText: 'The acacias are black silhouettes against the stars, their twisted branches like frozen lightning overhead.',
       actions: [],
       modifiers: { rest: { heat: -5 } },
-      compatible: ['shade_scrub', 'bird_alarm', 'animal_tracks', 'termite_mound', 'weaver_nests', 'fallen_branch', 'monkey_troop', 'beetle_trail', 'thorn_bush', 'fig_tree', 'wind_shift', 'hawk_shadow', 'leopard_cache']
+      compatible: ['shade_scrub', 'bird_alarm', 'animal_tracks', 'termite_mound', 'weaver_nests', 'fallen_branch', 'monkey_troop', 'beetle_trail', 'thorn_bush', 'fig_tree', 'wind_shift', 'hawk_shadow', 'leopard_cache', 'pangolin', 'ground_hornbill']
     },
     {
       id: 'salt_flat',
@@ -62,7 +63,7 @@ const Encounters = {
       nightText: 'The grass is a dark ocean, whispering in waves you cannot see. Anything could be hiding within arm\'s reach.',
       actions: [],
       modifiers: { trot: { heat: -2 } },
-      compatible: ['animal_tracks', 'bird_alarm', 'snake_den', 'beetle_trail', 'wind_shift', 'grasshopper_swarm', 'hidden_burrow', 'mouse_nest', 'thorn_bush', 'herd_distant', 'dung_pile']
+      compatible: ['animal_tracks', 'bird_alarm', 'snake_den', 'beetle_trail', 'wind_shift', 'grasshopper_swarm', 'hidden_burrow', 'mouse_nest', 'thorn_bush', 'herd_distant', 'dung_pile', 'warthog_burrow', 'buffalo_skull', 'jackal_pack']
     },
     {
       id: 'watering_hole',
@@ -80,7 +81,7 @@ const Encounters = {
       nightText: 'The boulder pile rises like a crouching giant in the darkness, its stone still warm from the day. The crevices between rocks are pools of black.',
       actions: [],
       modifiers: { rest: { heat: -8, stamina: 5 } },
-      compatible: ['shade_scrub', 'lizard', 'hyrax_colony', 'hawk_shadow', 'snake_den', 'loose_stones', 'wind_shift', 'leopard_cache']
+      compatible: ['shade_scrub', 'lizard', 'hyrax_colony', 'hawk_shadow', 'snake_den', 'loose_stones', 'wind_shift', 'leopard_cache', 'jackal_pack']
     },
     {
       id: 'burned_ground',
@@ -98,7 +99,7 @@ const Encounters = {
       nightText: 'The termite mounds stand like pale sentries in the darkness, their clay towers catching the faint light. The hum of millions continues unseen.',
       actions: [],
       modifiers: {},
-      compatible: ['termite_mound', 'aardvark_hole', 'bird_alarm', 'animal_tracks', 'shade_scrub', 'beetle_trail', 'lizard', 'hawk_shadow']
+      compatible: ['termite_mound', 'aardvark_hole', 'bird_alarm', 'animal_tracks', 'shade_scrub', 'beetle_trail', 'lizard', 'hawk_shadow', 'warthog_burrow', 'pangolin']
     },
     {
       id: 'dry_ravine',
@@ -116,7 +117,7 @@ const Encounters = {
       nightText: 'The baobab is a massive dark shape against the stars, its trunk a column of shadow wider than memory. The bark is cool and rough.',
       actions: [],
       modifiers: { rest: { heat: -10, stamina: 8 } },
-      compatible: ['shade_scrub', 'bird_alarm', 'weaver_nests', 'monkey_troop', 'beetle_trail', 'fig_tree', 'bark_water', 'animal_tracks', 'wind_shift']
+      compatible: ['shade_scrub', 'bird_alarm', 'weaver_nests', 'monkey_troop', 'beetle_trail', 'fig_tree', 'bark_water', 'animal_tracks', 'wind_shift', 'ground_hornbill']
     },
     {
       id: 'elephant_path',
@@ -170,7 +171,7 @@ const Encounters = {
       nightText: 'The thorns are invisible in the dark but not unfelt. Every step is a gamble against hooked spines that snag and tear.',
       actions: [],
       modifiers: { push: { stamina: -10, heat: 5 }, trot: { stamina: -5 } },
-      compatible: ['hidden_burrow', 'bird_alarm', 'beetle_trail', 'animal_tracks', 'thorn_bush', 'mouse_nest', 'puff_adder']
+      compatible: ['hidden_burrow', 'bird_alarm', 'beetle_trail', 'animal_tracks', 'thorn_bush', 'mouse_nest', 'puff_adder', 'pangolin']
     },
     {
       id: 'seasonal_stream',
@@ -188,7 +189,7 @@ const Encounters = {
       nightText: 'The plain stretches into darkness without end. The sky is enormous above, the ground is nothing below, and you are somewhere between.',
       actions: [],
       modifiers: { push: { stamina: 5 }, trot: { stamina: 3 }, rest: { heat: 5 } },
-      compatible: ['dust_devil', 'vulture', 'mirage', 'animal_tracks', 'grasshopper_swarm', 'wind_shift', 'hawk_shadow', 'herd_distant', 'dung_pile', 'aardvark_hole', 'secretary_bird']
+      compatible: ['dust_devil', 'vulture', 'mirage', 'animal_tracks', 'grasshopper_swarm', 'wind_shift', 'hawk_shadow', 'herd_distant', 'dung_pile', 'aardvark_hole', 'secretary_bird', 'buffalo_skull', 'jackal_pack']
     },
     {
       id: 'overhang_cave',
@@ -206,7 +207,7 @@ const Encounters = {
       nightText: 'The dead reeds whisper against each other in the dark, a dry chorus without melody. The ground is treacherous with hidden channels and soft pockets.',
       actions: [{ key: 'drink', name: 'Dig', description: 'Dig into the soft clay for trapped water', chance: 0.4 }],
       modifiers: { push: { stamina: -5 }, trot: { stamina: -3 } },
-      compatible: ['animal_tracks', 'bird_alarm', 'cracked_mud', 'snake_den', 'beetle_trail', 'wind_shift', 'fresh_tracks', 'hidden_burrow', 'grasshopper_swarm', 'dragonfly', 'frog_chorus', 'mosquito_swarm', 'regrowth_shoots']
+      compatible: ['animal_tracks', 'bird_alarm', 'cracked_mud', 'snake_den', 'beetle_trail', 'wind_shift', 'fresh_tracks', 'hidden_burrow', 'grasshopper_swarm', 'dragonfly', 'frog_chorus', 'mosquito_swarm', 'regrowth_shoots', 'warthog_burrow', 'buffalo_skull']
     },
     {
       id: 'granite_plateau',
@@ -1711,6 +1712,7 @@ const Encounters = {
 
   tryRare(gameState) {
     const eligible = this.rares.filter(r => {
+      if (this.usedSignatures.has(r.id)) return false;
       if (r.minDay && gameState.day < r.minDay) return false;
       if (r.nightOnly && gameState.phase !== 'night') return false;
       return true;
@@ -1999,16 +2001,16 @@ const Encounters = {
       return true;
     };
     let availableOpps = this.opportunities.filter(o =>
-      oppPhaseFilter(o) && terrain.compatible.includes(o.baseId || o.id) && !this.recentOpportunities.includes(o.id)
+      oppPhaseFilter(o) && terrain.compatible.includes(o.baseId || o.id) && !this.recentOpportunities.includes(o.baseId || o.id)
     );
     if (availableOpps.length === 0) {
-      availableOpps = this.opportunities.filter(o => terrain.compatible.includes(o.id));
+      availableOpps = this.opportunities.filter(o => terrain.compatible.includes(o.baseId || o.id));
     }
     if (availableOpps.length === 0) {
       availableOpps = this.opportunities;
     }
     const opportunity = availableOpps[Math.floor(Math.random() * availableOpps.length)];
-    this.recentOpportunities.push(opportunity.id);
+    this.recentOpportunities.push(opportunity.baseId || opportunity.id);
     if (this.recentOpportunities.length > 12) this.recentOpportunities.shift();
 
     // Pick new pressure (condition-based, avoid recent; atmospheric pressures have their own cooldown)

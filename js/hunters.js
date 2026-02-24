@@ -78,11 +78,12 @@ const Hunters = {
   },
 
   /**
-   * Update tracking state (call once per day)
+   * Update tracking state — decrement only on night phase so duration is in calendar days
+   * (called every phase, but the counter ticks once per day to match CONFIG's day-based duration)
    * @param {Object} gameState - current game state (mutated)
    */
   updateTracking(gameState) {
-    if (gameState.hunterState === 'tracking' && gameState.trackingDaysLeft > 0) {
+    if (gameState.hunterState === 'tracking' && gameState.trackingDaysLeft > 0 && gameState.phase === 'night') {
       gameState.trackingDaysLeft -= 1;
 
       // When countdown reaches 0, return to pursuit

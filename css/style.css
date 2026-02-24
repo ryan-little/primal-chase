@@ -136,7 +136,7 @@ body.night-mode .night-bg {
 
 .typewriter-overlay.active {
   opacity: 1;
-  pointer-events: all;
+  pointer-events: auto;
 }
 
 .typewriter-overlay.fading {
@@ -872,7 +872,7 @@ body.night-mode .night-bg {
 }
 
 .action-btn.reveal {
-  animation: fade-in 0.6s ease forwards;
+  animation: slide-fade-in 0.6s ease forwards;
 }
 
 @keyframes action-fail-flash {
@@ -922,8 +922,7 @@ body.night-mode .night-bg {
 
 .action-cost,
 .action-gain,
-.action-warning,
-.action-special {
+.action-warning {
   font-weight: 700;
   font-size: 1.05em;
   padding: 1px 4px;
@@ -1217,7 +1216,7 @@ body.night-mode .night-bg {
 
 .leaderboard-clear {
   font-size: 0.85em;
-  opacity: 0.5;
+  opacity: 0.7;
   border-color: var(--text-danger);
   color: var(--text-danger);
 }
@@ -1657,6 +1656,47 @@ body.night-mode .night-bg {
 
   .option-toggle {
     min-height: 44px;
+  }
+
+  /* MF1: Hide pipe separators between stat pills — they orphan on wrap */
+  .action-separator {
+    display: none;
+  }
+
+  .action-details {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 2px 6px;
+    justify-content: center;
+  }
+
+  /* MF2: Stack option rows vertically so label and controls don't cramp */
+  .option-row {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 0.5rem;
+  }
+
+  .option-control {
+    width: 100%;
+    justify-content: flex-start;
+  }
+
+  /* MF3: Single-column achievements list on mobile */
+  .howto-achievements ul {
+    columns: 1;
+  }
+
+  /* MF4: Larger tap targets for death screen footer links */
+  .death-container .feedback-link,
+  .death-container .creator-credit {
+    font-size: 0.85rem;
+  }
+
+  .death-container .feedback-link a,
+  .death-container .creator-credit a {
+    padding: 8px 0;
+    display: inline-block;
   }
 }
 

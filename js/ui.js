@@ -303,6 +303,9 @@ const UI = {
    * @param {Object} opts - { transition: bool }
    */
   renderGame(gameState, opts = {}) {
+    this._situationSkipped = false;
+    this._situationTypewriterDone = true;
+
     this.showScreen('screen-game');
     this.renderPhaseHeader(gameState);
     this.applyTerrainPalette(gameState);
@@ -408,7 +411,7 @@ const UI = {
             }
           }
         }
-      });
+      }, true);
     } else {
       // No typewriter — render everything instantly
       let html = '';
@@ -1070,10 +1073,10 @@ const UI = {
   spawnClouds() {
     const container = document.getElementById('cloud-container');
     if (!container) return;
-    this._cloudsSpawned = true;
     container.innerHTML = '';
     const cfg = CONFIG.ui.weather.clouds;
     if (Math.random() > cfg.chance) return;
+    this._cloudsSpawned = true;
 
     const count = cfg.minCount + Math.floor(Math.random() * (cfg.maxCount - cfg.minCount + 1));
     for (let i = 0; i < count; i++) {
@@ -1246,13 +1249,10 @@ const UI = {
    */
   updateWeatherEffects(gameState) {
     const encounter = gameState.currentEncounter;
-    const encounterChanged = encounter !== this._currentEncounter;
     this._currentEncounter = encounter;
     const weather = gameState.day === 1 ? getWeatherCondition(encounter, true) : getWeatherCondition(encounter);
-    // Skip if same weather AND same encounter (no need to re-spawn)
-    if (weather === this._currentWeather && !encounterChanged) return;
-    // Skip re-spawn if weather persists across encounter change (prevents visible blink)
-    if (weather === this._currentWeather && encounterChanged) return;
+    // Skip if same weather (no need to re-spawn, prevents visible blink)
+    if (weather === this._currentWeather) return;
     this._currentWeather = weather;
 
     if (weather) {
@@ -1648,8 +1648,9 @@ const UI = {
    * @param {string} text - HTML text to type out
    * @param {number} speed - ms per character
    * @param {Function} callback - called when typing finishes
+   * @param {boolean} isSituation - if true, reset situation skip flags (default false)
    */
-  typewriteText(element, text, speed, callback) {
+  typewriteText(element, text, speed, callback, isSituation = false) {
     // Cancel any running typewriter to prevent overlapping chains
     if (this._typewriterTimer) {
       clearTimeout(this._typewriterTimer);
@@ -1663,8 +1664,10 @@ const UI = {
     p.textContent = text;
 
     let charIndex = 0;
-    this._situationTypewriterDone = false;
-    this._situationSkipped = false;
+    if (isSituation) {
+      this._situationTypewriterDone = false;
+      this._situationSkipped = false;
+    }
 
     const render = () => {
       const typed = text.substring(0, charIndex);
@@ -1713,6 +1716,12 @@ const UI = {
       fb.dataset.set = '1';
     }
 
+    // Reset share button text for fresh death screen
+    const btnShareTextEl = document.getElementById('btn-share-text');
+    if (btnShareTextEl) btnShareTextEl.textContent = 'Share Text';
+    const btnShareImageEl = document.getElementById('btn-share-image');
+    if (btnShareImageEl) btnShareImageEl.textContent = 'Share Image';
+
     // Remove results-visible class from previous death screen
     const deathContainer = document.querySelector('.death-container');
     if (deathContainer) deathContainer.classList.remove('death-results-visible');
@@ -1727,8 +1736,6 @@ const UI = {
       const narrative = this.getDeathNarrative(gameState.deathCause);
       if (Options.get('typewriterEffect')) {
         narrativeElement.innerHTML = '';
-        this._situationSkipped = false;
-        this._situationTypewriterDone = false;
 
         // Skip handler for death typewriter (cleaned up on skip OR completion)
         const cleanupSkipHandlers = () => {
@@ -1738,7 +1745,10 @@ const UI = {
         };
         const deathSkipHandler = (e) => {
           if (e.type === 'keydown' && e.code !== 'Space') return;
-          if (e.type === 'keydown') e.preventDefault();
+          if (e.type === 'keydown') {
+            e.preventDefault();
+            e.stopImmediatePropagation();
+          }
           this._situationSkipped = true;
           cleanupSkipHandlers();
         };
@@ -1750,7 +1760,7 @@ const UI = {
           this.removeSkipHint(deathSkipHint);
           cleanupSkipHandlers();
           showResults();
-        });
+        }, true);
       } else {
         narrativeElement.innerHTML = `<p>${narrative}</p>`;
         showResults();
@@ -1862,7 +1872,7 @@ const UI = {
         <td>${index + 1}</td>
         <td>${score.days}</td>
         <td>${score.distance} mi</td>
-        <td>${score.timesLostHunters}</td>
+        <td>${score.timesLostHunters ?? 0}</td>
         <td>${this.formatDeathCause(score.deathCause)}</td>
       `;
 
@@ -1916,21 +1926,25 @@ const UI = {
       const on = Options.get('showTutorial');
       tutorialBtn.textContent = on ? 'ON' : 'OFF';
       tutorialBtn.classList.toggle('off', !on);
+      tutorialBtn.setAttribute('aria-pressed', on ? 'true' : 'false');
     }
     if (openingBtn) {
       const on = Options.get('showOpening');
       openingBtn.textContent = on ? 'ON' : 'OFF';
       openingBtn.classList.toggle('off', !on);
+      openingBtn.setAttribute('aria-pressed', on ? 'true' : 'false');
     }
     if (typewriterBtn) {
       const on = Options.get('typewriterEffect');
       typewriterBtn.textContent = on ? 'ON' : 'OFF';
       typewriterBtn.classList.toggle('off', !on);
+      typewriterBtn.setAttribute('aria-pressed', on ? 'true' : 'false');
     }
     if (situationBtn) {
       const on = Options.get('situationTypewriter');
       situationBtn.textContent = on ? 'ON' : 'OFF';
       situationBtn.classList.toggle('off', !on);
+      situationBtn.setAttribute('aria-pressed', on ? 'true' : 'false');
     }
     // Sync speed slider and situation toggle visibility
     this._syncSpeedSlider();
@@ -2005,7 +2019,7 @@ const UI = {
           Score.copyToClipboard(shareText, btnShareText);
 
           // Add visual confirmation
-          const originalText = btnShareText.textContent;
+          const originalText = 'Share Text';
           btnShareText.textContent = '✓ Copied!';
           btnShareText.style.backgroundColor = 'var(--text-safe)';
           btnShareText.style.color = 'var(--bg-dark)';
@@ -2025,16 +2039,16 @@ const UI = {
         if (typeof Score !== 'undefined' && Score.generateShareImage && typeof Game !== 'undefined') {
           // Disable button and show loading
           btnShareImage.disabled = true;
-          const originalText = btnShareImage.textContent;
+          const originalText = 'Share Image';
           btnShareImage.textContent = 'Generating...';
 
           setTimeout(() => {
             const scoreData = Score.calculate(Game.state);
-            Score.generateShareImage(scoreData);
-
-            // Reset button
-            btnShareImage.disabled = false;
-            btnShareImage.textContent = originalText;
+            Score.generateShareImage(scoreData, () => {
+              // Re-enable button only after blob operation completes
+              btnShareImage.disabled = false;
+              btnShareImage.textContent = originalText;
+            });
           }, 100);
         }
       };
@@ -2133,6 +2147,7 @@ const UI = {
         const newVal = Options.toggle(key);
         btn.textContent = newVal ? 'ON' : 'OFF';
         btn.classList.toggle('off', !newVal);
+        btn.setAttribute('aria-pressed', newVal ? 'true' : 'false');
         // Show/hide speed slider when typewriter toggled
         if (key === 'typewriterEffect') {
           this._syncSpeedSlider();

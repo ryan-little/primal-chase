@@ -111,7 +111,7 @@ const Score = {
     if (dayPct > 0) {
       results.push(`You survived longer than ${dayPct}% of runs`);
     } else if (scoreData.days >= 1) {
-      results.push('You survived longer than less than 1% of runs');
+      results.push('Few runs end this quickly — you\'re in the bottom 1%');
     }
 
     // Distance percentile
@@ -175,8 +175,7 @@ const Score = {
   },
 
   /**
-   * Load leaderboard from localStorage
-   * @returns {Array<Object>} - array of score objects
+   * Clear the leaderboard from localStorage
    */
   clearLeaderboard() {
     try {
@@ -295,8 +294,9 @@ const Score = {
   /**
    * Generate and download share image
    * @param {Object} scoreData - score object
+   * @param {Function} [onDone] - optional callback invoked after the blob operation completes
    */
-  generateShareImage(scoreData) {
+  generateShareImage(scoreData, onDone) {
     const canvas = document.getElementById('share-canvas');
     if (!canvas) return;
 
@@ -428,7 +428,7 @@ const Score = {
     };
 
     canvas.toBlob(blob => {
-      if (!blob) { feedback('Failed'); return; }
+      if (!blob) { feedback('Failed'); if (onDone) onDone(); return; }
 
       // Try Web Share API first (best mobile experience — native share sheet)
       const file = new File([blob], 'primal-chase-score.png', { type: 'image/png' });
@@ -438,20 +438,23 @@ const Score = {
           title: 'Primal Chase',
           text: `Day ${scoreData.days} — ${scoreData.distance} miles`
         }).catch(() => {}); // User cancelled share sheet
+        if (onDone) onDone();
         return;
       }
 
       // Try clipboard (works on HTTPS / secure contexts)
       if (navigator.clipboard && typeof ClipboardItem !== 'undefined' && window.isSecureContext) {
         navigator.clipboard.write([new ClipboardItem({ 'image/png': blob })])
-          .then(() => feedback('Copied!'))
+          .then(() => { feedback('Copied!'); if (onDone) onDone(); })
           .catch(() => {
             this._downloadBlob(blob);
             feedback('Saved!');
+            if (onDone) onDone();
           });
       } else {
         this._downloadBlob(blob);
         feedback('Saved!');
+        if (onDone) onDone();
       }
     }, 'image/png');
   },
