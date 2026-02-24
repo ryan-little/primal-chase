@@ -40,6 +40,11 @@ const Monologue = {
     { mood: 'confident', triggers: ['after_push'], text: 'Ground devoured. Let them try to match that.' },
     { mood: 'confident', triggers: ['after_push'], text: 'The wind in my ears drowns out everything. I am alive.' },
 
+    // Confident — after trot
+    { mood: 'confident', triggers: ['after_trot'], text: 'A steady rhythm. Paw after paw. The land passes beneath me like a river I will never drink dry.' },
+    { mood: 'confident', triggers: ['after_trot'], text: 'I hold back the speed and let the distance come to me. There is power in patience even they do not possess.' },
+    { mood: 'confident', triggers: ['after_trot'], text: 'The trot is a conversation between my body and the earth. Measured. Controlled. I am still the one who decides the pace.' },
+
     // Confident — after rest
     { mood: 'confident', triggers: ['after_rest'], text: 'The shade accepts me. A brief peace before I run again.' },
     { mood: 'confident', triggers: ['after_rest'], text: 'Rest is not weakness. Even the river pauses before the falls.' },
@@ -81,6 +86,11 @@ const Monologue = {
     // Concerned — after push
     { mood: 'concerned', triggers: ['after_push'], text: 'The burst bought distance but the cost... my sides heave like bellows.' },
     { mood: 'concerned', triggers: ['after_push'], text: 'I pushed hard and opened a gap. But the gap closes. It always closes.' },
+
+    // Concerned — after trot
+    { mood: 'concerned', triggers: ['after_trot'], text: 'The trot feels slower than it used to. The same legs, the same stride. But the ground gives less.' },
+    { mood: 'concerned', triggers: ['after_trot'], text: 'I keep the pace and wonder if it is enough. They do not need to be fast. They only need to be certain.' },
+    { mood: 'concerned', triggers: ['after_trot'], text: 'Steady ground covered but the distance between us thins like hide stretched too many times.' },
 
     // Concerned — after rest
     { mood: 'concerned', triggers: ['after_rest'], text: 'I rest and hear them growing closer. Is there no peace in stillness?' },
@@ -131,6 +141,10 @@ const Monologue = {
     // Desperate — after push
     { mood: 'desperate', triggers: ['after_push'], text: 'That push took something from me that I will not get back.' },
     { mood: 'desperate', triggers: ['after_push'], text: 'The burst is shorter now. Where once I flew, now I merely lurch.' },
+
+    // Desperate — after trot
+    { mood: 'desperate', triggers: ['after_trot'], text: 'My legs move because they do not know how to stop. The trot is all that is left of what I was.' },
+    { mood: 'desperate', triggers: ['after_trot'], text: 'I cannot push. I can only trot. The body has made its decision and the mind must follow.' },
 
     // Desperate — after rest
     { mood: 'desperate', triggers: ['after_rest'], text: 'I rest and the ground pulls at me. It would be easy to stay.' },
@@ -192,6 +206,10 @@ const Monologue = {
     // Haunted — after push
     { mood: 'haunted', triggers: ['after_push'], text: 'I pushed, and the world went gray at the edges. I am running on fumes of what I used to be.' },
     { mood: 'haunted', triggers: ['after_push'], text: 'The push bought yards, not miles. My body is reaching the end of what it can give.' },
+
+    // Haunted — after trot
+    { mood: 'haunted', triggers: ['after_trot'], text: 'The same pace. The same ground. The land repeats itself or I have lost the ability to tell one place from another.' },
+    { mood: 'haunted', triggers: ['after_trot'], text: 'I trot and the horizon does not change. I have been running forever and I have gone nowhere at all.' },
 
     // Haunted — after rest
     { mood: 'haunted', triggers: ['after_rest'], text: 'I rested and for a moment I thought: what if I just stayed? What if I just lay down?' },
@@ -610,7 +628,15 @@ const Monologue = {
 
     // terrain_dense + pressure_hunter_sign — hidden but tracked
     { mood: 'concerned', triggers: ['terrain_dense', 'pressure_hunter_sign'], text: 'I hide in the brush but I can smell them. Close. If the wind shifts, they will smell me too.' },
-    { mood: 'desperate', triggers: ['terrain_dense', 'pressure_hunter_sign'], text: 'The cover hides me but their scent finds me anyway, seeping through the branches like smoke. There is no hiding from what follows by smell.' }
+    { mood: 'desperate', triggers: ['terrain_dense', 'pressure_hunter_sign'], text: 'The cover hides me but their scent finds me anyway, seeping through the branches like smoke. There is no hiding from what follows by smell.' },
+
+    // ===================== MULTI-STAT COLLAPSE (3+ stats critical) =====================
+
+    { mood: 'desperate', triggers: ['multi_collapse'], text: 'Heat. Thirst. Hunger. They come for me together now, like pack hunters circling. My body is a territory being overrun from every side.' },
+    { mood: 'desperate', triggers: ['multi_collapse'], text: 'Everything fails at once. Legs shaking, tongue swollen, ribs showing through the fur. The body does not collapse in pieces — it goes all at once, like a riverbank giving way.' },
+    { mood: 'haunted', triggers: ['multi_collapse'], text: 'I am a catalogue of dying. Each part of me races the others toward the end, and I cannot tell which will arrive first.' },
+    { mood: 'haunted', triggers: ['multi_collapse'], text: 'The thirst says stop. The heat says stop. The hunger says stop. Only the fear keeps my legs moving, and even fear is growing tired.' },
+    { mood: 'haunted', triggers: ['multi_collapse'], text: 'There was a time when only one thing hurt. Now everything hurts and the pains have learned to speak in chorus. The body is finishing its argument with me.' }
   ],
 
   // ============================================================
@@ -633,6 +659,7 @@ const Monologue = {
 
     // Action triggers
     if (lastAction === 'push') triggers.push('after_push');
+    if (lastAction === 'trot') triggers.push('after_trot');
     if (lastAction === 'rest') triggers.push('after_rest');
     if (lastAction === 'drink' || lastAction === 'cross' || lastAction === 'wade' ||
         lastAction === 'drink_elephants' || lastAction === 'plunge_pool' ||
@@ -666,6 +693,16 @@ const Monologue = {
         gameState.thirst >= 85 || gameState.hunger >= 85 ||
         gameState.hunterDistance <= 3) {
       triggers.push('near_death');
+    }
+
+    // Multi-stat collapse — 3+ stats above 80%
+    {
+      let critical = 0;
+      if (gameState.heat >= 80) critical++;
+      if (gameState.stamina <= 20) critical++;
+      if (gameState.thirst >= 80) critical++;
+      if (gameState.hunger >= 80) critical++;
+      if (critical >= 3) triggers.push('multi_collapse');
     }
 
     // Lore — occasional, more likely at higher days

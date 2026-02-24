@@ -287,13 +287,36 @@ const Game = {
       return action.risk.text;
     }
 
-    // Chance-based actions that failed
+    // Chance-based actions that failed — text varies by action type
     if (action.chance !== undefined && !chanceSucceeded) {
-      const failTexts = [
-        'You search but find nothing. The effort was wasted, and the hunters gain ground.',
-        'Your attempt yields nothing. The land does not always provide.',
-        'The search comes up empty. Time lost, nothing gained.'
-      ];
+      const k = action.key;
+      let failTexts;
+
+      if (k === 'dig' || k === 'drink' || k === 'wallow' || k === 'search') {
+        // Water-related failures
+        failTexts = [
+          'You dig until your claws ache. The earth gives nothing. Dry all the way down.',
+          'The scent of water led you here but the source is gone. Cracked mud and old bones.',
+          'You nose along the bank and find only sand. The river moved on without you.',
+          'Nothing. The ground is baked through and the effort leaves you worse than before.'
+        ];
+      } else if (k === 'eat' || k === 'hunt' || k === 'scavenge' || k === 'feed' || k === 'forage' || k === 'steal') {
+        // Food-related failures
+        failTexts = [
+          'The carcass is stripped clean. Vultures and hyenas have left you nothing but bone.',
+          'You crouch and spring but the prey was faster. Hunger remains and the delay costs you.',
+          'Teeth close on empty air. Whatever was here scattered long before you arrived.',
+          'You search the undergrowth and come away with nothing. The land is picked clean.'
+        ];
+      } else {
+        // Generic fallback
+        failTexts = [
+          'You search but find nothing. The effort was wasted, and the hunters gain ground.',
+          'Your attempt yields nothing. The land does not always provide.',
+          'The search comes up empty. Time lost, nothing gained.'
+        ];
+      }
+
       return failTexts[Math.floor(Math.random() * failTexts.length)];
     }
 
@@ -336,11 +359,23 @@ const Game = {
     }
 
     if (key === 'drink' || key === 'dig' || key === 'wallow' || key === 'search') {
-      return 'Water. The world makes sense again when your throat is cool. They will know you were here.';
+      const texts = [
+        'Water. The world makes sense again when your throat is cool. They will know you were here.',
+        'You drink deep and feel the life return to your limbs. The mud holds your tracks like a confession.',
+        'Cool water against cracked tongue. For a moment the fear loosens its grip. But the scent you leave is a beacon.',
+        'The water is silted and warm but it is water. You drink until your belly aches. Somewhere behind you they will find this place.'
+      ];
+      return texts[Math.floor(Math.random() * texts.length)];
     }
 
     if (key === 'eat' || key === 'scavenge' || key === 'hunt' || key === 'feed' || key === 'forage' || key === 'steal') {
-      return 'Meat in your belly. Strength returning. But the delay costs you distance.';
+      const texts = [
+        'Meat in your belly. Strength returning. But the delay costs you distance.',
+        'You eat fast and without grace. Blood on your muzzle and the old power flowing back into tired muscle.',
+        'Flesh and sinew. The body remembers what it is built for. But every moment spent feeding is a moment they spend closing.',
+        'You gorge on what the land offers and feel the hunger retreat. The kill site will draw their eyes like a signal fire.'
+      ];
+      return texts[Math.floor(Math.random() * texts.length)];
     }
 
     return 'You act. The world responds. The hunt continues.';

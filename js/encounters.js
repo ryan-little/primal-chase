@@ -760,6 +760,24 @@ const Encounters = {
       text: 'A glow on the horizon — not dawn, too early and too orange. Their fire, or a brush fire, or another hunting party. The light is small but it means the dark is not empty.',
       actions: [],
       modifiers: {}
+    },
+    {
+      id: 'animal_tracks_night',
+      baseId: 'animal_tracks',
+      nightOnly: true,
+      name: 'tracks in moonlight',
+      text: 'The moon casts shadows into the pressed earth, turning every print into a small dark pool. You lower your nose and read them by scent more than sight — the warmth already leaving, the story hours old. Something passed through here before the dark settled and did not come back.',
+      actions: [],
+      modifiers: {}
+    },
+    {
+      id: 'wind_shift_night',
+      baseId: 'wind_shift',
+      nightOnly: true,
+      name: 'a turning wind',
+      text: 'The night air swings like a door opening onto something cold and far away. One moment the dark smells of dust and dung and warm grass. Then it changes — carrying woodsmoke, the mineral bite of distant water, sounds that have traveled farther than you can run. The wind is telling you something. You do not know if you want to hear it.',
+      actions: [],
+      modifiers: { trot: { heat: -2 } }
     }
   ],
 
