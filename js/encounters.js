@@ -787,8 +787,7 @@ const Encounters = {
       text: 'Dark clouds pile on the horizon, their bellies bruised purple. The air thickens with electricity.',
       condition: () => Math.random() < 0.15,
       fallbackCondition: true,
-      modifiers: { push: { heat: -5 }, trot: { heat: -3 }, rest: { heat: -8 } },
-      special: 'storm'
+      modifiers: { push: { heat: -5 }, trot: { heat: -3 }, rest: { heat: -8 } }
     },
     {
       id: 'injured_paw',
@@ -1382,7 +1381,7 @@ const Encounters = {
       minDay: 4,
       text: 'You climb to a point where you can see everything — the rolling grassland, the distant treeline, the shimmer of heat on the horizon. And there, small but unmistakable, a column of dust. The hunters.',
       choices: [
-        { key: 'observe', name: 'Watch and Plan', description: 'Study their movement pattern and choose your direction wisely', effects: { heat: 5, stamina: 10, thirst: 5, hunger: 3 }, distance: 0, special: 'reveals_hunter_speed' },
+        { key: 'observe', name: 'Watch and Plan', description: 'Study their movement pattern and choose your direction wisely', effects: { heat: 5, stamina: 10, thirst: 5, hunger: 3 }, distance: 0 },
         { key: 'opposite', name: 'Run the Opposite Way', description: 'Now that you can see them, run directly away', effects: null, distance: null },
         { key: 'zigzag', name: 'Change Direction', description: 'Cut perpendicular to their path — may confuse tracking', effects: { heat: 10, stamina: -15, thirst: 5, hunger: 5 }, distance: 2, loseHunters: false }
       ]
@@ -1717,8 +1716,7 @@ const Encounters = {
       id: encounter.id,
       name: encounter.name,
       text: encounter.text,
-      actions: actions,
-      loseHuntersAvailable: actions.some(a => a.loseHunters)
+      actions: actions
     };
   },
 
@@ -1801,8 +1799,7 @@ const Encounters = {
       terrain: terrain,
       opportunity: opportunity,
       pressure: pressure,
-      actions: actions,
-      loseHuntersAvailable: false
+      actions: actions
     };
   },
 
@@ -1981,8 +1978,7 @@ const Encounters = {
       terrain: terrain,
       opportunity: opportunity,
       pressure: pressure,
-      actions: actions,
-      loseHuntersAvailable: false
+      actions: actions
     };
   }
 };

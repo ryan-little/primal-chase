@@ -195,15 +195,6 @@ const Game = {
     // Clamp stats
     this.clampStats();
 
-    // Track action in history
-    const statChanges = {
-      heat: Math.round(this.state.heat - statsBefore.heat),
-      stamina: Math.round(this.state.stamina - statsBefore.stamina),
-      thirst: Math.round(this.state.thirst - statsBefore.thirst),
-      hunger: Math.round(this.state.hunger - statsBefore.hunger)
-    };
-    // (statChanges available for debugging if needed)
-
     // Check death
     const deathCause = this.checkDeath();
     if (deathCause) {

@@ -1798,7 +1798,9 @@ const UI = {
     // Sync difficulty button active state
     const currentDifficulty = Options.get('difficulty');
     document.querySelectorAll('.option-btn[data-option="difficulty"]').forEach(btn => {
-      btn.classList.toggle('active', btn.dataset.value === currentDifficulty);
+      const isSelected = btn.dataset.value === currentDifficulty;
+      btn.classList.toggle('active', isSelected);
+      btn.setAttribute('aria-pressed', isSelected ? 'true' : 'false');
     });
     // Sync toggle states
     const tutorialBtn = document.getElementById('opt-tutorial');
@@ -2003,8 +2005,12 @@ const UI = {
     document.querySelectorAll('.option-btn[data-option="difficulty"]').forEach(btn => {
       btn.onclick = () => {
         Options.set('difficulty', btn.dataset.value);
-        document.querySelectorAll('.option-btn[data-option="difficulty"]').forEach(b => b.classList.remove('active'));
+        document.querySelectorAll('.option-btn[data-option="difficulty"]').forEach(b => {
+          b.classList.remove('active');
+          b.setAttribute('aria-pressed', 'false');
+        });
         btn.classList.add('active');
+        btn.setAttribute('aria-pressed', 'true');
       };
     });
 

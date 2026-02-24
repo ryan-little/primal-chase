@@ -32,7 +32,7 @@ const CONFIG = {
   // Day actions
   actions: {
     day: {
-      push:  { distance: 6.5, heat: 22, stamina: -17, thirst: 15, hunger: 10 },
+      push:  { distance: 6.5, heat: 18, stamina: -17, thirst: 15, hunger: 10 },
       trot:  { distance: 3.5, heat: 11, stamina: -10, thirst: 8, hunger: 5 },
       rest:  { distance: 0, heat: -20, stamina: 27, thirst: 0, hunger: 3 },
       drink: { distance: 0, heat: 11, stamina: -5, thirst: -100, hunger: 0 },
@@ -183,7 +183,7 @@ const CONFIG = {
       }
     },
     hard: {
-      starting: { hunterDistance: 20 },
+      starting: { hunterDistance: 22 },
       hunter: { baseSpeed: 6.3, dailyEscalation: 0.13, escalationPerLoss: 1.0 },
       passiveDrain: {
         day:   { heat: 6, stamina: 0, thirst: 7, hunger: 3.5 },
