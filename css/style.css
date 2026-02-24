@@ -994,6 +994,17 @@ body.night-mode .night-bg {
   margin-bottom: 1em;
 }
 
+.death-cause-badge {
+  text-align: center;
+  font-size: 0.85rem;
+  letter-spacing: 0.15em;
+  text-transform: uppercase;
+  color: var(--text-secondary);
+  margin: 0 0 0.75rem;
+  font-family: 'Courier New', monospace;
+  opacity: 0;
+}
+
 .score-summary {
   margin-bottom: 1.5rem;
   padding: 1.2rem;
@@ -1005,7 +1016,8 @@ body.night-mode .night-bg {
 .score-stats {
   display: flex;
   justify-content: center;
-  gap: 2rem;
+  flex-wrap: wrap;
+  gap: 0.4rem 2rem;
   margin-bottom: 0.8rem;
   font-family: 'Courier New', monospace;
   font-size: 1em;
@@ -1088,6 +1100,7 @@ body.night-mode .night-bg {
   opacity: 0;
 }
 
+.death-results-visible .death-cause-badge,
 .death-results-visible .score-summary,
 .death-results-visible .death-buttons {
   animation: death-fade-in 1s ease forwards;
@@ -1206,6 +1219,20 @@ body.night-mode .night-bg {
 .leaderboard-table tr:hover {
   background: rgba(74, 53, 38, 0.3);
 }
+
+.diff-badge {
+  display: inline-block;
+  font-size: 0.65em;
+  padding: 1px 4px;
+  border-radius: 3px;
+  margin-left: 4px;
+  vertical-align: middle;
+  font-weight: 700;
+  opacity: 0.8;
+}
+.diff-easy { background: rgba(76, 175, 80, 0.3); color: #81c784; }
+.diff-normal { background: rgba(255, 183, 77, 0.2); color: #d4883a; }
+.diff-hard { background: rgba(244, 67, 54, 0.3); color: #ef5350; }
 
 .leaderboard-actions {
   display: flex;

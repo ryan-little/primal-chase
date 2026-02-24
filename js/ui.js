@@ -1730,6 +1730,20 @@ const UI = {
       if (deathContainer) deathContainer.classList.add('death-results-visible');
     };
 
+    // Populate death cause badge
+    const deathCauseBadge = document.getElementById('death-cause-badge');
+    if (deathCauseBadge) {
+      const causeLabels = {
+        caught:      'Caught by the Hunters',
+        heatstroke:  'Heatstroke',
+        exhaustion:  'Exhaustion',
+        dehydration: 'Dehydration',
+        starvation:  'Starvation'
+      };
+      const label = causeLabels[gameState.deathCause] || gameState.deathCause || 'Unknown';
+      deathCauseBadge.textContent = `\u2014 ${label} \u2014`;
+    }
+
     // Render death narrative (with optional typewriter)
     const narrativeElement = document.getElementById('death-narrative');
     if (narrativeElement) {
@@ -1773,6 +1787,17 @@ const UI = {
 
       document.getElementById('score-days').textContent = scoreData.days;
       document.getElementById('score-distance').textContent = `${scoreData.distance} mi`;
+
+      // Populate hunter distance stat
+      const hunterDistEl = document.getElementById('score-hunter-dist');
+      if (hunterDistEl) {
+        if (gameState.deathCause === 'caught') {
+          hunterDistEl.textContent = 'The hunters caught you';
+        } else {
+          const dist = (Math.round(gameState.hunterDistance * 10) / 10).toFixed(1);
+          hunterDistEl.textContent = `${dist} mi behind`;
+        }
+      }
 
       // Render percentile comparisons
       const percentileContainer = document.getElementById('percentile-stats');
@@ -1868,9 +1893,13 @@ const UI = {
     scores.forEach((score, index) => {
       const row = document.createElement('tr');
 
+      const diff = score.difficulty || 'normal';
+      const diffLabel = diff === 'easy' ? 'E' : diff === 'hard' ? 'H' : 'N';
+      const diffBadge = `<span class="diff-badge diff-${diff}" title="${diff}">${diffLabel}</span>`;
+
       row.innerHTML = `
         <td>${index + 1}</td>
-        <td>${score.days}</td>
+        <td>${score.days}${diffBadge}</td>
         <td>${score.distance} mi</td>
         <td>${score.timesLostHunters ?? 0}</td>
         <td>${this.formatDeathCause(score.deathCause)}</td>

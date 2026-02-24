@@ -22,6 +22,7 @@ const Score = {
       deathCause: gameState.deathCause || 'unknown',
       timesLostHunters: gameState.timesLostHunters || 0,
       achievements: this.getAchievements(gameState),
+      difficulty: (typeof Options !== 'undefined' ? Options.get('difficulty') : null) || 'normal',
       date: new Date().toISOString().split('T')[0]
     };
   },
