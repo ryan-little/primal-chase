@@ -78,7 +78,7 @@
             <div id="heat-label" class="status-label">Heat</div>
             <div class="status-bar-track">
               <div id="heat-bar" class="status-bar-fill heat-bar" style="width: 0%"></div>
-              <div class="status-value" id="heat-value" aria-live="polite">0%</div>
+              <div class="status-value" id="heat-value">0%</div>
             </div>
           </div>
 
@@ -86,7 +86,7 @@
             <div id="stamina-label" class="status-label">Fatigue</div>
             <div class="status-bar-track">
               <div id="stamina-bar" class="status-bar-fill stamina-bar" style="width: 0%"></div>
-              <div class="status-value" id="stamina-value" aria-live="polite">0%</div>
+              <div class="status-value" id="stamina-value">0%</div>
             </div>
           </div>
 
@@ -94,7 +94,7 @@
             <div id="thirst-label" class="status-label">Thirst</div>
             <div class="status-bar-track">
               <div id="thirst-bar" class="status-bar-fill thirst-bar" style="width: 0%"></div>
-              <div class="status-value" id="thirst-value" aria-live="polite">0%</div>
+              <div class="status-value" id="thirst-value">0%</div>
             </div>
           </div>
 
@@ -102,7 +102,7 @@
             <div id="hunger-label" class="status-label">Hunger</div>
             <div class="status-bar-track">
               <div id="hunger-bar" class="status-bar-fill hunger-bar" style="width: 0%"></div>
-              <div class="status-value" id="hunger-value" aria-live="polite">0%</div>
+              <div class="status-value" id="hunger-value">0%</div>
             </div>
           </div>
         </div>
@@ -128,6 +128,9 @@
         <span class="keyboard-hint">Press 1–5</span>
         <!-- Action buttons will be dynamically generated here -->
       </div>
+
+      <!-- Single aria-live region for stat threshold announcements -->
+      <div id="stat-announcer" class="sr-only" aria-live="polite" aria-atomic="true"></div>
     </div>
   </div>
 
@@ -199,6 +202,7 @@
   <!-- How to Play Screen -->
   <div id="screen-howto" class="screen">
     <div class="howto-container">
+      <button id="btn-howto-back-top" class="back-btn back-btn-top">Return to Title</button>
       <h1>Learn to Run</h1>
       <div class="howto-content">
         <p class="howto-intro">You are an apex predator — a big cat built for explosive speed. But the humans hunting you don't play by your rules. They track. They follow. They never stop. This is persistence hunting, and you cannot win. You can only survive one more day.</p>

@@ -112,6 +112,8 @@ const UI = {
   _pollenSpawned: false,
   _lastVignetteShadow: null,
   _lastGlowShadow: null,
+  // Track highest threshold crossed per stat to avoid repeat announcements
+  _statThresholds: { heat: 0, stamina: 0, thirst: 0, hunger: 0 },
 
   /**
    * Show a specific screen, hide all others
@@ -127,6 +129,12 @@ const UI = {
     if (targetScreen) {
       targetScreen.classList.add('active');
     }
+
+    // Move focus to first interactive element after transition
+    setTimeout(() => {
+      const firstFocusable = document.querySelector(`#${screenId} button, #${screenId} a`);
+      if (firstFocusable) firstFocusable.focus();
+    }, 50);
   },
 
   /**
@@ -547,6 +555,33 @@ const UI = {
       barElement.style.backgroundColor = this.getDangerColor(dangerLevel);
     }
 
+    // Threshold-based screen reader announcements (50%, 75%, 90%)
+    const thresholds = [50, 75, 90];
+    const prevThreshold = this._statThresholds[statName] || 0;
+    let crossed = 0;
+    for (const t of thresholds) {
+      if (dangerLevel >= t) crossed = t;
+    }
+    if (crossed > prevThreshold) {
+      this._statThresholds[statName] = crossed;
+      const statLabels = { heat: 'Heat', stamina: 'Fatigue', thirst: 'Thirst', hunger: 'Hunger' };
+      const severityMap = { 50: 'warning', 75: 'high', 90: 'critical' };
+      const announcer = document.getElementById('stat-announcer');
+      if (announcer) {
+        announcer.textContent = `${statLabels[statName] || statName} ${severityMap[crossed]}: ${Math.round(dangerLevel)}%`;
+      }
+    } else if (dangerLevel < 50 && prevThreshold > 0) {
+      // Reset when stat recovers below 50%
+      this._statThresholds[statName] = 0;
+    }
+
+    // Pulse animation when approaching danger — visible at 80%+
+    if (dangerLevel >= 80) {
+      container.classList.add('pulsing');
+    } else {
+      container.classList.remove('pulsing');
+    }
+
     // Continuous shake when in danger — starts at 75%, ramps up rapidly toward 100%
     if (dangerLevel > 75) {
       const t = (dangerLevel - 75) / 25;          // 0→1 over 75%→100%
@@ -597,7 +632,8 @@ const UI = {
       const flavorText = Hunters.getHunterFlavorText(
         gameState.hunterDistance,
         gameState.hunterState,
-        gameState.phase
+        gameState.phase,
+        gameState.hunterWaterBoostDays
       );
       flavorElement.textContent = flavorText;
     }
@@ -756,13 +792,14 @@ const UI = {
       return;
     }
 
-    // Continuous intensity: 0.07 at 14mi, 1 at 0mi (min floor so glow is noticeable early)
-    const intensity = Math.max(0.07, 1 - (gameState.hunterDistance / 15));
+    // Quadratic ramp: 0 at 15mi → 0.7 at 0mi
+    // Targets: 15mi=0, 10mi≈0.1, 5mi≈0.3, 2mi≈0.5, 0mi=0.7
+    const ratio = (15 - gameState.hunterDistance) / 15;  // 0→1 as hunters close in
+    const opacity = ratio * ratio * 0.7;
     const isNight = gameState.phase === 'night';
 
-    // Scale spread and opacity continuously
-    const spread = 60 + intensity * 120;   // 60px → 180px
-    const opacity = intensity * 0.8;        // 0 → 0.8
+    // Scale spread continuously with proximity
+    const spread = 60 + ratio * 120;       // 60px → 180px
 
     const r = isNight ? 212 : 196;
     const g = isNight ? 136 : 69;
@@ -1511,18 +1548,19 @@ const UI = {
     // Distance
     const dist = action.distance !== undefined ? action.distance : (effects.distance || 0);
     if (dist > 0) {
-      parts.push(`<span class="action-gain">+${dist} mi</span>`);
+      parts.push(`<span class="action-gain"><span class="sr-only">(gain) </span>+${dist} mi</span>`);
     } else if (dist === 0) {
       parts.push(`<span class="action-warning">0 mi</span>`);
     } else if (dist < 0) {
-      parts.push(`<span class="action-cost">${dist} mi</span>`);
+      parts.push(`<span class="action-cost"><span class="sr-only">(cost) </span>${dist} mi</span>`);
     }
 
     // Heat (action + passive)
     const heat = (effects.heat || 0) + (passive.heat || 0);
     if (heat !== 0) {
       const cls = heat > 0 ? 'action-cost' : 'action-gain';
-      parts.push(`<span class="${cls}">${heat > 0 ? '+' : ''}${heat} heat</span>`);
+      const srLabel = heat > 0 ? '(cost) ' : '(gain) ';
+      parts.push(`<span class="${cls}"><span class="sr-only">${srLabel}</span>${heat > 0 ? '+' : ''}${heat} heat</span>`);
     }
 
     // Fatigue (inverted stamina: losing stamina = gaining fatigue)
@@ -1530,42 +1568,45 @@ const UI = {
     if (stam !== 0) {
       const fatigue = -stam; // flip sign: stamina loss → fatigue gain
       const cls = fatigue > 0 ? 'action-cost' : 'action-gain';
-      parts.push(`<span class="${cls}">${fatigue > 0 ? '+' : ''}${fatigue} fatigue</span>`);
+      const srLabel = fatigue > 0 ? '(cost) ' : '(gain) ';
+      parts.push(`<span class="${cls}"><span class="sr-only">${srLabel}</span>${fatigue > 0 ? '+' : ''}${fatigue} fatigue</span>`);
     }
 
     // Thirst (action + passive)
     const thirstRaw = effects.thirst || 0;
     const thirstTotal = thirstRaw + (passive.thirst || 0);
     if (thirstRaw <= -100) {
-      parts.push('<span class="action-gain">resets thirst</span>');
+      parts.push('<span class="action-gain"><span class="sr-only">(gain) </span>resets thirst</span>');
     } else if (thirstTotal !== 0) {
       const cls = thirstTotal > 0 ? 'action-cost' : 'action-gain';
-      parts.push(`<span class="${cls}">${thirstTotal > 0 ? '+' : ''}${thirstTotal} thirst</span>`);
+      const srLabel = thirstTotal > 0 ? '(cost) ' : '(gain) ';
+      parts.push(`<span class="${cls}"><span class="sr-only">${srLabel}</span>${thirstTotal > 0 ? '+' : ''}${thirstTotal} thirst</span>`);
     }
 
     // Hunger (action + passive)
     const hungerRaw = effects.hunger || 0;
     const hungerTotal = hungerRaw + (passive.hunger || 0);
     if (hungerRaw <= -100) {
-      parts.push('<span class="action-gain">resets hunger</span>');
+      parts.push('<span class="action-gain"><span class="sr-only">(gain) </span>resets hunger</span>');
     } else if (hungerTotal !== 0) {
       const cls = hungerTotal > 0 ? 'action-cost' : 'action-gain';
-      parts.push(`<span class="${cls}">${hungerTotal > 0 ? '+' : ''}${hungerTotal} hunger</span>`);
+      const srLabel = hungerTotal > 0 ? '(cost) ' : '(gain) ';
+      parts.push(`<span class="${cls}"><span class="sr-only">${srLabel}</span>${hungerTotal > 0 ? '+' : ''}${hungerTotal} hunger</span>`);
     }
 
     // Chance indicator for situational actions
     if (action.chance !== undefined && action.chance < 1.0) {
-      parts.push(`<span class="action-cost">${Math.round(action.chance * 100)}% chance</span>`);
+      parts.push(`<span class="action-cost"><span class="sr-only">(cost) </span>${Math.round(action.chance * 100)}% chance</span>`);
     }
 
     // Lose hunters indicator
     if (action.loseHunters) {
-      parts.push('<span class="action-gain">may lose hunters</span>');
+      parts.push('<span class="action-gain"><span class="sr-only">(gain) </span>may lose hunters</span>');
     }
 
     // Risk indicator
     if (action.risk) {
-      parts.push(`<span class="action-cost">${Math.round(action.risk.chance * 100)}% risk</span>`);
+      parts.push(`<span class="action-cost"><span class="sr-only">(cost) </span>${Math.round(action.risk.chance * 100)}% risk</span>`);
     }
 
     return parts.join('<span class="action-separator"> | </span>');
@@ -2037,6 +2078,10 @@ const UI = {
     const btnHowToBack = document.getElementById('btn-howto-back');
     if (btnHowToBack) {
       btnHowToBack.onclick = () => this.renderTitle();
+    }
+    const btnHowToBackTop = document.getElementById('btn-howto-back-top');
+    if (btnHowToBackTop) {
+      btnHowToBackTop.onclick = () => this.renderTitle();
     }
 
     const btnLeaderboardBack = document.getElementById('btn-leaderboard-back');

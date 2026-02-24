@@ -97,10 +97,23 @@ const Hunters = {
    * @param {number} distance - miles between player and hunters
    * @param {string} hunterState - 'pursuit' or 'tracking'
    * @param {string} phase - 'day' or 'night'
+   * @param {number} [hunterWaterBoostDays] - remaining days of water boost (optional)
    * @returns {string} - atmospheric description
    */
-  getHunterFlavorText(distance, hunterState, phase) {
+  getHunterFlavorText(distance, hunterState, phase, hunterWaterBoostDays) {
     const isNight = phase === 'night';
+
+    // Water boost: hunters found your water source — prioritize over normal flavor
+    if (hunterWaterBoostDays > 0) {
+      const waterBoostTexts = [
+        "Something in their pace has changed — they found where you drank.",
+        "They move with new purpose. The water source told them everything.",
+        "The lead hunter kneels where you knelt. He drinks and grins.",
+        "A shift in the column behind you. They have read the mud, the bent reeds, the wet earth you left. They know.",
+        "They are faster now. Not from strength — from certainty. You gave them a fixed point, and they will not waste it."
+      ];
+      return waterBoostTexts[Math.floor(Math.random() * waterBoostTexts.length)];
+    }
 
     // Special text for tracking mode
     if (hunterState === 'tracking') {

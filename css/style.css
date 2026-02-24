@@ -493,6 +493,15 @@ body.night-mode .night-bg {
   50% { opacity: 0.5; }
 }
 
+@keyframes stat-pulse {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.7; }
+}
+
+.status-bar-container.pulsing .status-bar-fill {
+  animation: stat-pulse 1.5s ease-in-out infinite;
+}
+
 .status-bar-fill.transitioning {
   transition: width 1.5s ease-in-out, background-color 1.5s ease-in-out;
 }
@@ -1343,6 +1352,11 @@ body.night-mode .night-bg {
   transform: translateY(0);
 }
 
+.back-btn-top {
+  margin-bottom: 1rem;
+  font-size: 0.85em;
+  padding: 0.5rem 1.2rem;
+}
 
 /* ===== OPTIONS SCREEN ===== */
 .options-container {
@@ -1594,6 +1608,8 @@ body.night-mode .night-bg {
 
   .situation-scroll {
     padding: 1rem 1.2rem;
+    max-height: 35vh;
+    overflow-y: auto;
   }
 
   .action-details {
@@ -2062,6 +2078,11 @@ body.weather-rain .rain-overlay-dim {
   background-color: rgba(0, 0, 0, 0.2);
 }
 
+/* Day rain: subtle blue-gray tint instead of plain dark dim */
+body.weather-rain:not(.night-mode) .rain-overlay-dim {
+  background-color: rgba(70, 90, 115, 0.25);
+}
+
 .raindrop {
   position: absolute;
   top: -20px;
@@ -2136,6 +2157,7 @@ body.night-mode .raindrop {
   .cloud-shadow { animation: none; }
   .hunter-glow.glow-pulse { animation: none; }
   .status-bar-container.critical .status-bar-fill { animation: none; }
+  .status-bar-container.pulsing .status-bar-fill { animation: none; }
   .lightning-overlay { animation: none !important; background: transparent !important; }
 }
 
