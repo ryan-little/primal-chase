@@ -1,0 +1,3 @@
+# Game Idea
+
+Player is an animal in ancient times being hunted down by ancient human persistence hunters. Every night you can show a map to show progress of humans coming after you and tracking you. The humans will always catch up unless you are perfect in balancing rest, food, water and manage to avoid other predators or getting injured. Maybe no win condition, might be a high score type game. Would be interesting to implement AI decision making based clues left by the player.
