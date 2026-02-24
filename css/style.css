@@ -2016,6 +2016,7 @@ body.night-mode .raindrop {
   .cloud-shadow { animation: none; }
   .hunter-glow.glow-pulse { animation: none; }
   .status-bar-container.critical .status-bar-fill { animation: none; }
+  .lightning-overlay { animation: none !important; background: transparent !important; }
 }
 
 /* ===== VERSION BADGE ===== */

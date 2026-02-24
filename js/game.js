@@ -163,8 +163,8 @@ const Game = {
       this.state.hunterDistance += distanceChange;
     }
 
-    // Update hunter tracking
-    if (this.state.phase === 'night' && typeof Hunters !== 'undefined') {
+    // Update hunter tracking (every phase, not just night)
+    if (typeof Hunters !== 'undefined') {
       Hunters.updateTracking(this.state);
     }
 
@@ -182,7 +182,7 @@ const Game = {
     if (actionKey === 'drink' || action.key === 'drink') {
       this.state.hunterWaterBoostDays = CONFIG.hunter.waterBoostDuration;
     }
-    if (this.state.hunterWaterBoostDays > 0 && this.state.phase === 'night') {
+    if (this.state.hunterWaterBoostDays > 0) {
       this.state.hunterWaterBoostDays -= 1;
     }
 

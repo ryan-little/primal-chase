@@ -1265,6 +1265,7 @@ const UI = {
    */
   triggerLightning() {
     if (!this._lightningActive) return;
+    if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) return;
     const overlay = document.getElementById('lightning-overlay');
     if (!overlay) return;
     const cfg = CONFIG.ui.weather.lightning;

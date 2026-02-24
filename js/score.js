@@ -90,11 +90,6 @@ const Score = {
       achievements.push('On the Edge — Danced with death');
     }
 
-    // Perfect runner (never took damage from heat/exhaustion)
-    if (stats.perfectRunner && gameState.day >= 5) {
-      achievements.push('Perfect Balance — Mastered the chase');
-    }
-
     // Doomed sprint (died on day 1)
     if (gameState.day === 1 && gameState.deathCause !== 'caught') {
       achievements.push('Too Fast, Too Soon');

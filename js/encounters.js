@@ -1662,6 +1662,7 @@ const Encounters = {
     });
     if (eligible.length === 0) return null;
     const rare = eligible[Math.floor(Math.random() * eligible.length)];
+    this.usedSignatures.add(rare.id);
     return this.formatSignatureEncounter(rare, gameState);
   },
 
@@ -1929,9 +1930,14 @@ const Encounters = {
     const terrain = currentEncounter.terrain;
     if (!terrain) return this.generate(gameState);
 
-    // Pick new opportunity (compatible with terrain, avoid recent)
+    // Pick new opportunity (compatible with terrain, avoid recent, respect nightOnly)
+    const isNight = gameState.phase === 'night';
+    const oppPhaseFilter = (o) => {
+      if (o.nightOnly && !isNight) return false;
+      return true;
+    };
     let availableOpps = this.opportunities.filter(o =>
-      terrain.compatible.includes(o.id) && !this.recentOpportunities.includes(o.id)
+      oppPhaseFilter(o) && terrain.compatible.includes(o.baseId || o.id) && !this.recentOpportunities.includes(o.id)
     );
     if (availableOpps.length === 0) {
       availableOpps = this.opportunities.filter(o => terrain.compatible.includes(o.id));
