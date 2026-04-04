@@ -99,6 +99,11 @@ function getWeatherCondition(encounter, skipRandom) {
   return encounter._weatherRoll;
 }
 
+// Cache mobile media query result for particle budget (PC-H6)
+const _isMobileQuery = window.matchMedia('(max-width: 768px)');
+let _isMobile = _isMobileQuery.matches;
+_isMobileQuery.addEventListener('change', (e) => { _isMobile = e.matches; });
+
 const UI = {
   _currentWeather: null,
   _currentEncounter: null,
@@ -377,12 +382,15 @@ const UI = {
       this.renderActions(gameState.currentEncounter.actions, stagger);
     }
 
+    // Consume lastOutcome once so re-renders don't lose it
+    const outcomeText = gameState.lastOutcome;
+    gameState.lastOutcome = null;
+
     if (useTypewriter) {
       // Show outcome text instantly, then typewrite encounter text
       situationElement.innerHTML = '';
-      if (gameState.lastOutcome) {
-        situationElement.innerHTML = `<span class="outcome-label">Previous:</span><p class="outcome-text">${gameState.lastOutcome}</p>`;
-        gameState.lastOutcome = null;
+      if (outcomeText) {
+        situationElement.innerHTML = `<span class="outcome-label">Previous:</span><p class="outcome-text">${outcomeText}</p>`;
       }
 
       // Hide old monologue immediately so it doesn't linger during typewriter
@@ -415,9 +423,8 @@ const UI = {
     } else {
       // No typewriter — render everything instantly
       let html = '';
-      if (gameState.lastOutcome) {
-        html += `<span class="outcome-label">Previous:</span><p class="outcome-text">${gameState.lastOutcome}</p>`;
-        gameState.lastOutcome = null;
+      if (outcomeText) {
+        html += `<span class="outcome-label">Previous:</span><p class="outcome-text">${outcomeText}</p>`;
       }
       situationElement.innerHTML = html + `<p>${encounterText}</p>`;
       this._situationTypewriterDone = true;
@@ -830,7 +837,8 @@ const UI = {
     if (!container) return;
     this._firefliesSpawned = true;
     container.innerHTML = '';
-    const count = 15 + Math.floor(Math.random() * 10); // 15-24 fireflies
+    let count = 15 + Math.floor(Math.random() * 10); // 15-24 fireflies
+    if (_isMobile) count = Math.ceil(count / 2);
     for (let i = 0; i < count; i++) {
       const fly = document.createElement('div');
       fly.className = 'firefly';
@@ -875,7 +883,8 @@ const UI = {
     container.innerHTML = '';
     const cfg = CONFIG.ui.weather.stars;
     const reduceMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
-    const count = cfg.minCount + Math.floor(Math.random() * (cfg.maxCount - cfg.minCount + 1));
+    let count = cfg.minCount + Math.floor(Math.random() * (cfg.maxCount - cfg.minCount + 1));
+    if (_isMobile) count = Math.ceil(count / 2);
     for (let i = 0; i < count; i++) {
       const star = document.createElement('div');
       star.className = 'star';
@@ -935,7 +944,8 @@ const UI = {
     container.innerHTML = '';
     const cfg = CONFIG.ui.weather.dust;
     const mult = cfg.terrainMultiplier[terrainCategory] || 1;
-    const count = Math.round(cfg.baseCount * mult);
+    let count = Math.round(cfg.baseCount * mult);
+    if (_isMobile) count = Math.ceil(count / 2);
 
     for (let i = 0; i < count; i++) {
       const mote = document.createElement('div');
@@ -979,7 +989,8 @@ const UI = {
     container.innerHTML = '';
     const cfg = CONFIG.ui.weather.pollen;
     const mult = cfg.terrainMultiplier[terrainCategory] || 1;
-    const count = Math.round(cfg.baseCount * mult);
+    let count = Math.round(cfg.baseCount * mult);
+    if (_isMobile) count = Math.ceil(count / 2);
 
     for (let i = 0; i < count; i++) {
       const seed = document.createElement('div');
@@ -1022,7 +1033,8 @@ const UI = {
     container.innerHTML = '';
     const cfg = CONFIG.ui.weather.insects;
     const mult = cfg.terrainMultiplier[terrainCategory] || 1;
-    const count = Math.round(cfg.baseCount * mult);
+    let count = Math.round(cfg.baseCount * mult);
+    if (_isMobile) count = Math.ceil(count / 2);
     const reduceMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
 
     for (let i = 0; i < count; i++) {
@@ -1184,6 +1196,7 @@ const UI = {
     const range = intensity === 'heavy' ? cfg.heavyCount : cfg.lightCount;
     let count = range[0] + Math.floor(Math.random() * (range[1] - range[0] + 1));
     if (reduceMotion) count = Math.floor(count / 4);
+    if (_isMobile) count = Math.ceil(count / 2);
     const angle = cfg.angle[0] + Math.random() * (cfg.angle[1] - cfg.angle[0]);
     const direction = Math.random() < 0.5 ? 1 : -1;
     const speedMult = cfg.speedMultiplier[0] + Math.random() * (cfg.speedMultiplier[1] - cfg.speedMultiplier[0]);

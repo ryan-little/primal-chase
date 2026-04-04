@@ -1,21 +1,21 @@
-# Claude Code
-CLAUDE.md
-.claude/
-.mcp.json
+# macOS
+.DS_Store
 
-# Internal tooling
-test/
-docs/
+# Claude Code
+.claude/
+CLAUDE.md
+.mcp.json
+.playwright-mcp/
 
 # Dependencies (dev only — vanilla JS game, no runtime deps)
 node_modules/
 package.json
 package-lock.json
 
+# Internal tooling
+test/
+docs/
+
 # Playwright artifacts
 /*.png
 /*.jpeg
-.playwright-mcp/
-
-# macOS
-.DS_Store

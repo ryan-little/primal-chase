@@ -143,7 +143,7 @@ const Game = {
     // Calculate hunter distance change (uses current hunter state + water boost)
     if (typeof Hunters !== 'undefined') {
       const distanceChange = Hunters.calculateDistanceChange(playerDistance, this.state);
-      this.state.hunterDistance += distanceChange;
+      this.state.hunterDistance = Math.max(0, this.state.hunterDistance + distanceChange);
     }
 
     // Update hunter tracking countdown

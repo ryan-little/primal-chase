@@ -151,7 +151,7 @@ const CONFIG = {
     water: ['watering_hole', 'seasonal_stream', 'reed_bed', 'dry_riverbed', 'sandy_wash', 'dried_marsh'],
     open: ['salt_flat', 'open_plain', 'red_dunes', 'clay_pan', 'burned_ground', 'ash_field', 'dry_lake_bed'],
     dense: ['acacia_grove', 'bamboo_grove', 'fallen_tree_grove', 'thorn_thicket', 'mopane_woodland', 'tall_grass', 'fever_trees'],
-    rocky: ['rocky_outcrop', 'granite_plateau', 'volcanic_rock', 'sandstone_arches', 'whistling_caves', 'ridge_line'],
+    rocky: ['rocky_outcrop', 'kopje', 'granite_plateau', 'volcanic_rock', 'sandstone_arches', 'whistling_caves', 'overhang_cave', 'ridge_line'],
     shelter: ['overhang_cave', 'baobab', 'kopje', 'termite_cathedral']
   },
 

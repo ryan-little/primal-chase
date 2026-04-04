@@ -1834,6 +1834,9 @@ const Encounters = {
     if (availablePressures.length === 0) {
       availablePressures = this.pressures.filter(p => p.fallbackCondition);
     }
+    if (availablePressures.length === 0) {
+      availablePressures = [this.pressures[0]];
+    }
     const pressure = availablePressures[Math.floor(Math.random() * availablePressures.length)];
     this.recentPressures.push(pressure.id);
     if (this.recentPressures.length > 7) this.recentPressures.shift();
@@ -1895,6 +1898,14 @@ const Encounters = {
           base[stat] = (base[stat] || 0) + mod;
         }
       }
+
+      // Cap modifier stacking: no single action should drain more than 50% of max stat value (50 pts)
+      // This prevents instant-death spirals from triple-stacked terrain+pressure+opportunity modifiers
+      const maxDrain = 50;
+      if (base.heat > maxDrain) base.heat = maxDrain;
+      if (base.stamina < -maxDrain) base.stamina = -maxDrain;
+      if (base.thirst > maxDrain) base.thirst = maxDrain;
+      if (base.hunger > maxDrain) base.hunger = maxDrain;
 
       const names = { push: 'Push', trot: 'Trot', rest: 'Rest' };
       const descs = {
@@ -2028,6 +2039,9 @@ const Encounters = {
     }
     if (availablePressures.length === 0) {
       availablePressures = this.pressures.filter(p => p.fallbackCondition);
+    }
+    if (availablePressures.length === 0) {
+      availablePressures = [this.pressures[0]];
     }
     const pressure = availablePressures[Math.floor(Math.random() * availablePressures.length)];
     this.recentPressures.push(pressure.id);

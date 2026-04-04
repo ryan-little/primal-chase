@@ -191,7 +191,9 @@ const Score = {
     try {
       const stored = localStorage.getItem('primalchase_leaderboard');
       if (stored) {
-        return JSON.parse(stored);
+        const parsed = JSON.parse(stored);
+        if (!Array.isArray(parsed)) return [];
+        return parsed;
       }
     } catch (e) {
       console.error('Failed to load leaderboard:', e);
@@ -244,7 +246,7 @@ const Score = {
       dehydration: 'DEHYDRATION',
       starvation: 'STARVATION'
     };
-    return causes[cause] || cause.toUpperCase();
+    return causes[cause] || (cause ? cause.toUpperCase() : 'UNKNOWN');
   },
 
   /**
