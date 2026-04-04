@@ -2118,7 +2118,7 @@ const UI = {
       const num = parseInt(e.key);
       if (num >= 1 && num <= 5) {
         const buttons = document.querySelectorAll('#action-buttons .action-btn');
-        if (buttons[num - 1] && !buttons[num - 1].classList.contains('disabled')) {
+        if (buttons[num - 1] && !buttons[num - 1].classList.contains('disabled') && !buttons[num - 1].classList.contains('pending-reveal')) {
           buttons[num - 1].click();
         }
       }
