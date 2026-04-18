@@ -1,8 +1,13 @@
 # Project Status
 
-Last updated: 2026-03-12
+Last updated: 2026-04-17
 
-## Current Phase: Stable (V1.9 live)
+## Current Phase: Stable (V1.9 live), V2 planning
+
+### Plan of Action (next session)
+1. Review `v1-dev` (15 commits ahead of main) — decide whether to merge to main or cherry-pick. Ryan was hesitant about merging previously and wants to review manually.
+2. Branch `v2-dev` off main and begin V2 prototyping.
+3. V2 direction captured at `knowledge-hub/projects/primal-chase/v2-design.md` — spatial/visual survival, minimap as decision surface, terrain-feature travel, situations as state mutations.
 
 ### What's Done
 - [x] Core game loop with 5 actions, day/night cycle
@@ -20,7 +25,8 @@ Last updated: 2026-03-12
 - [x] Options with localStorage persistence
 
 ### What's Next
-- [ ] Visual overhaul — avatar, encounter illustrations, parallax backgrounds
+- [ ] Review and decide fate of `v1-dev`
+- [ ] V2 overhaul — see `knowledge-hub/projects/primal-chase/v2-design.md`
 - [ ] See knowledge-hub ideas.md for V2+ roadmap
 
 ### Blockers
