@@ -1,6 +1,6 @@
 # Project Status
 
-Last updated: 2026-04-17
+Last updated: 2026-05-14
 
 ## Current Phase: Stable (V1.9 live), V2 planning
 
@@ -23,6 +23,7 @@ Last updated: 2026-04-17
 - [x] Weather/atmosphere visual system
 - [x] Tutorial Day 1 fixed encounters
 - [x] Options with localStorage persistence
+- [x] Cloudflare Web Analytics (beacon on index.html + stats/index.html)
 
 ### What's Next
 - [ ] Review and decide fate of `v1-dev`
