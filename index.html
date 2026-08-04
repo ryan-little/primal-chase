@@ -2,349 +2,383 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover, maximum-scale=1.0, user-scalable=no">
+  <meta name="theme-color" content="#1a0f08">
+  <meta name="description" content="You are an apex predator. They are persistence hunters. Survive as long as the land allows.">
   <title>Primal Chase</title>
   <link rel="icon" type="image/png" sizes="48x48" href="assets/favicon.png">
   <link rel="apple-touch-icon" href="assets/favicon.png">
-  <link rel="stylesheet" href="css/style.css?v=1.9.1">
+  <meta property="og:title" content="Primal Chase">
+  <meta property="og:description" content="A 3D survival chase across an endless savannah. The game is unwinnable. The only question is how long you last.">
+  <meta property="og:image" content="assets/primalchaselogoreign.png">
+  <link rel="stylesheet" href="css/style3d.css?v=2.0.0">
 </head>
-<body>
+<body class="screen-title-active">
 
-  <!-- Skip link for keyboard navigation -->
-  <a href="#screen-game" class="skip-link">Skip to game</a>
+<a href="#action-bar" class="skip-link">Skip to actions</a>
 
-  <!-- Night background overlay (fades via opacity) -->
-  <div class="night-bg"></div>
+<!-- The world -->
+<canvas id="scene" aria-hidden="true"></canvas>
 
-  <!-- Rain darkening overlay -->
-  <div class="rain-overlay-dim"></div>
+<!-- Atmospheric overlays that live in front of the 3D scene -->
+<div id="vignette" class="vignette" aria-hidden="true"></div>
+<div id="flash" class="flash-overlay" aria-hidden="true"></div>
+<div id="grain" class="grain" aria-hidden="true"></div>
 
-  <!-- Visual escalation overlays -->
-  <div id="vignette-overlay" class="vignette-overlay"></div>
-  <div id="hunter-glow" class="hunter-glow"></div>
-
-  <!-- Night particle container -->
-  <div id="particle-container" class="particle-container"></div>
-
-  <!-- Star field (dynamic, behind content) -->
-  <div id="star-container" class="star-container"></div>
-
-  <!-- Day atmosphere -->
-  <div id="dust-container" class="dust-container"></div>
-  <div id="pollen-container" class="pollen-container"></div>
-  <div id="insect-container" class="insect-container"></div>
-  <div id="cloud-container" class="cloud-container"></div>
-  <div id="sun-rays" class="sun-rays"></div>
-
-  <!-- Rain particles -->
-  <div id="rain-container" class="rain-container"></div>
-
-  <!-- Lightning flash overlay -->
-  <div id="lightning-overlay" class="lightning-overlay"></div>
-
-  <!-- Typewriter cinematic intro -->
-  <div id="typewriter-overlay" class="typewriter-overlay">
-    <div class="typewriter-content" id="typewriter-content"></div>
-    <div class="typewriter-skip">Press SPACE or tap to skip</div>
+<!-- ============ LOADING ============ -->
+<div id="screen-loading" class="screen overlay-screen active">
+  <div class="loading-inner">
+    <img src="assets/primalchaselogoout.png" alt="Primal Chase" class="loading-logo">
+    <div class="loading-bar"><div id="loading-fill" class="loading-fill"></div></div>
+    <div id="loading-text" class="loading-text">Waking the savannah…</div>
   </div>
+</div>
 
-  <main>
-  <!-- Title Screen -->
-  <div id="screen-title" class="screen active">
-    <div class="title-container">
-      <div class="title-logo-wrap">
-        <img id="title-logo" src="assets/primalchaselogoout.png" alt="Primal Chase" class="logo">
-        <button id="btn-start" class="title-btn-start"><img src="assets/startthehunt.png" alt="Start the Hunt"></button>
-      </div>
-      <div class="title-buttons">
-        <button id="btn-howto" class="title-btn">Learn to Run</button>
-        <button id="btn-options" class="title-btn">Options</button>
-        <button id="btn-leaderboard" class="title-btn">The Longest Strides</button>
-      </div>
-      <div class="creator-credit">A game by <a href="https://ryan-little.com" target="_blank" rel="noopener">Ryan Little</a></div>
+<!-- ============ UNSUPPORTED ============ -->
+<div id="screen-unsupported" class="screen overlay-screen">
+  <div class="unsupported-inner">
+    <h1>The land will not render</h1>
+    <p>This browser cannot run WebGL, which the 3D chase needs. Nothing is lost — the original
+       text version plays anywhere, and it is the same hunt.</p>
+    <a class="title-btn" href="classic/">Play the classic version</a>
+  </div>
+</div>
+
+<!-- ============ TITLE ============ -->
+<div id="screen-title" class="screen overlay-screen">
+  <div class="title-container">
+    <div class="title-logo-wrap">
+      <img id="title-logo" src="assets/primalchaselogoout.png" alt="Primal Chase" class="logo">
+      <button id="btn-start" class="title-btn-start" aria-label="Start the hunt">
+        <img src="assets/startthehunt.png" alt="Start the Hunt">
+      </button>
+    </div>
+    <div class="title-buttons">
+      <button id="btn-howto" class="title-btn">Learn to Run</button>
+      <button id="btn-options" class="title-btn">Options</button>
+      <button id="btn-leaderboard" class="title-btn">The Longest Strides</button>
+    </div>
+    <div class="creator-credit">
+      A game by <a href="https://ryan-little.com" target="_blank" rel="noopener">Ryan Little</a>
+      · <a href="classic/">classic version</a>
     </div>
   </div>
+</div>
 
-  <!-- Game Screen -->
-  <div id="screen-game" class="screen">
-    <div class="game-container">
-      <div class="game-header">
-        <div id="phase-indicator" class="phase-indicator" role="status" aria-live="polite" aria-label="Current phase">DAY 1</div>
-      </div>
+<!-- ============ CINEMATIC INTRO ============ -->
+<div id="typewriter-overlay" class="typewriter-overlay">
+  <div class="typewriter-content" id="typewriter-content"></div>
+  <div class="typewriter-skip">Press SPACE or tap to skip</div>
+</div>
 
-      <div class="game-top">
-        <div class="vitals-grid">
-          <div class="status-bar-container" role="group" aria-labelledby="heat-label">
-            <div id="heat-label" class="status-label">Heat</div>
-            <div class="status-bar-track">
-              <div id="heat-bar" class="status-bar-fill heat-bar" style="width: 0%"></div>
-              <div class="status-value" id="heat-value" aria-live="polite">0%</div>
-            </div>
-          </div>
+<!-- ============ GAME HUD ============ -->
+<div id="hud" class="hud" hidden>
 
-          <div class="status-bar-container" role="group" aria-labelledby="stamina-label">
-            <div id="stamina-label" class="status-label">Fatigue</div>
-            <div class="status-bar-track">
-              <div id="stamina-bar" class="status-bar-fill stamina-bar" style="width: 0%"></div>
-              <div class="status-value" id="stamina-value" aria-live="polite">0%</div>
-            </div>
-          </div>
-
-          <div class="status-bar-container" role="group" aria-labelledby="thirst-label">
-            <div id="thirst-label" class="status-label">Thirst</div>
-            <div class="status-bar-track">
-              <div id="thirst-bar" class="status-bar-fill thirst-bar" style="width: 0%"></div>
-              <div class="status-value" id="thirst-value" aria-live="polite">0%</div>
-            </div>
-          </div>
-
-          <div class="status-bar-container" role="group" aria-labelledby="hunger-label">
-            <div id="hunger-label" class="status-label">Hunger</div>
-            <div class="status-bar-track">
-              <div id="hunger-bar" class="status-bar-fill hunger-bar" style="width: 0%"></div>
-              <div class="status-value" id="hunger-value" aria-live="polite">0%</div>
-            </div>
-          </div>
+  <div class="hud-top">
+    <div class="hud-left">
+      <div id="phase-indicator" class="phase-indicator" role="status" aria-live="polite">DAY 1</div>
+      <div class="vitals-grid" id="vitals">
+        <div class="vital" data-stat="heat">
+          <div class="vital-label">Heat</div>
+          <div class="vital-track"><div class="vital-fill heat-bar" id="bar-heat"></div></div>
+          <div class="vital-value" id="val-heat" aria-live="off">0%</div>
         </div>
-
-        <div class="game-sidebar">
-          <div id="hunt-info" class="hunt-info" aria-live="polite" aria-atomic="true">
-            <div class="hunt-flavor" id="hunt-flavor">You can barely sense them. But they are there.</div>
-          </div>
+        <div class="vital" data-stat="stamina">
+          <div class="vital-label">Fatigue</div>
+          <div class="vital-track"><div class="vital-fill stamina-bar" id="bar-stamina"></div></div>
+          <div class="vital-value" id="val-stamina">0%</div>
+        </div>
+        <div class="vital" data-stat="thirst">
+          <div class="vital-label">Thirst</div>
+          <div class="vital-track"><div class="vital-fill thirst-bar" id="bar-thirst"></div></div>
+          <div class="vital-value" id="val-thirst">0%</div>
+        </div>
+        <div class="vital" data-stat="hunger">
+          <div class="vital-label">Hunger</div>
+          <div class="vital-track"><div class="vital-fill hunger-bar" id="bar-hunger"></div></div>
+          <div class="vital-value" id="val-hunger">0%</div>
         </div>
       </div>
+    </div>
 
-      <div class="situation-scroll">
-        <div id="situation-text" class="situation-text">
-          <!-- Encounter description will be injected here -->
+    <div class="hud-right">
+      <div class="tracker" id="tracker">
+        <div class="tracker-head">
+          <span class="tracker-label" id="tracker-label">THE HUNTERS</span>
+          <span class="tracker-distance" id="tracker-distance">25.0 mi</span>
         </div>
-
-        <div id="monologue" class="monologue">
-          <!-- Internal monologue will be injected here -->
+        <div class="tracker-track">
+          <div class="tracker-fill" id="tracker-fill"></div>
+          <div class="tracker-marks" aria-hidden="true"></div>
         </div>
+        <div class="tracker-sub" id="tracker-sub">covered 0 mi</div>
       </div>
-
-      <div id="action-buttons" class="action-buttons" role="region" aria-label="Available actions">
-        <!-- Action buttons will be dynamically generated here -->
+      <div class="hud-buttons">
+        <button id="btn-look-back" class="icon-btn" title="Look back at the hunters (L)" aria-label="Look back at the hunters">◎</button>
+        <button id="btn-recenter" class="icon-btn" title="Recentre the camera (C)" aria-label="Recentre camera">⌖</button>
+        <button id="btn-pause" class="icon-btn" title="Menu (Esc)" aria-label="Menu">☰</button>
       </div>
     </div>
   </div>
 
-  <!-- Death Screen -->
-  <div id="screen-death" class="screen">
-    <div class="death-container">
-      <div id="death-narrative" class="death-narrative">
-        <!-- Death narrative will be injected here -->
-      </div>
+  <!-- Flavour text about the pursuit, spoken by the world -->
+  <div id="hunt-flavor" class="hunt-flavor" aria-live="polite"></div>
 
-      <div class="score-summary">
-        <div class="score-stats">
-          <div class="score-stat">Days Survived: <span id="score-days" class="score-number">0</span></div>
-          <div class="score-stat">Distance: <span id="score-distance" class="score-number">0 mi</span></div>
-        </div>
-
-        <div id="percentile-stats" class="percentile-stats">
-          <!-- Percentile comparisons injected here -->
-        </div>
-
-        <div id="achievements-list" class="achievements-list">
-          <!-- Achievements will be injected here -->
-        </div>
-      </div>
-
-      <div class="death-buttons">
-        <button id="btn-try-again" class="death-btn-img"><img src="assets/tryagain.png" alt="Try Again"></button>
-        <div class="death-buttons-row">
-          <button id="btn-share-text" class="death-btn">Share Text</button>
-          <button id="btn-share-image" class="death-btn">Share Image</button>
-        </div>
-        <button id="btn-return-title" class="death-btn">Return to Title</button>
-      </div>
-      <div class="feedback-link">Have an idea or found a bug? <a id="feedback-email" href="#">Let me know!</a></div>
-      <div class="creator-credit">Made by <a href="https://ryan-little.com" target="_blank" rel="noopener">Ryan Little</a></div>
+  <!-- The situation panel: encounter text + monologue -->
+  <div id="panel" class="panel">
+    <button id="panel-toggle" class="panel-toggle" aria-expanded="true" aria-controls="panel-body">
+      <span id="panel-title" class="panel-title">The land</span>
+      <span class="panel-chevron" aria-hidden="true">▾</span>
+    </button>
+    <div id="panel-body" class="panel-body">
+      <p id="situation-text" class="situation-text"></p>
+      <p id="monologue" class="monologue"></p>
+      <p id="spatial-note" class="spatial-note"></p>
     </div>
   </div>
 
-  <!-- Leaderboard Screen -->
-  <div id="screen-leaderboard" class="screen">
-    <div class="leaderboard-container">
-      <h1 class="leaderboard-title">The Longest Strides</h1>
-      <div id="leaderboard-table" class="leaderboard-table">
-        <table>
-          <caption class="sr-only">Top player runs ranked by days survived</caption>
-          <thead>
-            <tr>
-              <th scope="col">Rank</th>
-              <th scope="col">Days</th>
-              <th scope="col">Distance</th>
-              <th scope="col">Lost Hunters</th>
-              <th scope="col">Death</th>
-            </tr>
-          </thead>
-          <tbody id="leaderboard-body">
-            <!-- Leaderboard entries will be injected here -->
-          </tbody>
-        </table>
-      </div>
-      <div class="leaderboard-actions">
-        <button id="btn-leaderboard-back" class="back-btn">Return to Title</button>
-        <button id="btn-leaderboard-clear" class="back-btn leaderboard-clear">Clear All Runs</button>
-      </div>
+  <!-- Move preview, shown when a hex is selected -->
+  <div id="move-preview" class="move-preview" hidden>
+    <div class="mp-head">
+      <span id="mp-terrain" class="mp-terrain">Open plain</span>
+      <span id="mp-gait" class="mp-gait">TROT</span>
+    </div>
+    <div id="mp-costs" class="mp-costs"></div>
+    <div id="mp-notes" class="mp-notes"></div>
+    <div class="mp-actions">
+      <button id="mp-go" class="action-btn primary">Run there</button>
+      <button id="mp-cancel" class="action-btn ghost">Cancel</button>
     </div>
   </div>
 
-  <!-- How to Play Screen -->
-  <div id="screen-howto" class="screen">
-    <div class="howto-container">
-      <h1>Learn to Run</h1>
-      <div class="howto-content">
-        <p class="howto-intro">You are an apex predator — a big cat built for explosive speed. But the humans hunting you don't play by your rules. They track. They follow. They never stop. This is persistence hunting, and you cannot win. You can only survive one more day.</p>
+  <!-- In-place verbs -->
+  <div id="action-bar" class="action-bar" role="region" aria-label="Available actions"></div>
 
-        <div class="howto-columns">
-          <div class="howto-col">
-            <section>
-              <h2>THE CYCLE</h2>
-              <p>Each day has two phases: <strong class="day-text">DAY</strong> and <strong class="night-text">NIGHT</strong>. One action per phase. Days are brutal — heat builds, thirst climbs, everything costs more — but you cover the most ground. Nights are merciful — heat fades, thirst slows, and the hunters make camp. Use darkness to recover.</p>
-            </section>
+  <div id="hint" class="hint">Tap a highlighted hex to move · tap the cat to stay put</div>
+</div>
 
-            <section>
-              <h2>THE HUNTERS</h2>
-              <p>They start 25 miles back, moving at a steady pace that never stops. Lose them through encounters, but each time they find your trail again, they come back faster. The gap is everything.</p>
-            </section>
+<!-- ============ DEATH ============ -->
+<div id="screen-death" class="screen overlay-screen">
+  <div class="death-container">
+    <div id="death-cause-badge" class="death-badge">CAUGHT</div>
+    <div id="death-narrative" class="death-narrative"></div>
+    <div class="score-summary">
+      <div class="score-stats">
+        <div class="score-stat">Days Survived: <span id="score-days" class="score-number">0</span></div>
+        <div class="score-stat">Distance: <span id="score-distance" class="score-number">0 mi</span></div>
+        <div class="score-stat">Ground Crossed: <span id="score-regions" class="score-number">0</span></div>
+      </div>
+      <div id="percentile-stats" class="percentile-stats"></div>
+      <div id="achievements-list" class="achievements-list"></div>
+    </div>
+    <div class="death-buttons">
+      <button id="btn-try-again" class="death-btn-img"><img src="assets/tryagain.png" alt="Try Again"></button>
+      <div class="death-buttons-row">
+        <button id="btn-share-text" class="death-btn">Share Text</button>
+        <button id="btn-share-image" class="death-btn">Share Image</button>
+      </div>
+      <button id="btn-return-title" class="death-btn">Return to Title</button>
+    </div>
+    <div class="feedback-link">Have an idea or found a bug? <a id="feedback-email" href="#">Let me know!</a></div>
+  </div>
+</div>
 
-            <section>
-              <h2>THE LAND</h2>
-              <p>Each phase brings new terrain with unique opportunities — water, food, ways to lose the hunters. Rare encounters can change everything. Resting keeps the same situation; you must move to find new ground.</p>
-            </section>
-          </div>
+<!-- ============ LEADERBOARD ============ -->
+<div id="screen-leaderboard" class="screen overlay-screen">
+  <div class="sheet">
+    <h1>The Longest Strides</h1>
+    <div class="leaderboard-table">
+      <table>
+        <caption class="sr-only">Top runs ranked by days survived</caption>
+        <thead>
+          <tr><th scope="col">#</th><th scope="col">Days</th><th scope="col">Distance</th><th scope="col">Lost Them</th><th scope="col">End</th></tr>
+        </thead>
+        <tbody id="leaderboard-body"></tbody>
+      </table>
+    </div>
+    <div class="sheet-actions">
+      <button id="btn-leaderboard-back" class="back-btn">Return to Title</button>
+      <button id="btn-leaderboard-clear" class="back-btn danger">Clear All Runs</button>
+    </div>
+  </div>
+</div>
 
-          <div class="howto-col">
-            <section>
-              <h2>YOUR VITALS</h2>
-              <ul>
-                <li><strong>Heat</strong> — Builds when you run. Heatstroke kills. Rest to cool.</li>
-                <li><strong>Fatigue</strong> — Your exhaustion level. Too much fatigue kills. Rest to recover.</li>
-                <li><strong>Thirst</strong> — Rises every phase. Find water or dehydrate.</li>
-                <li><strong>Hunger</strong> — Rises slowly. Scavenge when you can.</li>
-              </ul>
-            </section>
+<!-- ============ HOW TO PLAY ============ -->
+<div id="screen-howto" class="screen overlay-screen">
+  <div class="sheet">
+    <h1>Learn to Run</h1>
+    <p class="howto-intro">You are an apex predator — a big cat built for explosive speed. The humans behind you
+      are built for something else entirely. They track. They follow. They never stop. This is persistence
+      hunting, and you cannot win. You can only survive one more day.</p>
 
-            <section>
-              <h2>YOUR ACTIONS</h2>
-              <ul>
-                <li><strong>Push</strong> — Sprint. Maximum distance, maximum cost.</li>
-                <li><strong>Trot</strong> — Sustainable pace. Moderate everything.</li>
-                <li><strong>Rest</strong> — Recover heat and reduce fatigue, but hunters close in. The situation stays the same — Trot to find new opportunities.</li>
-                <li><strong>Drink / Eat</strong> — Appear when the land offers them. Cost time.</li>
-              </ul>
-              <p>Buttons show <strong>total real effects</strong> including passive drains.</p>
-            </section>
-          </div>
-        </div>
-
-        <section class="howto-achievements">
-          <h2>ACHIEVEMENTS</h2>
+    <div class="howto-columns">
+      <div class="howto-col">
+        <section>
+          <h2>THE MAP IS THE CHOICE</h2>
+          <p>Each phase you pick <em>where</em> to go. Highlighted hexes are within reach.
+            One hex is a <strong>Trot</strong>. Two hexes is a <strong>Push</strong> — twice the ground,
+            far more of your body spent. Staying put lets you <strong>Rest</strong>, drink, or hunt.</p>
+        </section>
+        <section>
+          <h2>THE GROUND REMEMBERS</h2>
+          <p>Sand and clay hold your prints like a confession. Bare rock and running water hold nothing.
+            Cross ground that keeps your secret and the pursuit can break entirely — but each time they
+            find your trail again, they come back faster.</p>
+        </section>
+        <section>
+          <h2>THE CYCLE</h2>
+          <p>Two phases a day: <strong class="day-text">DAY</strong> and <strong class="night-text">NIGHT</strong>.
+            Days are brutal — heat builds and everything costs more. At night the hunters make camp and their
+            fire is visible for miles. Use the darkness.</p>
+        </section>
+      </div>
+      <div class="howto-col">
+        <section>
+          <h2>YOUR VITALS</h2>
           <ul>
-            <li><strong>Week of Running</strong> — 7 days</li>
-            <li><strong>Into the Unknown</strong> — 10 days</li>
-            <li><strong>The Long Road</strong> — 15 days</li>
-            <li><strong>Legend</strong> — 20 days</li>
-            <li><strong>Myth</strong> — 30 days</li>
-            <li><strong>Distance Master / Long Strider / Century Runner</strong> — 50 / 75 / 100+ miles</li>
-            <li><strong>Shadow Walker / Ghost</strong> — Lose the hunters 3 / 5+ times</li>
-            <li><strong>Night Runner</strong> — Push through darkness 3+ times</li>
-            <li><strong>Iron Will</strong> — Never rest (3+ days)</li>
-            <li><strong>Desert Crosser</strong> — Survive extreme thirst</li>
-            <li><strong>On the Edge</strong> — Dance with death repeatedly</li>
-            <li><strong>Perfect Balance</strong> — Master the chase (5+ days)</li>
-            <li><strong>Too Fast, Too Soon</strong> — Die on Day 1</li>
+            <li><strong>Heat</strong> — Builds when you run. Heatstroke kills. Rest to cool.</li>
+            <li><strong>Fatigue</strong> — Your exhaustion. Rest to recover.</li>
+            <li><strong>Thirst</strong> — Rises every phase. Find water or dehydrate.</li>
+            <li><strong>Hunger</strong> — Rises slowly. You can always try to hunt.</li>
+          </ul>
+        </section>
+        <section>
+          <h2>READING THE LAND</h2>
+          <ul>
+            <li><strong>Water</strong> — Blue hexes. Drink, and hide your trail.</li>
+            <li><strong>Stone</strong> — Hard going, but it takes no print.</li>
+            <li><strong>Thicket</strong> — Slows you. Slows them more.</li>
+            <li><strong>Landmarks</strong> — Marked with a light. Something waits there.</li>
+          </ul>
+        </section>
+        <section>
+          <h2>CONTROLS</h2>
+          <ul>
+            <li>Tap or click a hex to plan, again to commit</li>
+            <li>Drag to orbit · pinch or scroll to zoom</li>
+            <li><kbd>1</kbd>–<kbd>6</kbd> actions · <kbd>Q</kbd><kbd>E</kbd> rotate · <kbd>L</kbd> look back</li>
+            <li><kbd>Space</kbd> confirm · <kbd>Esc</kbd> menu</li>
           </ul>
         </section>
       </div>
-      <button id="btn-howto-back" class="back-btn">Return to Title</button>
     </div>
+    <button id="btn-howto-back" class="back-btn">Return to Title</button>
   </div>
+</div>
 
-  <!-- Options Screen -->
-  <div id="screen-options" class="screen">
-    <div class="options-container">
-      <h1>Options</h1>
-      <div class="options-content">
-        <div class="option-row">
-          <div class="option-label-group">
-            <span class="option-label">Difficulty</span>
-            <span class="option-help">Adjusts hunter speed and passive drain rates</span>
-          </div>
-          <div class="option-control difficulty-control">
-            <button class="option-btn" data-option="difficulty" data-value="easy">Easy</button>
-            <button class="option-btn active" data-option="difficulty" data-value="normal">Normal</button>
-            <button class="option-btn" data-option="difficulty" data-value="hard">Hard</button>
-          </div>
+<!-- ============ OPTIONS ============ -->
+<div id="screen-options" class="screen overlay-screen">
+  <div class="sheet">
+    <h1>Options</h1>
+    <div class="options-content">
+      <div class="option-row">
+        <div class="option-label-group">
+          <span class="option-label">Difficulty</span>
+          <span class="option-help">Adjusts hunter speed and passive drain rates</span>
         </div>
-        <div class="option-row">
-          <div class="option-label-group">
-            <span class="option-label">Show Tutorial</span>
-            <span class="option-help">Display tutorial encounters on Day 1</span>
-          </div>
-          <div class="option-control">
-            <button class="option-toggle active" id="opt-tutorial" data-option="showTutorial">ON</button>
-          </div>
-        </div>
-        <div class="option-row">
-          <div class="option-label-group">
-            <span class="option-label">Show Opening</span>
-            <span class="option-help">Play cinematic intro before starting</span>
-          </div>
-          <div class="option-control">
-            <button class="option-toggle active" id="opt-opening" data-option="showOpening">ON</button>
-          </div>
-        </div>
-        <div class="option-row">
-          <div class="option-label-group">
-            <span class="option-label">Typewriter Effect</span>
-            <span class="option-help">Animate text character-by-character for cinematic opening</span>
-          </div>
-          <div class="option-control">
-            <button class="option-toggle active" id="opt-typewriter" data-option="typewriterEffect">ON</button>
-          </div>
-        </div>
-        <div class="option-row speed-row" id="typewriter-speed-inline">
-          <span class="option-label">Speed</span>
-          <div class="option-control speed-control">
-            <span class="slider-label">Fast</span>
-            <input type="range" id="opt-typewriter-speed" class="option-slider" min="5" max="50" value="30">
-            <span class="slider-label">Slow</span>
-          </div>
-        </div>
-        <div class="option-row" id="opt-situation-row">
-          <div class="option-label-group">
-            <span class="option-label">Situation Typewriter</span>
-            <span class="option-help">Animate encounter text during gameplay (slower pace)</span>
-          </div>
-          <div class="option-control">
-            <button class="option-toggle active" id="opt-situation-typewriter" data-option="situationTypewriter">ON</button>
-          </div>
+        <div class="option-control segmented">
+          <button class="option-btn" data-option="difficulty" data-value="easy">Easy</button>
+          <button class="option-btn" data-option="difficulty" data-value="normal">Normal</button>
+          <button class="option-btn" data-option="difficulty" data-value="hard">Hard</button>
         </div>
       </div>
-      <button id="btn-options-back" class="back-btn">Return to Title</button>
+      <div class="option-row">
+        <div class="option-label-group">
+          <span class="option-label">Graphics</span>
+          <span class="option-help">Lower settings render fewer plants and drop shadows</span>
+        </div>
+        <div class="option-control segmented">
+          <button class="option-btn" data-option="quality" data-value="low">Low</button>
+          <button class="option-btn" data-option="quality" data-value="medium">Medium</button>
+          <button class="option-btn" data-option="quality" data-value="high">High</button>
+          <button class="option-btn" data-option="quality" data-value="auto">Auto</button>
+        </div>
+      </div>
+      <div class="option-row">
+        <div class="option-label-group">
+          <span class="option-label">Show Tutorial</span>
+          <span class="option-help">Display tutorial encounters on Day 1</span>
+        </div>
+        <div class="option-control"><button class="option-toggle" data-option="showTutorial">ON</button></div>
+      </div>
+      <div class="option-row">
+        <div class="option-label-group">
+          <span class="option-label">Show Opening</span>
+          <span class="option-help">Play the cinematic intro before starting</span>
+        </div>
+        <div class="option-control"><button class="option-toggle" data-option="showOpening">ON</button></div>
+      </div>
+      <div class="option-row">
+        <div class="option-label-group">
+          <span class="option-label">Typewriter Effect</span>
+          <span class="option-help">Animate text character-by-character</span>
+        </div>
+        <div class="option-control"><button class="option-toggle" data-option="typewriterEffect">ON</button></div>
+      </div>
+      <div class="option-row speed-row">
+        <span class="option-label">Speed</span>
+        <div class="option-control speed-control">
+          <span class="slider-label">Fast</span>
+          <input type="range" id="opt-typewriter-speed" class="option-slider" min="5" max="50" value="30" aria-label="Typewriter speed">
+          <span class="slider-label">Slow</span>
+        </div>
+      </div>
+      <div class="option-row">
+        <div class="option-label-group">
+          <span class="option-label">Situation Typewriter</span>
+          <span class="option-help">Animate encounter text during gameplay</span>
+        </div>
+        <div class="option-control"><button class="option-toggle" data-option="situationTypewriter">ON</button></div>
+      </div>
+      <div class="option-row">
+        <div class="option-label-group">
+          <span class="option-label">Show Your Trail</span>
+          <span class="option-help">Mark the ground you have already crossed</span>
+        </div>
+        <div class="option-control"><button class="option-toggle" data-option="showTrail">ON</button></div>
+      </div>
+      <div class="option-row">
+        <div class="option-label-group">
+          <span class="option-label">Reduce Motion</span>
+          <span class="option-help">Shorten camera moves and skip screen shake</span>
+        </div>
+        <div class="option-control"><button class="option-toggle" data-option="reduceMotion">OFF</button></div>
+      </div>
     </div>
+    <button id="btn-options-back" class="back-btn">Return to Title</button>
   </div>
-  </main>
+</div>
 
-  <!-- Version badge (visible on all screens) -->
-  <div id="version-badge">v1.9.0</div>
+<!-- ============ PAUSE ============ -->
+<div id="screen-pause" class="screen overlay-screen">
+  <div class="pause-inner">
+    <h1>The chase waits</h1>
+    <button id="btn-resume" class="title-btn">Resume</button>
+    <button id="btn-pause-howto" class="title-btn">Learn to Run</button>
+    <button id="btn-pause-options" class="title-btn">Options</button>
+    <button id="btn-abandon" class="title-btn danger">Abandon the Run</button>
+  </div>
+</div>
 
-  <!-- Hidden canvas for share image generation -->
-  <canvas id="share-canvas" style="display: none;"></canvas>
+<div id="version-badge">v2.0.0</div>
+<canvas id="share-canvas" style="display:none"></canvas>
 
-  <!-- Scripts loaded in dependency order -->
-  <script src="js/config.js?v=1.9.1"></script>
-  <script src="js/encounters.js?v=1.9.1"></script>
-  <script src="js/monologue.js?v=1.9.1"></script>
-  <script src="js/hunters.js?v=1.9.1"></script>
-  <script src="js/game.js?v=1.9.1"></script>
-  <script src="js/ui.js?v=1.9.1"></script>
-  <script src="js/score.js?v=1.9.1"></script>
-
+<!-- Content systems, shared verbatim with the classic build -->
+<script src="js/config.js?v=2.0.0"></script>
+<script src="js/config3d.js?v=2.0.0"></script>
+<script src="js/options.js?v=2.0.0"></script>
+<script src="js/encounters.js?v=2.0.0"></script>
+<script src="js/encounters3d.js?v=2.0.0"></script>
+<script src="js/monologue.js?v=2.0.0"></script>
+<script src="js/narrative.js?v=2.0.0"></script>
+<script src="js/hunters.js?v=2.0.0"></script>
+<script src="js/score.js?v=2.0.0"></script>
+<script type="module" src="js3d/main.js?v=2.0.0"></script>
+<noscript>
+  <div class="unsupported-inner">
+    <h1>This hunt needs JavaScript</h1>
+    <p>Enable it, or read about the game at <a href="https://ryan-little.com">ryan-little.com</a>.</p>
+  </div>
+</noscript>
 </body>
 </html>

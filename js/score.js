@@ -1,13 +1,40 @@
-// Pre-computed from 5000 simulation runs (5 strategies x 1000 games, normal difficulty)
-// Each entry: [value, percent_of_runs_that_scored_lower]
-const BASELINE_PERCENTILES = {
+// Percentile baselines. Each entry: [value, percent_of_runs_that_scored_lower].
+//
+// This file is shared by both builds, and they do not play the same, so each
+// keeps its own table. Quoting the 3D numbers at a classic player would
+// overstate their run by up to five points.
+
+// 3D map game — 1250 runs (5 strategies x 250 games, normal difficulty).
+// Regenerate with test/sim3d.html and paste the `percentiles` block it emits.
+const BASELINE_PERCENTILES_3D = {
   days: [
-    [2, 0], [3, 1], [4, 9], [5, 24], [6, 38], [7, 47], [8, 55], [9, 62], [10, 70], [11, 78], [12, 84], [13, 90], [14, 93], [15, 95], [16, 96], [17, 97], [18, 98], [19, 99]
+    [2, 0], [3, 0], [4, 15], [5, 33], [6, 45], [7, 55], [8, 64], [9, 69], [10, 77],
+    [11, 86], [12, 92], [13, 95], [14, 97], [15, 99], [16, 99], [17, 100]
   ],
   distances: [
-    [0, 0], [5, 0], [10, 0], [15, 1], [20, 4], [25, 10], [30, 23], [35, 40], [40, 55], [45, 64], [50, 71], [55, 78], [60, 83], [65, 87], [70, 90], [75, 92], [80, 94], [85, 95], [90, 96], [95, 97], [100, 97], [105, 98], [110, 98], [115, 99]
+    [0, 0], [5, 0], [10, 0], [15, 0], [20, 0], [25, 4], [30, 15], [35, 34],
+    [40, 60], [45, 68], [50, 83], [55, 86], [60, 91], [65, 93], [70, 96], [75, 98],
+    [80, 99], [85, 99], [90, 100]
   ]
 };
+
+// Classic text game — 5000 runs, unchanged from V1.9.
+const BASELINE_PERCENTILES_CLASSIC = {
+  days: [
+    [2, 0], [3, 1], [4, 9], [5, 24], [6, 38], [7, 47], [8, 55], [9, 62], [10, 70],
+    [11, 78], [12, 84], [13, 90], [14, 93], [15, 95], [16, 96], [17, 97], [18, 98], [19, 99]
+  ],
+  distances: [
+    [0, 0], [5, 0], [10, 0], [15, 1], [20, 4], [25, 10], [30, 23], [35, 40], [40, 55],
+    [45, 64], [50, 71], [55, 78], [60, 83], [65, 87], [70, 90], [75, 92], [80, 94],
+    [85, 95], [90, 96], [95, 97], [100, 97], [105, 98], [110, 98], [115, 99]
+  ]
+};
+
+// CONFIG3D only exists on the 3D page, which makes it the build marker.
+const BASELINE_PERCENTILES = (typeof window !== 'undefined' && window.CONFIG3D)
+  ? BASELINE_PERCENTILES_3D
+  : BASELINE_PERCENTILES_CLASSIC;
 
 const Score = {
   /**
