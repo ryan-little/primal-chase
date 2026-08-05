@@ -29,10 +29,21 @@ const CONFIG3D = {
     keepRadius: 20,
     /** Vertical world units per unit of normalised elevation. */
     heightScale: 4.2,
-    /** Chance per hex of hosting a landmark (signature encounter site). */
-    landmarkChance: 0.032,
-    /** Never place a landmark within this many hexes of another. */
+    /**
+     * Landmark density is governed entirely by spacing, not by a probability:
+     * a hex hosts one when it is the highest-scoring hex within `landmarkSpacing`
+     * rings, so roughly one hex in (3r² + 3r + 1) qualifies — about 1 in 61 at
+     * r = 4. There was previously a `landmarkChance` key here that read like a
+     * probability but only ever set the early-out threshold below.
+     */
     landmarkSpacing: 4,
+    /**
+     * Skip the neighbourhood scan unless a hex scores at least this high.
+     * A surviving hex must be the maximum of ~61 uniform scores, and that
+     * maximum falls below 0.9 only ~0.2% of the time, so this discards a
+     * negligible number of landmarks while skipping the scan for ~90% of hexes.
+     */
+    landmarkScoreFloor: 0.9,
     /** Low-frequency region field scale (smaller = larger regions). */
     regionScale: 0.022,
     elevationScale: 0.075,

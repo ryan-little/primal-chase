@@ -50,6 +50,12 @@ function fbm(x, y, salt, octaves = 4, lacunarity = 2.03, gain = 0.5) {
   return sum / norm;
 }
 
+/**
+ * Work counters, for proving a worldgen change actually cut the cost.
+ * Free when nobody reads them; reset via World.resetStats().
+ */
+const STATS = { getCalls: 0, cacheMisses: 0, landmarkChecks: 0, neighbourHashes: 0 };
+
 /** Pick from a [[id, weight], ...] pool using a 0..1 roll. */
 function weightedPick(pool, roll) {
   let total = 0;
@@ -106,14 +112,37 @@ export class World {
     return regions[Math.max(0, Math.min(regions.length - 1, idx))];
   }
 
-  /** Landmark test: a hex hosts one if its score beats every hex within spacing. */
+  /**
+   * Landmark test: a hex hosts one if its score beats every hex within spacing.
+   *
+   * The early-out matters far more than it looks. A hex only survives the scan
+   * if it is the maximum of ~61 uniform scores, and the maximum of 61 uniforms
+   * is below 0.9 only about 0.2% of the time — so gating on a high score costs
+   * a negligible number of landmarks and skips the scan for ~90% of hexes.
+   * The scan itself iterates rings directly rather than materialising a
+   * 61-element array of coordinate objects for every hex in the world.
+   */
   _isLandmark(q, r) {
     const W = CFG().world;
-    const score = hash2(q, r, this._salt(11));
-    if (score < 1 - W.landmarkChance * 26) return false;
-    const spread = Hex.spiral(q, r, W.landmarkSpacing);
-    for (let i = 1; i < spread.length; i++) {
-      if (hash2(spread[i].q, spread[i].r, this._salt(11)) > score) return false;
+    const salt = this._salt(11);
+    const score = hash2(q, r, salt);
+    STATS.landmarkChecks++;
+    if (score < W.landmarkScoreFloor) return false;
+
+    for (let radius = 1; radius <= W.landmarkSpacing; radius++) {
+      // Walk the ring in place: start `radius` steps along direction 4, then
+      // trace the six sides. Same order as Hex.ring, without the allocation.
+      let nq = q + Hex.DIRECTIONS[4].q * radius;
+      let nr = r + Hex.DIRECTIONS[4].r * radius;
+      for (let side = 0; side < 6; side++) {
+        const d = Hex.DIRECTIONS[side];
+        for (let step = 0; step < radius; step++) {
+          STATS.neighbourHashes++;
+          if (hash2(nq, nr, salt) > score) return false;
+          nq += d.q;
+          nr += d.r;
+        }
+      }
     }
     return true;
   }
@@ -123,9 +152,11 @@ export class World {
    * @returns {{q,r,key,terrain,cat,height,worldX,worldZ,region,landmark,props}}
    */
   get(q, r) {
+    STATS.getCalls++;
     const k = Hex.key(q, r);
     const hit = this.cache.get(k);
     if (hit) return hit;
+    STATS.cacheMisses++;
 
     const C = CFG();
     const f = this._fields(q, r);
@@ -224,4 +255,7 @@ export class World {
   clearTrail() { this.trail.clear(); }
 }
 
-export { fbm, valueNoise, hash2 };
+World.stats = () => ({ ...STATS });
+World.resetStats = () => { for (const k of Object.keys(STATS)) STATS[k] = 0; };
+
+export { fbm, valueNoise, hash2, STATS };
