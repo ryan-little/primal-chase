@@ -1,6 +1,6 @@
 # STATUS — read me first when resuming
 
-Updated: 2026-08-06 (iteration 1 of the goal loop)
+Updated: 2026-08-06 (iteration 2 of the goal loop)
 
 ## Where things stand
 
@@ -11,6 +11,16 @@ Updated: 2026-08-06 (iteration 1 of the goal loop)
 - **M1 scaffold: done.** Vite 6 + TS strict + three.js 0.179 via npm; `npm run build`
   produces a working static `dist/` (relative base). `src/app.ts` is a throwaway
   smoke-test scene proving the pipeline — replace as real systems land.
+- **M2 content port: done.** All V1 prose verbatim in `src/content/` (typed,
+  tested). Regenerate with `node tools/port-content.mjs` if ever needed.
+- **M3 worldgen: heightfield core done.** `src/world/{rng,noise,heightfield}.ts`:
+  seeded analytic terrain — linear mountain ranges (belt zero-contours, 1 octave!),
+  meandering rivers gated by a drainage field (dry country exists), lakes,
+  dry channels. Inspect visually: `npx tsx tools/worldgen-debug.ts <seed> <km> <px>`
+  → `debug/*.png` (Read the PNG). Heights: plains ±30m, crests ~680m, water ~5%.
+  **Still to do in Task #4:** moisture/biome field mapping to V1 terrain ids,
+  feature/landmark placement, navigation lattice + reach contours (Dijkstra),
+  fords/passes verification, then unit tests for nav.
 
 ## Environment quirks (this machine)
 
