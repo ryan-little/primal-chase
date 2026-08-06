@@ -4,13 +4,15 @@
 // waits on it).
 
 import {
-  ACESFilmicToneMapping, PCFSoftShadowMap, PerspectiveCamera, Scene,
-  SRGBColorSpace, Vector3, WebGLRenderer
+  ACESFilmicToneMapping, ConeGeometry, Mesh, MeshStandardMaterial,
+  PCFSoftShadowMap, PerspectiveCamera, Scene, SRGBColorSpace, Vector3,
+  WebGLRenderer
 } from 'three';
 import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls.js';
 import { Biomes } from './world/biomes';
 import { TerrainChunks } from './render/terrain';
 import { Sky } from './render/sky';
+import { FogOfWar, attachFog } from './render/fogwar';
 
 declare global {
   interface Window { __READY?: boolean; }
@@ -43,6 +45,24 @@ export function start(): void {
 
   const sky = new Sky(scene);
   sky.elevation = sunEl;
+
+  // Fog of war (viewer: ?fow=1 puts the eye at the focus point).
+  const useFow = q.get('fow') === '1';
+  if (useFow) {
+    const fog = new FogOfWar(biomes.field);
+    fog.recenter(fx, fz);
+    const radius = fog.computeFrom(fx, fz, sunEl);
+    console.log(`fog of war: sight radius ${(radius / 1609.34).toFixed(1)} mi`);
+    attachFog(terrain.groundMaterial, fog);
+    attachFog(terrain.waterMaterial, fog);
+
+    const marker = new Mesh(
+      new ConeGeometry(28, 90, 8),
+      new MeshStandardMaterial({ color: 0xffe9c0, emissive: 0xd4883a, emissiveIntensity: 0.7 })
+    );
+    marker.position.set(fx, biomes.field.height(fx, fz) + 55, fz);
+    scene.add(marker);
+  }
 
   const focusY = biomes.field.height(fx, fz);
   const focus = new Vector3(fx, focusY, fz);

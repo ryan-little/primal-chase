@@ -1,6 +1,6 @@
 # STATUS — read me first when resuming
 
-Updated: 2026-08-06 (iteration 4 of the goal loop)
+Updated: 2026-08-06 (iteration 5 of the goal loop)
 
 ## Where things stand
 
@@ -38,10 +38,17 @@ Updated: 2026-08-06 (iteration 4 of the goal loop)
   legible (high blue moon). **Screenshot loop works:** `npm run build` then
   `node tools/screenshot.mjs "seed=7&x=0&z=0&sun=0.55&dist=2600&yaw=3.9" out.png`
   → debug/out.png (uses real GPU via Playwright chromium; ~15s round trip).
-  **Task #5 remaining:** fog of war (the big one), vegetation instancing,
-  water animation, weather, cat + hunter entities, post chain (vignette
-  escalation), quality tiers, near-ground detail (current mesh is 21m/vertex —
-  needs LOD or finer near-chunks for gameplay camera heights).
+- **M4b fog of war: done.** `src/render/fogwar.ts` — horizon-walk LOS over a
+  cached 384² height grid (64m texels, ~24km region), RG texture
+  (explored/visible), dilate+blur to close ray stipple, elevation advantage
+  extends sight (sqrt-scaled), night pulls radius to ~38%. attachFog() patches
+  built-in materials via onBeforeCompile: unknown = deep shadow w/ faint
+  relief, remembered = drained 42%, visible = full. Verified by screenshots:
+  LOS shadows behind hills; night = small moonlit pool (the thesis shot).
+  Viewer: `&fow=1` puts the eye at the focus.
+  **Task #5 remaining:** vegetation instancing, water animation, weather,
+  cat + hunter entities, post chain (vignette escalation), quality tiers,
+  near-ground mesh detail, fog region recentering/persistent explored store.
 
 ## Environment quirks (this machine)
 
