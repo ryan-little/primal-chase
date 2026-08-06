@@ -1,6 +1,11 @@
 # STATUS — read me first when resuming
 
-Updated: 2026-08-06 (iteration 8 of the goal loop)
+Updated: 2026-08-06 (iteration 9 of the goal loop)
+
+- **M7 vegetation + landmarks: done.** Instanced flora per chunk from the
+  biome field; landmarks (monolith/great baobab/arch/cairn) as deterministic
+  sparse sites with fog-piercing beacons; arriving forces an unused signature
+  encounter (test-covered). Task #6 core gameplay: COMPLETE.
 
 ## Where things stand
 
