@@ -1,6 +1,6 @@
 # STATUS — read me first when resuming
 
-Updated: 2026-08-06 (iteration 3 of the goal loop)
+Updated: 2026-08-06 (iteration 4 of the goal loop)
 
 ## Where things stand
 
@@ -28,6 +28,20 @@ Updated: 2026-08-06 (iteration 3 of the goal loop)
   ford only where shallow, lakes route around. Reach ~150-250ms/turn.
   **Task #4 remaining:** landmark (signature/rare) placement — deferred to the
   encounter-engine work in Task #6 where its binding logic lives.
+- **M4a renderer foundation: done.** `src/render/{palette,terrain,sky}.ts` +
+  viewer in `src/app.ts`. Chunked terrain meshes (2048m/96-quad chunks, ring
+  radius 5, budgeted async builds), biome vertex colors + slope rock + variation,
+  water surfaces with depth tint, sky dome shader (NOTE: custom ShaderMaterials
+  MUST `#include <tonemapping_fragment>` + `<colorspace_fragment>` or they
+  bypass ACES/sRGB — this was a real bug), sun/moon/hemisphere driven by one
+  elevation scalar with palette stops, stars, FogExp2, shadows. Night is
+  legible (high blue moon). **Screenshot loop works:** `npm run build` then
+  `node tools/screenshot.mjs "seed=7&x=0&z=0&sun=0.55&dist=2600&yaw=3.9" out.png`
+  → debug/out.png (uses real GPU via Playwright chromium; ~15s round trip).
+  **Task #5 remaining:** fog of war (the big one), vegetation instancing,
+  water animation, weather, cat + hunter entities, post chain (vignette
+  escalation), quality tiers, near-ground detail (current mesh is 21m/vertex —
+  needs LOD or finer near-chunks for gameplay camera heights).
 
 ## Environment quirks (this machine)
 

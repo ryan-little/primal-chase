@@ -1,44 +1,68 @@
-// Temporary smoke-test scene: proves the toolchain, the renderer, the GPU
-// preference, and the resize/DPR handling. Replaced as real systems land.
+// World viewer — the renderer's proving ground while gameplay lands.
+// URL params: ?seed=7&x=0&z=0&sun=0.6&dist=2600&yaw=0.8
+// Sets window.__READY = true once all chunks are built (screenshot harness
+// waits on it).
 
 import {
-  ACESFilmicToneMapping, Color, DirectionalLight, Fog, HemisphereLight,
-  Mesh, MeshStandardMaterial, PerspectiveCamera, PlaneGeometry,
-  Scene, WebGLRenderer
+  ACESFilmicToneMapping, PCFSoftShadowMap, PerspectiveCamera, Scene,
+  SRGBColorSpace, Vector3, WebGLRenderer
 } from 'three';
+import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls.js';
+import { Biomes } from './world/biomes';
+import { TerrainChunks } from './render/terrain';
+import { Sky } from './render/sky';
+
+declare global {
+  interface Window { __READY?: boolean; }
+}
 
 export function start(): void {
+  const q = new URLSearchParams(location.search);
+  const seed = Number(q.get('seed') ?? 7);
+  const fx = Number(q.get('x') ?? 0);
+  const fz = Number(q.get('z') ?? 0);
+  const sunEl = Number(q.get('sun') ?? 0.55);
+  const dist = Number(q.get('dist') ?? 2600);
+  const yaw = Number(q.get('yaw') ?? 0.8);
+
   const renderer = new WebGLRenderer({ antialias: true, powerPreference: 'high-performance' });
   renderer.toneMapping = ACESFilmicToneMapping;
+  renderer.toneMappingExposure = 1.18;
+  renderer.outputColorSpace = SRGBColorSpace;
+  renderer.shadowMap.enabled = true;
+  renderer.shadowMap.type = PCFSoftShadowMap;
   renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
   renderer.setSize(window.innerWidth, window.innerHeight);
   document.getElementById('app')!.appendChild(renderer.domElement);
-  document.getElementById('boot')!.remove();
+  document.getElementById('boot')?.remove();
 
   const scene = new Scene();
-  scene.background = new Color(0xd9c39a);
-  scene.fog = new Fog(0xd9c39a, 60, 400);
+  const biomes = new Biomes(seed);
+  const terrain = new TerrainChunks(biomes, 5);
+  scene.add(terrain.group);
 
-  const camera = new PerspectiveCamera(50, window.innerWidth / window.innerHeight, 0.1, 1000);
-  camera.position.set(0, 24, 46);
-  camera.lookAt(0, 0, 0);
+  const sky = new Sky(scene);
+  sky.elevation = sunEl;
 
-  const sun = new DirectionalLight(0xfff4d8, 2.2);
-  sun.position.set(40, 60, 20);
-  scene.add(sun, new HemisphereLight(0xbfd4e8, 0x8a6a3f, 0.6));
+  const focusY = biomes.field.height(fx, fz);
+  const focus = new Vector3(fx, focusY, fz);
 
-  const ground = new Mesh(
-    new PlaneGeometry(600, 600, 128, 128),
-    new MeshStandardMaterial({ color: 0xb59a53 })
+  const camera = new PerspectiveCamera(50, window.innerWidth / window.innerHeight, 2, 60000);
+  camera.position.set(
+    fx + Math.cos(yaw) * dist,
+    focusY + dist * 0.55,
+    fz + Math.sin(yaw) * dist
   );
-  ground.rotation.x = -Math.PI / 2;
-  const pos = ground.geometry.attributes.position!;
-  for (let i = 0; i < pos.count; i++) {
-    const x = pos.getX(i), y = pos.getY(i);
-    pos.setZ(i, Math.sin(x * 0.02) * Math.cos(y * 0.03) * 6);
-  }
-  ground.geometry.computeVertexNormals();
-  scene.add(ground);
+
+  const controls = new OrbitControls(camera, renderer.domElement);
+  controls.target.copy(focus);
+  controls.maxPolarAngle = 1.42;
+  controls.minDistance = 120;
+  controls.maxDistance = 16000;
+  controls.enableDamping = true;
+
+  terrain.focus(fx, fz);
+  sky.apply(focus);
 
   window.addEventListener('resize', () => {
     camera.aspect = window.innerWidth / window.innerHeight;
@@ -46,5 +70,16 @@ export function start(): void {
     renderer.setSize(window.innerWidth, window.innerHeight);
   });
 
-  renderer.setAnimationLoop(() => renderer.render(scene, camera));
+  let readyFrames = 0;
+  renderer.setAnimationLoop(() => {
+    const busy = terrain.tick(3);
+    controls.update();
+    renderer.render(scene, camera);
+    if (!busy) {
+      // A few settle frames after the last chunk so shadows/normals land.
+      if (++readyFrames === 5) window.__READY = true;
+    } else {
+      readyFrames = 0;
+    }
+  });
 }
