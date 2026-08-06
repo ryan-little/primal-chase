@@ -1,6 +1,6 @@
 # STATUS — read me first when resuming
 
-Updated: 2026-08-06 (iteration 2 of the goal loop)
+Updated: 2026-08-06 (iteration 3 of the goal loop)
 
 ## Where things stand
 
@@ -18,9 +18,16 @@ Updated: 2026-08-06 (iteration 2 of the goal loop)
   meandering rivers gated by a drainage field (dry country exists), lakes,
   dry channels. Inspect visually: `npx tsx tools/worldgen-debug.ts <seed> <km> <px>`
   → `debug/*.png` (Read the PNG). Heights: plains ±30m, crests ~680m, water ~5%.
-  **Still to do in Task #4:** moisture/biome field mapping to V1 terrain ids,
-  feature/landmark placement, navigation lattice + reach contours (Dijkstra),
-  fords/passes verification, then unit tests for nav.
+- **M3b biomes + nav: done.** `src/world/biomes.ts` maps every point to a
+  V1 terrain id (all 32 reachable; distributions inspected via the biome PNG,
+  ~46% open plain on seed 7, dry/wet/burned/rocky country all present, point
+  features: baobab/kopje/termite/elephant-path). `src/world/nav.ts`: 220m
+  8-connected lattice, Dijkstra reach in effective miles (terrain move ×
+  slope² factor × wading), cliffs & deep water impassable — verified visually
+  (`npx tsx tools/nav-debug.ts <seed> <x> <z>`): ranges wall movement, rivers
+  ford only where shallow, lakes route around. Reach ~150-250ms/turn.
+  **Task #4 remaining:** landmark (signature/rare) placement — deferred to the
+  encounter-engine work in Task #6 where its binding logic lives.
 
 ## Environment quirks (this machine)
 
