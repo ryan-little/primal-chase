@@ -128,16 +128,22 @@ export class Hud {
     this.els['preview']!.classList.add('hidden');
   }
 
-  showDeath(cause: DeathCause, s: GameState): void {
+  showDeath(cause: DeathCause, s: GameState, score?: number, rank?: number | null): void {
     const texts = deaths[cause];
     const text = texts[Math.floor(this.flavorRng() * texts.length)]!;
+    const scoreLine = score !== undefined
+      ? `Score ${score}${rank ? ` · #${rank} among your past lives` : ''} · ` : '';
     this.els['death']!.innerHTML = `
       <h1>The Chase Ends</h1>
       <div class="text">${text}</div>
-      <div class="score">Day ${s.day} · ${s.distanceCovered.toFixed(0)} miles · trail broken ${s.stats.trailBreaks}×</div>
+      <div class="score">${scoreLine}Day ${s.day} · ${s.distanceCovered.toFixed(0)} miles · trail broken ${s.stats.trailBreaks}× · ${s.stats.landmarksVisited} landmarks</div>
       <button id="againBtn">Run Again</button>`;
     this.els['death']!.classList.remove('hidden');
     document.getElementById('againBtn')!.addEventListener('click', () => this.onRestart?.());
+  }
+
+  setVisible(v: boolean): void {
+    this.root.classList.toggle('hidden', !v);
   }
 
   hideDeath(): void {

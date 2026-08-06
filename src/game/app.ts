@@ -18,6 +18,8 @@ import { ReachOverlay } from '../render/overlay';
 import { ReachField, REACH_GLSL } from '../render/reachfield';
 import { landmarkMaterials, vegetationMaterials } from '../render/vegetation';
 import { Hud } from '../ui/hud';
+import { Screens } from '../ui/screens';
+import { scoreRun, submitScore } from '../sim/score';
 
 const DAY_SUN = 0.55;
 const NIGHT_SUN = -0.45;
@@ -47,8 +49,11 @@ export function startGame(): void {
   document.getElementById('boot')?.remove();
 
   const scene = new Scene();
-  const game = new Game(seed);
+  const screens = new Screens();
+  const game = new Game(seed, screens.options.difficulty);
+  game.tutorial = screens.options.tutorial;
   const S = () => game.state;
+  let mode: 'title' | 'intro' | 'playing' = q.get('test') === '1' ? 'playing' : 'title';
 
   const terrain = new TerrainChunks(game.biomes, 5);
   scene.add(terrain.group);
@@ -156,7 +161,9 @@ export function startGame(): void {
     if (r.died && r.deathCause) {
       overlay.hide();
       reachField.hide();
-      hud.showDeath(r.deathCause, S());
+      const run = scoreRun(S(), game.difficulty);
+      const rank = submitScore(run);
+      hud.showDeath(r.deathCause, S(), run.score, rank);
       busy = true;
       return;
     }
@@ -168,7 +175,7 @@ export function startGame(): void {
   // ---- input ----
   const ray = new Raycaster();
   const clickAt = (nx: number, ny: number) => {
-    if (busy || !reachMap) return;
+    if (busy || !reachMap || mode !== 'playing') return;
     ray.setFromCamera(new Vector2(nx, ny), camera);
     const hits = ray.intersectObject(terrain.group, true);
     if (!hits.length) return;
@@ -200,7 +207,7 @@ export function startGame(): void {
     const path = game.nav.path(reachMap, pendingNode.ix + ',' + pendingNode.iz);
     moveAnim = {
       pts: path.map((n) => new Vector3(n.x, 0, n.z)),
-      t: 0,
+      t: screens.options.reducedMotion ? MOVE_SECONDS : 0,
       node: pendingNode
     };
     pendingNode = null;
@@ -223,9 +230,11 @@ export function startGame(): void {
     const r = game.commitAction(key);
     if (r) afterTurn(r); else { busy = false; hud.setBusy(false); showReach(); }
   };
-  hud.onRestart = () => {
+  const resetRun = (newSeed: number) => {
     hud.hideDeath();
-    game.newGame(seed + S().day);
+    game.setDifficulty(screens.options.difficulty);
+    game.tutorial = screens.options.tutorial;
+    game.newGame(newSeed);
     lastNote = null;
     sunTarget = DAY_SUN;
     sky.elevation = DAY_SUN;
@@ -240,6 +249,8 @@ export function startGame(): void {
     busy = false;
     hud.setBusy(false);
   };
+
+  hud.onRestart = () => resetRun(seed + S().day * 7 + 1);
 
   window.addEventListener('resize', () => {
     camera.aspect = window.innerWidth / window.innerHeight;
@@ -256,7 +267,40 @@ export function startGame(): void {
   refreshFog();
   placeHunters();
   refreshHud();
-  showReach();
+  if (mode === 'playing') showReach();
+  else {
+    hud.setVisible(false);
+    screens.show('title');
+  }
+
+  screens.onStart = () => {
+    // Difficulty/tutorial may have changed on the options screen.
+    if (screens.options.difficulty !== game.difficulty ||
+        screens.options.tutorial !== game.tutorial) {
+      resetRun(seed);
+      hud.setVisible(false);
+    }
+    mode = 'intro';
+    if (screens.options.reducedMotion || !screens.options.typewriter) {
+      // Still show the intro, just without the slow burn.
+    }
+    screens.playIntro(seed);
+  };
+  screens.onIntroDone = () => {
+    mode = 'playing';
+    hud.setVisible(true);
+    showReach();
+    // Settle the camera behind the cat for play.
+    camera.position.set(S().x + 430, groundY(S().x, S().z) + 640, S().z + 430);
+  };
+
+  // Keyboard: Enter confirms a pending move, Escape cancels, R rests.
+  window.addEventListener('keydown', (ev) => {
+    if (mode !== 'playing' || busy) return;
+    if (ev.key === 'Enter' && pendingNode) commitPending();
+    else if (ev.key === 'Escape') hud.onCancelMove && hud.onCancelMove();
+    else if (ev.key === 'r' || ev.key === 'R') hud.onAction && hud.onAction('rest');
+  });
 
   // Boot framing: stand the camera on the side with the LEAST visible ground
   // so the frame looks across the cat into the open sight pool.
@@ -339,8 +383,16 @@ export function startGame(): void {
     cat.update(dt, moving);
     hunters.update(dt, S().phase === 'night');
 
-    // Camera rides with the cat.
+    // Camera rides with the cat; on the title it drifts in a slow orbit.
     const catPos = cat.group.position;
+    if (mode === 'title') {
+      const t = now * 0.000045;
+      camera.position.set(
+        catPos.x + Math.cos(t) * 1500,
+        catPos.y + 820,
+        catPos.z + Math.sin(t) * 1500
+      );
+    }
     controls.target.lerp(new Vector3(catPos.x, catPos.y + 30, catPos.z), Math.min(1, dt * 4));
     controls.update();
     sky.apply(catPos);

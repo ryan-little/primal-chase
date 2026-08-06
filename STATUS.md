@@ -1,7 +1,14 @@
 # STATUS — read me first when resuming
 
-Updated: 2026-08-06 (iteration 9 of the goal loop)
+Updated: 2026-08-06 (iteration 10 of the goal loop)
 
+- **M8 framing UI: done.** Title (live world behind, slow orbit), how-to,
+  options (difficulty/quality/typewriter/tutorial/reduced-motion,
+  localStorage), leaderboard ("Past Lives"), intro sequence (V1's three
+  openings, typewriter honoring the option), scoring + local top-10 with
+  rank on the death screen, keyboard (Enter/Esc/R). ?test=1 boots straight
+  into play for the harness. Task #7 remaining: share card, achievements
+  display, touch polish pass, prose typewriter option in-game.
 - **M7 vegetation + landmarks: done.** Instanced flora per chunk from the
   biome field; landmarks (monolith/great baobab/arch/cairn) as deterministic
   sparse sites with fog-piercing beacons; arriving forces an unused signature

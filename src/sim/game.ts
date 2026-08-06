@@ -84,16 +84,18 @@ export interface TurnResult {
 }
 
 export class Game {
-  readonly config: SimConfig;
+  config: SimConfig;
   readonly rng: Rng;
   readonly biomes: Biomes;
   readonly nav: Nav;
-  readonly encounters: EncounterEngine;
-  readonly monologueEngine: MonologueEngine;
+  encounters: EncounterEngine;
+  monologueEngine: MonologueEngine;
   state!: GameState;
   tutorial = true;
+  difficulty: Difficulty;
 
   constructor(seed: number, difficulty: Difficulty = 'normal') {
+    this.difficulty = difficulty;
     this.config = configFor(difficulty);
     this.rng = new Rng(seed ^ 0x9a7f);
     this.biomes = new Biomes(seed);
@@ -101,6 +103,14 @@ export class Game {
     this.encounters = new EncounterEngine(this.config, this.rng);
     this.monologueEngine = new MonologueEngine(this.config, this.rng);
     this.newGame(seed);
+  }
+
+  /** Applies to the NEXT newGame; engines are rebuilt on the new config. */
+  setDifficulty(difficulty: Difficulty): void {
+    this.difficulty = difficulty;
+    this.config = configFor(difficulty);
+    this.encounters = new EncounterEngine(this.config, this.rng);
+    this.monologueEngine = new MonologueEngine(this.config, this.rng);
   }
 
   newGame(seed: number): GameState {
