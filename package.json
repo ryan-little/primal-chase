@@ -12,6 +12,7 @@
     "sim": "tsx test/balance/run.ts"
   },
   "devDependencies": {
+    "@types/node": "^26.1.2",
     "@types/three": "^0.179.0",
     "playwright": "^1.62.1",
     "tsx": "^4.19.0",

@@ -57,16 +57,24 @@ export function terrainFactorFor(avgHunterDifficulty: number, config: SimConfig)
   return Math.min(1, 1 + (1 / avgHunterDifficulty - 1) * s);
 }
 
-/** Odds that a path whose worst ground holds `minScent` breaks the pursuit. */
+/**
+ * Odds that a path whose worst ground holds `minScent` breaks the pursuit.
+ * Each previous loss teaches them the trick — the same river fools them
+ * less each time, so water-country cannot hide you forever.
+ */
 export function trailBreakChance(h: HunterModel, minScent: number, config: SimConfig): number {
   if (h.state !== 'pursuit') return 0;
   const hidden = Math.max(0, (config.hunter.scentFloor - minScent) / config.hunter.scentFloor);
-  return Math.min(0.75, config.hunter.trailLossBase * hidden);
+  const learned = Math.pow(0.72, h.timesLost);
+  return Math.min(0.75, config.hunter.trailLossBase * hidden * learned);
 }
 
 export function loseTrail(h: HunterModel, rng: Rng, config: SimConfig): void {
   h.state = 'tracking';
-  h.trackingDaysLeft = rng.int(config.hunter.trackingDuration.min, config.hunter.trackingDuration.max);
+  // Experienced trackers re-find faster: the search shortens per prior loss.
+  const maxDays = Math.max(config.hunter.trackingDuration.min,
+    config.hunter.trackingDuration.max - Math.floor(h.timesLost / 2));
+  h.trackingDaysLeft = rng.int(config.hunter.trackingDuration.min, maxDays);
   h.timesLost += 1;
 }
 

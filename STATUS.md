@@ -1,6 +1,19 @@
 # STATUS — read me first when resuming
 
-Updated: 2026-08-06 (iteration 12 of the goal loop)
+Updated: 2026-08-06 (iteration 13 of the goal loop)
+
+- **M11 balance: done (sim-side).** test/balance/run.ts (`npm run sim [N] [emit]`,
+  ~1s/run — keep batches ≤200). Findings + fixes this round:
+  (1) FROZEN-TURN BUG: commitAction on a key a signature encounter doesn't
+  offer returns null — policies must fall back (fixed in harness; impossible
+  for humans via HUD). (2) hunter.maxDistance=32 — kiting can't outrun
+  escalation forever. (3) trackers LEARN: break chance ×0.72^losses, tracking
+  spells shorten — river-country chain-breaking is bounded. (4) passive
+  hunger 3.5→3.0 (terrain-true encounters make food rarer than V1's deck).
+  Result: smart p25/50/75/90 = 6/7/10/12 days, random = 4/5/6/7, zero
+  survivors, all five causes present. Percentiles emitted →
+  src/content/percentiles.ts; death screen shows "outlasted X% of runs".
+  Remaining for #9: Ryan's playtest feel check.
 
 - **M10 audio: done (tuning by ear pending Ryan's playtest).**
   src/audio/soundscape.ts — fully synthesized Web Audio: wind (LFO-breathing

@@ -5,6 +5,7 @@ import type { GameState, MovePreview } from '../sim/game';
 import type { EncounterAction } from '../sim/encounters';
 import { distanceBands, trackingTexts } from '../content/hunterFlavor';
 import { deaths } from '../content/narrative';
+import { percentileFor } from '../content/percentiles';
 import type { DeathCause } from '../content/types';
 
 export class Hud {
@@ -133,7 +134,8 @@ export class Hud {
     const texts = deaths[cause];
     const text = texts[Math.floor(this.flavorRng() * texts.length)]!;
     const scoreLine = score !== undefined
-      ? `Score ${score}${rank ? ` · #${rank} among your past lives` : ''} · ` : '';
+      ? `Score ${score} · outlasted ${percentileFor(score)}% of runs` +
+        `${rank ? ` · #${rank} among your past lives` : ''} · ` : '';
     this.els['death']!.innerHTML = `
       <h1>The Chase Ends</h1>
       <div class="text">${text}</div>

@@ -334,6 +334,8 @@ export class Game {
 
     const adv = advance(H, S.day, S.phase, turn.realMiles > 0, turn.terrainFactor, this.config);
     H.distance += turn.realMiles - adv;
+    // They do not tire, and they do not lose you entirely.
+    H.distance = Math.min(H.distance, this.config.hunter.maxDistance);
 
     // Trail breaks: the encounter's own verb, or ground that keeps no print.
     let brokeTrail = false;

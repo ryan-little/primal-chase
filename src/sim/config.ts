@@ -36,6 +36,11 @@ export interface SimConfig {
     cornerCutRate: number;
     /** Real miles of slack before a route counts as doubling back. */
     cornerCutGraceMiles: number;
+    /**
+     * Persistence hunters never lose you entirely: the gap cannot exceed
+     * this. Without it, early kiting outruns escalation forever.
+     */
+    maxDistance: number;
   };
   actions: Record<Phase, Record<string, ActionEffects>>;
   passiveDrain: Record<Phase, { heat: number; stamina: number; thirst: number; hunger: number }>;
@@ -62,7 +67,7 @@ export const BASE_CONFIG: SimConfig = {
   death: { maxHeat: 100, minStamina: 0, maxThirst: 100, maxHunger: 100, minHunterDistance: 0 },
   hunter: {
     baseSpeed: 5.5,
-    dailyEscalation: 0.1,
+    dailyEscalation: 0.18,
     trackingSpeed: 2,
     trackingDuration: { min: 1, max: 3 },
     escalationPerLoss: 0.8,
@@ -74,7 +79,8 @@ export const BASE_CONFIG: SimConfig = {
     trailLossBase: 0.34,
     scentFloor: 0.85,
     cornerCutRate: 0.32,
-    cornerCutGraceMiles: 2.0
+    cornerCutGraceMiles: 2.0,
+    maxDistance: 32
   },
   actions: {
     day: {
@@ -93,8 +99,10 @@ export const BASE_CONFIG: SimConfig = {
     }
   },
   passiveDrain: {
-    day:   { heat: 6, stamina: 0, thirst: 5, hunger: 3.5 },
-    night: { heat: -8, stamina: 5, thirst: 2, hunger: 3.5 }
+    // Hunger eased from V1's 3.5: terrain-true encounters make food rarer
+    // than V1's random deck did, so the drain compensates (sim-verified).
+    day:   { heat: 6, stamina: 0, thirst: 5, hunger: 3.0 },
+    night: { heat: -8, stamina: 5, thirst: 2, hunger: 3.0 }
   },
   encounters: { signatureChancePerPhase: 0.15, rareChancePerPhase: 0.008 },
   movement: {
