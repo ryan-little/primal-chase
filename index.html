@@ -1,0 +1,24 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <meta name="theme-color" content="#12100c">
+  <meta name="description" content="A 3D survival chase across an endless savannah. You are the hunted. The game cannot be won — only outlasted.">
+  <title>Primal Chase</title>
+  <style>
+    /* Inline boot styles so the first paint is never unstyled. */
+    html, body { margin: 0; height: 100%; background: #12100c; overflow: hidden; }
+    #boot {
+      position: fixed; inset: 0; display: flex; align-items: center; justify-content: center;
+      color: #c9a76a; font: 14px/1.6 Georgia, 'Times New Roman', serif;
+      letter-spacing: 0.35em; text-transform: uppercase;
+    }
+  </style>
+</head>
+<body>
+  <div id="app"></div>
+  <div id="boot">the chase begins</div>
+  <script type="module" src="/src/main.ts"></script>
+</body>
+</html>
