@@ -50,6 +50,23 @@ export class ReachField {
         }
       }
     }
+
+    // Two 3x3 box blurs turn the splat diamonds into a smooth field, so the
+    // contour reads as a drawn line instead of texel sawteeth.
+    const tmp = new Uint8Array(SIZE * SIZE);
+    for (let pass = 0; pass < 2; pass++) {
+      tmp.set(this.data);
+      for (let j = 1; j < SIZE - 1; j++) {
+        for (let i = 1; i < SIZE - 1; i++) {
+          let sum = 0;
+          for (let dj = -1; dj <= 1; dj++) {
+            for (let di = -1; di <= 1; di++) sum += tmp[(j + dj) * SIZE + i + di]!;
+          }
+          this.data[j * SIZE + i] = Math.round(sum / 9);
+        }
+      }
+    }
+
     this.texture.needsUpdate = true;
     this.uniforms.reachShow.value = 1;
   }
@@ -70,7 +87,17 @@ export const REACH_DECLS = /* glsl */`
 /** GLSL block for the terrain fragment patch (expects fuv-style sampling). */
 export const REACH_GLSL = /* glsl */`
   if (reachShow > 0.5) {
-    vec2 ruv = (vFowWorldPos.xz - reachOrigin) * reachSizeInv + 0.5;
+    // Wobble the sample so the contour breaks organically, not on texels.
+    vec2 rP = vFowWorldPos.xz * 0.0042;
+    vec2 rI = floor(rP);
+    vec2 rF = fract(rP);
+    float rN = mix(
+      mix(fract(sin(dot(rI, vec2(93.9898, 67.345))) * 24634.6),
+          fract(sin(dot(rI + vec2(1.0, 0.0), vec2(93.9898, 67.345))) * 24634.6), rF.x),
+      mix(fract(sin(dot(rI + vec2(0.0, 1.0), vec2(93.9898, 67.345))) * 24634.6),
+          fract(sin(dot(rI + vec2(1.0, 1.0), vec2(93.9898, 67.345))) * 24634.6), rF.x),
+      rF.y);
+    vec2 ruv = (vFowWorldPos.xz + (rN - 0.5) * 110.0 - reachOrigin) * reachSizeInv + 0.5;
     float rv = texture2D(reachMap, ruv).r;
     if (rv > 0.03) {
       // rv encodes remaining budget: high near the cat, low at the fringe.

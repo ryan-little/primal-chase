@@ -21,30 +21,39 @@ export class Cat {
   private phase = 0;
 
   constructor() {
-    const body = new Mesh(new CapsuleGeometry(0.42, 1.3, 4, 8), catBody);
-    body.rotation.z = Math.PI / 2;
-    body.position.y = 0.85;
-    body.castShadow = true;
+    // A low, long silhouette: deep chest, tucked waist, shoulders proud.
+    const chest = new Mesh(new CapsuleGeometry(0.44, 0.9, 4, 8), catBody);
+    chest.rotation.z = Math.PI / 2;
+    chest.position.set(0.3, 0.88, 0);
+    chest.castShadow = true;
+    const haunch = new Mesh(new CapsuleGeometry(0.38, 0.55, 4, 8), catBody);
+    haunch.rotation.z = Math.PI / 2;
+    haunch.position.set(-0.62, 0.82, 0);
+    haunch.castShadow = true;
 
-    this.head = new Mesh(new SphereGeometry(0.34, 8, 6), catBody);
-    this.head.position.set(1.05, 1.15, 0);
+    this.head = new Mesh(new SphereGeometry(0.3, 8, 6), catBody);
+    this.head.position.set(1.12, 1.22, 0);
     this.head.castShadow = true;
+    const muzzle = new Mesh(new BoxGeometry(0.3, 0.17, 0.24), catDark);
+    muzzle.position.set(1.34, 1.12, 0);
+    const earL = new Mesh(new ConeGeometry(0.09, 0.16, 4), catDark);
+    earL.position.set(1.03, 1.45, 0.14);
+    const earR = earL.clone();
+    earR.position.z = -0.14;
 
-    const jaw = new Mesh(new BoxGeometry(0.34, 0.18, 0.3), catDark);
-    jaw.position.set(1.25, 1.0, 0);
+    this.tail = new Mesh(new CapsuleGeometry(0.06, 1.15, 3, 6), catDark);
+    this.tail.rotation.z = Math.PI / 2.35;
+    this.tail.position.set(-1.15, 1.05, 0);
 
-    this.tail = new Mesh(new CapsuleGeometry(0.07, 1.0, 3, 6), catDark);
-    this.tail.rotation.z = Math.PI / 2.6;
-    this.tail.position.set(-1.05, 1.1, 0);
-
-    const mkLeg = (x: number, z: number) => {
-      const leg = new Mesh(new CapsuleGeometry(0.11, 0.6, 3, 6), catDark);
-      leg.position.set(x, 0.4, z);
+    const mkLeg = (x: number, z: number, thick: number) => {
+      const leg = new Mesh(new CapsuleGeometry(thick, 0.62, 3, 6), catDark);
+      leg.position.set(x, 0.38, z);
       leg.castShadow = true;
       return leg;
     };
-    this.group.add(body, this.head, jaw, this.tail,
-      mkLeg(0.6, 0.25), mkLeg(0.6, -0.25), mkLeg(-0.6, 0.25), mkLeg(-0.6, -0.25));
+    this.group.add(chest, haunch, this.head, muzzle, earL, earR, this.tail,
+      mkLeg(0.72, 0.24, 0.1), mkLeg(0.72, -0.24, 0.1),
+      mkLeg(-0.68, 0.26, 0.13), mkLeg(-0.68, -0.26, 0.13));
 
     // Figures read as specks at tactical zoom without a scale boost.
     this.group.scale.setScalar(3.2);
@@ -54,9 +63,12 @@ export class Cat {
   update(dt: number, moving: boolean): void {
     this.phase += dt * (moving ? 9 : 1.6);
     const bob = Math.sin(this.phase) * (moving ? 0.1 : 0.02);
-    this.group.children.forEach((c, i) => { if (i === 0) c.position.y = 0.85 + bob; });
+    const chest = this.group.children[0]!;
+    const haunch = this.group.children[1]!;
+    chest.position.y = 0.88 + bob;
+    haunch.position.y = 0.82 - bob * 0.7; // counter-bob: the rocking gallop
     this.tail.rotation.x = Math.sin(this.phase * 0.7) * 0.25;
-    this.head.position.y = 1.15 + bob * 0.6;
+    this.head.position.y = 1.22 + bob * 0.6;
   }
 }
 

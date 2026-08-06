@@ -376,6 +376,21 @@ export function startGame(): void {
 
   // Test hooks for automated verification.
   if (q.get('test') === '1') {
+    // Rolling frame-time telemetry for the perf check.
+    const times: number[] = [];
+    const origLoop = renderer.getContext();
+    void origLoop;
+    (window as unknown as { __frameTimes: number[] }).__frameTimes = times;
+    setInterval(() => { if (times.length > 240) times.splice(0, times.length - 240); }, 2000);
+    const push = times.push.bind(times);
+    let lastT = performance.now();
+    const meter = () => {
+      const n = performance.now();
+      push(n - lastT);
+      lastT = n;
+      requestAnimationFrame(meter);
+    };
+    requestAnimationFrame(meter);
     window.__pc = {
       game,
       doFarthestMove: () => {

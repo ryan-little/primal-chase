@@ -242,7 +242,20 @@ export function attachFog(
       .replace('#include <dithering_fragment>', `
         {
           ${injections.map((i) => i.glsl).join('\n')}
-          vec2 fuv = (vFowWorldPos.xz - fogOrigin) * fogSizeInv + 0.5;
+          // Wobble the sample point with cheap value noise so the fog edge
+          // breaks organically instead of showing the texture's 64m texels.
+          // Wavelength must EXCEED the texel size or the wobble jitters
+          // inside one texel and changes nothing.
+          vec2 fowP = vFowWorldPos.xz * 0.0038;
+          vec2 fowI = floor(fowP);
+          vec2 fowF = fract(fowP);
+          float fowN = mix(
+            mix(fract(sin(dot(fowI, vec2(127.1, 311.7))) * 43758.5),
+                fract(sin(dot(fowI + vec2(1.0, 0.0), vec2(127.1, 311.7))) * 43758.5), fowF.x),
+            mix(fract(sin(dot(fowI + vec2(0.0, 1.0), vec2(127.1, 311.7))) * 43758.5),
+                fract(sin(dot(fowI + vec2(1.0, 1.0), vec2(127.1, 311.7))) * 43758.5), fowF.x),
+            fowF.y);
+          vec2 fuv = (vFowWorldPos.xz + (fowN - 0.5) * 120.0 - fogOrigin) * fogSizeInv + 0.5;
           vec2 fw = texture2D(fogMap, fuv).rg;
           float inRegion = step(0.005, fuv.x) * step(fuv.x, 0.995)
                          * step(0.005, fuv.y) * step(fuv.y, 0.995);

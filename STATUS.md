@@ -1,6 +1,14 @@
 # STATUS — read me first when resuming
 
-Updated: 2026-08-06 (iteration 14 of the goal loop)
+Updated: 2026-08-06 (iteration 15 of the goal loop)
+
+- **M13 renderer close-out: Task #5 COMPLETE.** Cat rebuilt (chest/haunch
+  counter-bob gallop, ears, muzzle); fog + reach sample wobble (wavelength
+  must exceed texel size to matter); reach field CPU-blurred; the boot-shot
+  "sawtooth" was neither — it was biome-boundary vertex aliasing, fixed by
+  jittering the color-classification sample point (ragged organic edges,
+  zero extra cost). Perf verified on dist: 17.7ms avg / 18.1ms p95 (vsync
+  60fps) at high tier, 1280x800.
 
 - **M12 ship-prep: share card (canvas 1200x630, native share sheet or
   download), achievements on the death screen (7, stat-driven), README with

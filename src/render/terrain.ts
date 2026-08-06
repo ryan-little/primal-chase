@@ -114,8 +114,13 @@ export class TerrainChunks {
         positions[idx * 3 + 1] = s.height;
         positions[idx * 3 + 2] = z;
 
-        // Base terrain color, rock on steep ground, stable variation.
-        const base = TERRAIN_COLORS[s.terrainId] ?? TERRAIN_COLORS['open_plain']!;
+        // Color is classified at a jittered point so biome boundaries go
+        // ragged instead of ruler-straight sawteeth along the vertex grid.
+        const jx = (hash2(this.biomes.seed ^ 0x4a4954, i * 3 + cx, j * 5 + cz) - 0.5) * STEP * 1.4;
+        const jz = (hash2(this.biomes.seed ^ 0x4a4955, i * 7 + cx, j * 11 + cz) - 0.5) * STEP * 1.4;
+        const sc = s.waterDepth > 0 ? s : this.biomes.sample(x + jx, z + jz);
+        const base = TERRAIN_COLORS[sc.waterDepth > 0 ? s.terrainId : sc.terrainId]
+          ?? TERRAIN_COLORS['open_plain']!;
         const e = STEP * 0.5;
         const hx = (this.biomes.field.height(x + e, z) - this.biomes.field.height(x - e, z)) / (2 * e);
         const hz = (this.biomes.field.height(x, z + e) - this.biomes.field.height(x, z - e)) / (2 * e);
