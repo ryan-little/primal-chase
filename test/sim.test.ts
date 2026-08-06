@@ -109,3 +109,30 @@ describe('sim core', () => {
     expect(run(99)).toBe(run(99));
   });
 });
+
+describe('landmarks', () => {
+  it('forces a signature encounter on arrival at an unvisited landmark', async () => {
+    const { nearestLandmark } = await import('../src/world/landmarks');
+    const g = new Game(21);
+    g.tutorial = false;
+    g.newGame(21);
+    // March toward the nearest landmark until we stand on it.
+    for (let i = 0; i < 40 && g.state.isAlive; i++) {
+      const lm = nearestLandmark(21, g.state.x, g.state.z, 60000)!;
+      if (Math.hypot(lm.x - g.state.x, lm.z - g.state.z) < 650) break;
+      const reach = g.reach();
+      let best = null, bestD = Infinity;
+      for (const n of reach.values()) {
+        const d = Math.hypot(n.x - lm.x, n.z - lm.z);
+        if (d < bestD) { bestD = d; best = n; }
+      }
+      if (!best) break;
+      g.commitMove(best, reach);
+      if (g.state.stats.landmarksVisited > 0) break;
+    }
+    expect(g.state.stats.landmarksVisited).toBeGreaterThan(0);
+    // The forced encounter is a signature (unless the deck ran out, which
+    // cannot happen this early in a run).
+    expect(g.state.encounter?.type).toBe('signature');
+  });
+});

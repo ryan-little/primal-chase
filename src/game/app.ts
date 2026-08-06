@@ -16,6 +16,7 @@ import { FogOfWar, attachFog } from '../render/fogwar';
 import { Cat, HunterBand } from '../render/entities';
 import { ReachOverlay } from '../render/overlay';
 import { ReachField, REACH_GLSL } from '../render/reachfield';
+import { landmarkMaterials, vegetationMaterials } from '../render/vegetation';
 import { Hud } from '../ui/hud';
 
 const DAY_SUN = 0.55;
@@ -57,6 +58,8 @@ export function startGame(): void {
   const reachAttachment = { uniforms: reachField.uniforms as unknown as Record<string, { value: unknown }>, glsl: REACH_GLSL };
   attachFog(terrain.groundMaterial, fog, reachAttachment);
   attachFog(terrain.waterMaterial, fog, reachAttachment);
+  for (const m of vegetationMaterials) attachFog(m, fog);
+  for (const m of landmarkMaterials) attachFog(m, fog);
 
   const cat = new Cat();
   const hunters = new HunterBand();

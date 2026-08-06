@@ -7,6 +7,7 @@
 // the ground you dragged them across; low-scent paths can break the pursuit.
 
 import { Biomes } from '../world/biomes';
+import { nearestLandmark } from '../world/landmarks';
 import { Nav, METERS_PER_MILE, type NavNode } from '../world/nav';
 import { Rng } from '../world/rng';
 import type { Phase, VitalEffects } from '../content/types';
@@ -49,7 +50,9 @@ export interface GameState {
     phasesNearDeath: number;
     highestGround: number;
     trailBreaks: number;
+    landmarksVisited: number;
   };
+  visitedLandmarks: Set<string>;
 }
 
 export interface MovePreview {
@@ -151,8 +154,10 @@ export class Game {
       outcome: null,
       stats: {
         nightPushes: 0, timesRested: 0, phasesWithHighThirst: 0,
-        phasesNearDeath: 0, highestGround: 0, trailBreaks: 0
-      }
+        phasesNearDeath: 0, highestGround: 0, trailBreaks: 0,
+        landmarksVisited: 0
+      },
+      visitedLandmarks: new Set()
     };
     const here = this.biomes.sample(x, z);
     this.state.encounter = this.encounters.generate(this.view(), here.terrainId, this.tutorial);
@@ -388,7 +393,17 @@ export class Game {
     else { S.phase = 'day'; S.day += 1; }
 
     const here = this.biomes.sample(S.x, S.z);
-    S.encounter = this.encounters.generate(this.view(), here.terrainId, this.tutorial);
+    // Arriving at an unvisited landmark forces its signature encounter —
+    // the strange silhouette you chose to walk toward keeps its promise.
+    const lm = turn.kind === 'move'
+      ? nearestLandmark(this.state.seed, S.x, S.z, 650) : null;
+    if (lm && !S.visitedLandmarks.has(lm.id)) {
+      S.visitedLandmarks.add(lm.id);
+      S.stats.landmarksVisited++;
+      S.encounter = this.encounters.forceSignature(this.view(), here.terrainId);
+    } else {
+      S.encounter = this.encounters.generate(this.view(), here.terrainId, this.tutorial);
+    }
     S.monologue = this.monologueEngine.select(
       this.view(), result.chanceSucceeded ? turn.actionKey : null, S.encounter);
 

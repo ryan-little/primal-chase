@@ -85,6 +85,19 @@ export class EncounterEngine {
     this.flags.usedOldTerritory = false;
   }
 
+  /**
+   * A landmark site always speaks: force an unused, eligible signature.
+   * Falls back to the combinatorial generator when every card is spent.
+   */
+  forceSignature(state: EncounterStateView, terrainId: string): Encounter {
+    const sig = this.tryFrom(signatures, state, false);
+    if (sig) {
+      this.usedSignatures.add(sig.id);
+      return this.formatSignature(sig, state, 'signature');
+    }
+    return this.buildCombinatorial(state, terrainId);
+  }
+
   /** Generate the encounter for the ground under the player's feet. */
   generate(state: EncounterStateView, terrainId: string, tutorial: boolean): Encounter {
     if (state.day === 1 && tutorial) {

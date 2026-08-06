@@ -5,11 +5,12 @@
 // and a stable variation noise so plains never read as flat paint.
 
 import {
-  BufferAttribute, BufferGeometry, Group, Mesh, MeshStandardMaterial
+  BufferAttribute, BufferGeometry, Group, InstancedMesh, Mesh, MeshStandardMaterial
 } from 'three';
 import type { Biomes } from '../world/biomes';
 import { hash2 } from '../world/rng';
 import { ROCK_COLOR, TERRAIN_COLORS, WATER_DEEP, WATER_SHALLOW } from './palette';
+import { buildChunkVegetation } from './vegetation';
 
 export const CHUNK_SIZE = 2048;        // meters on a side
 export const CHUNK_QUADS = 96;         // quads per side (~21m per vertex)
@@ -23,9 +24,12 @@ export class TerrainChunks {
   readonly group = new Group();
   private chunks = new Map<string, Mesh>();
   private waterChunks = new Map<string, Mesh>();
+  private vegChunks = new Map<string, Group>();
   private pending: ChunkKeyed[] = [];
   private focusCx = Infinity;
   private focusCz = Infinity;
+  /** Vegetation density multiplier (quality tier hook). */
+  vegetationDensity = 1.0;
 
   readonly groundMaterial = new MeshStandardMaterial({
     vertexColors: true, roughness: 1.0, metalness: 0
@@ -61,6 +65,13 @@ export class TerrainChunks {
         this.chunks.delete(k);
         const w = this.waterChunks.get(k);
         if (w) { this.disposeMesh(w); this.waterChunks.delete(k); }
+        const v = this.vegChunks.get(k);
+        if (v) {
+          this.group.remove(v);
+          // Geometry/materials are shared module-wide; only instance buffers die.
+          v.traverse((o) => { if (o instanceof InstancedMesh) o.dispose(); });
+          this.vegChunks.delete(k);
+        }
       }
     }
   }
@@ -142,6 +153,10 @@ export class TerrainChunks {
     this.chunks.set(chunkKey(cx, cz), mesh);
 
     if (waterCount > 0) this.buildWater(cx, cz, n, positions, waterMask, depths);
+
+    const veg = buildChunkVegetation(this.biomes, cx, cz, CHUNK_SIZE, this.vegetationDensity);
+    this.group.add(veg);
+    this.vegChunks.set(chunkKey(cx, cz), veg);
   }
 
   /**
