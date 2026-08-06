@@ -206,42 +206,42 @@ export class FogOfWar {
   }
 }
 
+/** A shader injection: extra uniforms plus GLSL declarations and body code. */
+export interface FogInjection {
+  uniforms: Record<string, { value: unknown }>;
+  decls: string;
+  glsl: string;
+}
+
 /**
- * Patch a built-in material to grade its output by the fog state, and
- * optionally paint the reach field in the same pass (reach is only ever
- * visible on ground the player can see, so it belongs under the same grade).
+ * Patch a built-in material to grade its output by the fog state, with
+ * optional extra injections (reach field, water glint) that run in the same
+ * pass, before the fog grade — so nothing paints over unknown country.
  */
 export function attachFog(
-  material: Material, fog: FogOfWar,
-  reach?: { uniforms: Record<string, { value: unknown }>; glsl: string }
+  material: Material, fog: FogOfWar, injections: FogInjection[] = []
 ): void {
   material.onBeforeCompile = (shader) => {
     shader.uniforms['fogMap'] = fog.uniforms.fogMap;
     shader.uniforms['fogOrigin'] = fog.uniforms.fogOrigin;
     shader.uniforms['fogSizeInv'] = fog.uniforms.fogSizeInv;
-    if (reach) Object.assign(shader.uniforms, reach.uniforms);
+    for (const inj of injections) Object.assign(shader.uniforms, inj.uniforms);
 
     shader.vertexShader = shader.vertexShader
       .replace('#include <common>', '#include <common>\nvarying vec3 vFowWorldPos;')
       .replace('#include <begin_vertex>',
         '#include <begin_vertex>\nvFowWorldPos = (modelMatrix * vec4(position, 1.0)).xyz;');
 
-    const reachDecls = reach ? `
-        uniform sampler2D reachMap;
-        uniform vec2 reachOrigin;
-        uniform float reachSizeInv;
-        uniform float reachShow;
-        uniform float reachTrotFrac;` : '';
-
     shader.fragmentShader = shader.fragmentShader
       .replace('#include <common>', `#include <common>
         varying vec3 vFowWorldPos;
         uniform sampler2D fogMap;
         uniform vec2 fogOrigin;
-        uniform float fogSizeInv;${reachDecls}`)
+        uniform float fogSizeInv;
+        ${injections.map((i) => i.decls).join('\n')}`)
       .replace('#include <dithering_fragment>', `
         {
-          ${reach ? reach.glsl : ''}
+          ${injections.map((i) => i.glsl).join('\n')}
           vec2 fuv = (vFowWorldPos.xz - fogOrigin) * fogSizeInv + 0.5;
           vec2 fw = texture2D(fogMap, fuv).rg;
           float inRegion = step(0.005, fuv.x) * step(fuv.x, 0.995)

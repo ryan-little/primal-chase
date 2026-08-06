@@ -33,6 +33,7 @@ export class Hud {
       </div>
       <div id="actions"></div>
       <div id="preview" class="hud-panel hidden"></div>
+      <div id="vignette"></div>
       <div id="death" class="hidden"></div>`;
     document.body.appendChild(this.root);
     for (const id of ['clock', 'tracker', 'trackerMiles', 'trackerFill', 'trackerFlavor',
@@ -144,6 +145,19 @@ export class Hud {
 
   setVisible(v: boolean): void {
     this.root.classList.toggle('hidden', !v);
+  }
+
+  /**
+   * V1's visual escalation, in-frame: as they close, the edges darken and
+   * the world drains. `canvas` gets the saturation filter.
+   */
+  setEscalation(hunterDistance: number, canvas: HTMLElement): void {
+    const i = Math.max(0, Math.min(1, 1 - hunterDistance / 12));
+    const vg = document.getElementById('vignette');
+    if (vg) vg.style.opacity = String(i * 0.85);
+    canvas.style.filter = i > 0.02
+      ? `saturate(${(1 - i * 0.35).toFixed(3)}) contrast(${(1 + i * 0.06).toFixed(3)})`
+      : '';
   }
 
   hideDeath(): void {

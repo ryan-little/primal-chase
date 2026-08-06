@@ -59,6 +59,14 @@ export class ReachField {
   }
 }
 
+export const REACH_DECLS = /* glsl */`
+  uniform sampler2D reachMap;
+  uniform vec2 reachOrigin;
+  uniform float reachSizeInv;
+  uniform float reachShow;
+  uniform float reachTrotFrac;
+`;
+
 /** GLSL block for the terrain fragment patch (expects fuv-style sampling). */
 export const REACH_GLSL = /* glsl */`
   if (reachShow > 0.5) {

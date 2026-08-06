@@ -46,6 +46,8 @@ const skyFrag = /* glsl */`
 
 export class Sky {
   readonly sun = new DirectionalLight(0xffffff, 2);
+  /** Sky-bounce fill from opposite the sun, so shade never crushes to black. */
+  readonly bounce = new DirectionalLight(0xa8c0d8, 0.5);
   readonly hemi = new HemisphereLight(0xbfd4e8, 0x8a6a3f, 0.5);
   readonly fog = new FogExp2(0xd2bc94, 0.000045);
   private dome: Mesh;
@@ -99,7 +101,7 @@ export class Sky {
     this.sun.shadow.mapSize.set(2048, 2048);
     this.sun.shadow.camera.near = 100;
     this.sun.shadow.camera.far = 30000;
-    scene.add(this.sun, this.sun.target, this.hemi);
+    scene.add(this.sun, this.sun.target, this.hemi, this.bounce, this.bounce.target);
     scene.fog = this.fog;
 
     this.apply();
@@ -159,11 +161,18 @@ export class Sky {
 
     this.starsMat.opacity = Math.min(1, Math.max(0, (-e + 0.06) * 2.4));
 
+    // The bounce mirrors the sun across the vertical axis, cooled and dimmed.
+    this.bounce.color.copy(top).lerp(new Color(0xffffff).convertSRGBToLinear(), 0.5);
+    this.bounce.intensity = li * 0.22;
+
     if (focus) {
       this.dome.position.copy(focus);
       this.stars.position.copy(focus);
       this.sun.position.copy(focus).addScaledVector(dir, 18000);
       this.sun.target.position.copy(focus);
+      this.bounce.position.copy(focus).addScaledVector(
+        new Vector3(-dir.x, Math.max(0.25, dir.y * 0.6), -dir.z).normalize(), 15000);
+      this.bounce.target.position.copy(focus);
       // Fit the shadow camera around the focus area.
       const cam = this.sun.shadow.camera;
       cam.left = -3800; cam.right = 3800; cam.top = 3800; cam.bottom = -3800;

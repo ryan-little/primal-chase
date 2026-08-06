@@ -15,10 +15,11 @@ import { Sky } from '../render/sky';
 import { FogOfWar, attachFog } from '../render/fogwar';
 import { Cat, HunterBand } from '../render/entities';
 import { ReachOverlay } from '../render/overlay';
-import { ReachField, REACH_GLSL } from '../render/reachfield';
+import { ReachField, REACH_DECLS, REACH_GLSL } from '../render/reachfield';
 import { landmarkMaterials, vegetationMaterials } from '../render/vegetation';
 import { Hud } from '../ui/hud';
 import { Screens } from '../ui/screens';
+import { Rain } from '../ui/rain';
 import { scoreRun, submitScore } from '../sim/score';
 
 const DAY_SUN = 0.55;
@@ -60,9 +61,27 @@ export function startGame(): void {
   const sky = new Sky(scene);
   const fog = new FogOfWar(game.biomes.field);
   const reachField = new ReachField();
-  const reachAttachment = { uniforms: reachField.uniforms as unknown as Record<string, { value: unknown }>, glsl: REACH_GLSL };
-  attachFog(terrain.groundMaterial, fog, reachAttachment);
-  attachFog(terrain.waterMaterial, fog, reachAttachment);
+  const reachInj = {
+    uniforms: reachField.uniforms as unknown as Record<string, { value: unknown }>,
+    decls: REACH_DECLS,
+    glsl: REACH_GLSL
+  };
+  const waterTime = { value: 0 };
+  const glintInj = {
+    uniforms: { uWaterTime: waterTime },
+    decls: 'uniform float uWaterTime;',
+    glsl: /* glsl */`
+      {
+        float g1 = sin(vFowWorldPos.x * 0.115 + uWaterTime * 1.6)
+                 * sin(vFowWorldPos.z * 0.131 - uWaterTime * 1.15);
+        float g2 = sin(vFowWorldPos.x * 0.041 - uWaterTime * 0.7)
+                 * sin(vFowWorldPos.z * 0.057 + uWaterTime * 0.9);
+        float glint = pow(max(0.0, g1), 6.0) * 0.16 + pow(max(0.0, g2), 4.0) * 0.08;
+        gl_FragColor.rgb += vec3(0.85, 0.93, 1.0) * glint;
+      }`
+  };
+  attachFog(terrain.groundMaterial, fog, [reachInj]);
+  attachFog(terrain.waterMaterial, fog, [reachInj, glintInj]);
   for (const m of vegetationMaterials) attachFog(m, fog);
   for (const m of landmarkMaterials) attachFog(m, fog);
 
@@ -72,6 +91,23 @@ export function startGame(): void {
   scene.add(cat.group, hunters.group, overlay.mesh, overlay.pathLine);
 
   const hud = new Hud(() => game.rng.next());
+  const rain = new Rain();
+
+  // Quality tier: DPR, shadows, vegetation density, draw radius.
+  {
+    const opt = screens.options.quality;
+    const isSmall = Math.min(window.innerWidth, window.innerHeight) < 760;
+    const tier = opt === 'auto' ? (isSmall ? 'medium' : 'high') : opt;
+    if (tier === 'low') {
+      renderer.setPixelRatio(1);
+      renderer.shadowMap.enabled = false;
+      terrain.vegetationDensity = 0.45;
+    } else if (tier === 'medium') {
+      renderer.setPixelRatio(Math.min(window.devicePixelRatio, 1.5));
+      sky.sun.shadow.mapSize.set(1024, 1024);
+      terrain.vegetationDensity = 0.75;
+    }
+  }
 
   const camera = new PerspectiveCamera(50, window.innerWidth / window.innerHeight, 2, 60000);
   const controls = new OrbitControls(camera, renderer.domElement);
@@ -122,6 +158,8 @@ export function startGame(): void {
     hud.setClock(s.day, s.phase);
     hud.setVitals(s);
     hud.setHunters(s);
+    hud.setEscalation(s.hunters.state === 'pursuit' ? s.hunters.distance : 30, renderer.domElement);
+    rain.target = s.encounter?.pressure?.special === 'storm' ? 1 : 0;
     hud.setProse(s.encounter?.text ?? '', s.monologue, lastNote);
     // Standard push/trot choices are V1-isms — on the map, movement IS the
     // push/trot decision, so only in-place verbs become buttons.
@@ -380,6 +418,8 @@ export function startGame(): void {
       }
     }
 
+    waterTime.value = now * 0.001;
+    rain.update(dt);
     cat.update(dt, moving);
     hunters.update(dt, S().phase === 'night');
 

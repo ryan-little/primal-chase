@@ -1,6 +1,15 @@
 # STATUS — read me first when resuming
 
-Updated: 2026-08-06 (iteration 10 of the goal loop)
+Updated: 2026-08-06 (iteration 11 of the goal loop)
+
+- **M9 renderer polish A:** sky-bounce fill light (no more crushed-black
+  slopes), animated water glint (time uniform via generalized FogInjection
+  API), hunter-proximity escalation (CSS vignette + canvas desaturation —
+  V1's stages, spatialized), rain layer on storm pressures, quality tiers
+  (low/medium/high/auto: DPR, shadows, vegetation density).
+  Task #5 remaining: entity quality (cat/hunter models are primitive),
+  near-ground mesh detail, more weather (dust/fireflies/lightning),
+  fog texel staircase softening.
 
 - **M8 framing UI: done.** Title (live world behind, slow orbit), how-to,
   options (difficulty/quality/typewriter/tutorial/reduced-motion,
