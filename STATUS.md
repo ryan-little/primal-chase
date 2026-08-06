@@ -1,6 +1,6 @@
 # STATUS — read me first when resuming
 
-Updated: 2026-08-06 (iteration 5 of the goal loop)
+Updated: 2026-08-06 (iteration 6 of the goal loop)
 
 ## Where things stand
 
@@ -49,6 +49,19 @@ Updated: 2026-08-06 (iteration 5 of the goal loop)
   **Task #5 remaining:** vegetation instancing, water animation, weather,
   cat + hunter entities, post chain (vignette escalation), quality tiers,
   near-ground mesh detail, fog region recentering/persistent explored store.
+- **M5 sim core: done.** `src/sim/{config,hunters,encounters,monologue,game}.ts`
+  — pure logic, zero three.js, runs headless. V1 balance constants; gaits as
+  per-effort-mile rates (full push = V1 push); reach budgets spend EFFORT
+  miles, hunter separation uses REAL miles (rough ground = less ground per
+  effort, and slows hunters via terrain factor); scent-based trail breaks;
+  corner-cutting via trail-walk hunter position; escalation/tracking/water
+  boost verbatim V1; encounter engine BINDS terrain layer to arrival ground
+  (fallback kin-card map for ids without V1 cards); monologue selection
+  verbatim semantics, seeded RNG throughout → fully deterministic runs.
+  19 tests inc. unwinnability smoke batch (12 runs, ~2s).
+  **Task #6 remaining:** landmark placement (signatures/rares as visible
+  world destinations) + wiring the sim to the renderer for a playable turn
+  loop in the browser (with Task #7's UI).
 
 ## Environment quirks (this machine)
 

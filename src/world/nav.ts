@@ -23,8 +23,10 @@ export interface NavNode {
   iz: number;
   x: number;
   z: number;
-  /** Effective meters from the origin. */
+  /** Effective (effort) meters from the origin — what budgets spend. */
   cost: number;
+  /** Real ground meters from the origin — what separation is measured in. */
+  meters: number;
   /** Straight-line path predecessor key, '' at origin. */
   parent: string;
   sample: WorldSample;
@@ -132,7 +134,7 @@ export class Nav {
     const startInfo = this.nodeInfo(start.ix, start.iz);
     out.set(startKey, {
       ix: start.ix, iz: start.iz, x: start.ix * GRID, z: start.iz * GRID,
-      cost: 0, parent: '', sample: startInfo.sample
+      cost: 0, meters: 0, parent: '', sample: startInfo.sample
     });
     push(startKey, 0);
 
@@ -159,7 +161,7 @@ export class Nav {
           if (existing && existing.cost <= cost) continue;
           out.set(nKey, {
             ix: nix, iz: niz, x: nix * GRID, z: niz * GRID,
-            cost, parent: cur.key, sample: info.sample
+            cost, meters: node.meters + stepMeters, parent: cur.key, sample: info.sample
           });
           push(nKey, cost);
         }
