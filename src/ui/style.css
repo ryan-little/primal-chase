@@ -1,0 +1,118 @@
+/* Minimal HUD chrome — the full UI design pass is Task #7; this is the
+   playable skeleton. Palette follows the game: night-leather ground, amber
+   accents, serif prose. */
+
+:root {
+  --bg: rgba(16, 12, 8, 0.82);
+  --bg-soft: rgba(16, 12, 8, 0.6);
+  --amber: #d4883a;
+  --gold: #d4a574;
+  --parchment: #e8d9b8;
+  --danger: #c44536;
+  --serif: Georgia, 'Times New Roman', serif;
+}
+
+#hud { position: fixed; inset: 0; pointer-events: none; font-family: var(--serif); }
+#hud * { box-sizing: border-box; }
+
+.hud-panel {
+  background: var(--bg);
+  border: 1px solid rgba(212, 165, 116, 0.25);
+  border-radius: 6px;
+  color: var(--parchment);
+}
+
+#clock {
+  position: absolute; top: 14px; left: 14px;
+  padding: 8px 14px; font-size: 14px; letter-spacing: 0.18em;
+  text-transform: uppercase; color: var(--gold);
+}
+
+#tracker {
+  position: absolute; top: 14px; right: 14px; width: 230px; padding: 10px 14px;
+}
+#tracker .label {
+  font-size: 11px; letter-spacing: 0.22em; text-transform: uppercase;
+  color: var(--gold); margin-bottom: 6px; display: flex; justify-content: space-between;
+}
+#tracker .bar { height: 6px; background: rgba(255,255,255,0.08); border-radius: 3px; overflow: hidden; }
+#tracker .bar > div { height: 100%; background: var(--danger); transition: width 0.8s ease; }
+#tracker .flavor { font-size: 12.5px; font-style: italic; opacity: 0.85; margin-top: 7px; line-height: 1.45; }
+
+#vitals { position: absolute; left: 14px; bottom: 14px; width: 190px; padding: 12px 14px; }
+.vital { margin-bottom: 8px; }
+.vital:last-child { margin-bottom: 0; }
+.vital .label {
+  display: flex; justify-content: space-between; font-size: 10.5px;
+  letter-spacing: 0.2em; text-transform: uppercase; color: var(--gold); margin-bottom: 3px;
+}
+.vital .bar { height: 5px; background: rgba(255,255,255,0.08); border-radius: 3px; overflow: hidden; }
+.vital .bar > div { height: 100%; transition: width 0.8s ease; }
+.vital.heat .bar > div { background: #d4663a; }
+.vital.stamina .bar > div { background: #7aaa6f; }
+.vital.thirst .bar > div { background: #4a8c9c; }
+.vital.hunger .bar > div { background: #c49a3a; }
+.vital.warn .label { color: var(--danger); }
+
+#prose {
+  position: absolute; left: 50%; transform: translateX(-50%);
+  bottom: 14px; width: min(680px, calc(100vw - 440px));
+  max-height: 34vh; overflow-y: auto;
+  padding: 16px 20px; font-size: 15.5px; line-height: 1.6;
+}
+#prose .encounter { color: var(--parchment); }
+#prose .monologue { margin-top: 10px; font-style: italic; color: var(--gold); opacity: 0.9; }
+#prose .note { margin-top: 10px; color: #9fdcea; font-size: 13.5px; }
+
+#actions {
+  position: absolute; right: 14px; bottom: 14px; width: 230px;
+  display: flex; flex-direction: column; gap: 6px; pointer-events: auto;
+}
+#actions button, #preview button {
+  pointer-events: auto; cursor: pointer;
+  background: var(--bg); color: var(--parchment);
+  border: 1px solid rgba(212, 165, 116, 0.4); border-radius: 5px;
+  font-family: var(--serif); font-size: 14px; padding: 9px 12px; text-align: left;
+  transition: border-color 0.15s, background 0.15s;
+}
+#actions button:hover, #preview button:hover { border-color: var(--amber); background: rgba(50, 34, 18, 0.9); }
+#actions button .desc { display: block; font-size: 11.5px; opacity: 0.65; margin-top: 2px; }
+
+#preview {
+  position: absolute; left: 50%; transform: translateX(-50%); top: 16px;
+  padding: 12px 18px; font-size: 13.5px; text-align: center;
+}
+#preview .gait { letter-spacing: 0.22em; text-transform: uppercase; color: var(--amber); font-size: 12px; }
+#preview .cost { margin: 6px 0; color: var(--parchment); }
+#preview .odds { color: #9fdcea; font-size: 12.5px; margin-bottom: 8px; }
+#preview button { margin: 0 4px; text-align: center; }
+
+#death {
+  position: absolute; inset: 0; display: flex; flex-direction: column;
+  align-items: center; justify-content: center; text-align: center;
+  background: rgba(6, 4, 2, 0.88); padding: 24px; pointer-events: auto;
+}
+#death h1 {
+  font-size: 30px; letter-spacing: 0.3em; text-transform: uppercase;
+  color: var(--danger); margin: 0 0 18px;
+}
+#death .text { max-width: 640px; font-size: 16.5px; line-height: 1.7; color: var(--parchment); }
+#death .score { margin-top: 18px; color: var(--gold); font-size: 14px; letter-spacing: 0.14em; }
+#death button {
+  margin-top: 26px; pointer-events: auto; cursor: pointer;
+  background: none; color: var(--gold);
+  border: 1px solid var(--gold); border-radius: 5px;
+  font-family: var(--serif); font-size: 15px; letter-spacing: 0.2em;
+  text-transform: uppercase; padding: 12px 30px;
+}
+#death button:hover { background: rgba(212, 165, 116, 0.15); }
+
+.hidden { display: none !important; }
+
+@media (max-width: 900px) {
+  #prose { width: calc(100vw - 28px); bottom: 172px; max-height: 26vh; font-size: 14px; }
+  #vitals { width: 160px; }
+  #actions { width: 170px; }
+  #tracker { width: 180px; }
+  #tracker .flavor { display: none; }
+}

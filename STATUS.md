@@ -1,6 +1,6 @@
 # STATUS — read me first when resuming
 
-Updated: 2026-08-06 (iteration 6 of the goal loop)
+Updated: 2026-08-06 (iteration 7 of the goal loop)
 
 ## Where things stand
 
@@ -62,6 +62,19 @@ Updated: 2026-08-06 (iteration 6 of the goal loop)
   **Task #6 remaining:** landmark placement (signatures/rares as visible
   world destinations) + wiring the sim to the renderer for a playable turn
   loop in the browser (with Task #7's UI).
+- **M6 playable skeleton: done.** `src/game/app.ts` + `src/ui/{hud,style.css}`
+  + `src/render/{entities,overlay}.ts`. Click land inside reach → path +
+  cost preview → Run → animated move, sun sweep, fog recompute, hunters
+  reposition (visible only in sight), encounter + monologue update, death
+  screen with V1 death prose. Viewer moved to `?mode=view`. Automated
+  playtest: `node tools/playtest.mjs <seed> <turns>` — plays real turns via
+  window.__pc hooks, screenshots each state. Verified 4 turns on seed 7 inc.
+  a ground trail-break.
+  **Known issues for polish:** reach shown as sparse discs (should be soft
+  contour); boot camera faces unexplored dark; V1 tutorial/signature choices
+  with standard keys (push/trot) grant miles without map movement — rebind
+  to real destinations; hunter flavor text re-rolls on every HUD refresh;
+  reach compute blocks main thread ~200ms.
 
 ## Environment quirks (this machine)
 

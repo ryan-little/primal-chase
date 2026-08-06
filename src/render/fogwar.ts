@@ -81,6 +81,14 @@ export class FogOfWar {
     this.data.fill(0);
   }
 
+  /** Is a world point currently visible? (CPU-side read for entity gating.) */
+  visibleAt(x: number, z: number): boolean {
+    const i = Math.round((x - this.originX) / METERS_PER_TEXEL + TEX_SIZE / 2);
+    const j = Math.round((z - this.originZ) / METERS_PER_TEXEL + TEX_SIZE / 2);
+    if (i < 0 || j < 0 || i >= TEX_SIZE || j >= TEX_SIZE) return false;
+    return (this.data[(j * TEX_SIZE + i) * 2 + 1] ?? 0) > 60;
+  }
+
   /** Height lookup in the cached grid (bilinear). */
   private gridHeight(wx: number, wz: number): number {
     const h = this.heights!;

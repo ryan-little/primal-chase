@@ -17,10 +17,12 @@ if (!probe) {
   fail('Primal Chase needs WebGL2, which this browser does not provide.');
 } else {
   probe.getExtension('WEBGL_lose_context')?.loseContext();
-  import('./app')
-    .then((m) => m.start())
-    .catch((err: unknown) => {
-      console.error(err);
-      fail('Something failed while loading the game. A reload may help.');
-    });
+  const mode = new URLSearchParams(location.search).get('mode');
+  const entry = mode === 'view'
+    ? import('./viewer').then((m) => m.start())
+    : import('./game/app').then((m) => m.startGame());
+  entry.catch((err: unknown) => {
+    console.error(err);
+    fail('Something failed while loading the game. A reload may help.');
+  });
 }
