@@ -189,3 +189,9 @@
     transparent 42%, rgba(30, 6, 2, 0.55) 78%, rgba(12, 2, 0, 0.9) 100%);
   transition: opacity 1.2s ease;
 }
+
+#death .ach {
+  margin-top: 14px; font-size: 14px; font-style: italic; line-height: 1.7;
+  color: #9fdcea; opacity: 0.9;
+}
+#death button + button { margin-left: 12px; }

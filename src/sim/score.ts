@@ -37,6 +37,19 @@ export function scoreRun(s: GameState, difficulty: string): RunScore {
   };
 }
 
+/** Achievements earned by a run — V1's spirit, Fable's stats. */
+export function achievementsFor(s: GameState): string[] {
+  const out: string[] = [];
+  if (s.day >= 10) out.push('Long Shadow — ten days ahead of them');
+  if (s.distanceCovered >= 60) out.push('Land Eater — sixty miles of ground');
+  if (s.stats.trailBreaks >= 3) out.push('Ghost — broke the trail three times');
+  if (s.stats.landmarksVisited >= 3) out.push('Wanderer — sought out three landmarks');
+  if (s.stats.highestGround >= 300) out.push('Sky Walker — crossed the high stone');
+  if (s.stats.nightPushes >= 5) out.push('Night Runner — five hard runs in the dark');
+  if (s.stats.phasesNearDeath >= 6) out.push('Edge Dancer — lived long at the brink');
+  return out;
+}
+
 const LB_KEY = 'primalchase.leaderboard.v3';
 const MAX_ENTRIES = 10;
 

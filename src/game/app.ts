@@ -21,7 +21,8 @@ import { Hud } from '../ui/hud';
 import { Screens } from '../ui/screens';
 import { Rain } from '../ui/rain';
 import { Soundscape } from '../audio/soundscape';
-import { scoreRun, submitScore } from '../sim/score';
+import { achievementsFor, scoreRun, submitScore } from '../sim/score';
+import { shareCard } from '../ui/share';
 
 const DAY_SUN = 0.55;
 const NIGHT_SUN = -0.45;
@@ -209,7 +210,9 @@ export function startGame(): void {
       reachField.hide();
       const run = scoreRun(S(), game.difficulty);
       const rank = submitScore(run);
-      hud.showDeath(r.deathCause, S(), run.score, rank);
+      const earned = achievementsFor(S());
+      hud.showDeath(r.deathCause, S(), run.score, rank, earned);
+      hud.onShare = () => { void shareCard(run, earned); };
       sound.death();
       busy = true;
       return;

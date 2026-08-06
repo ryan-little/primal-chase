@@ -1,6 +1,12 @@
 # STATUS — read me first when resuming
 
-Updated: 2026-08-06 (iteration 13 of the goal loop)
+Updated: 2026-08-06 (iteration 14 of the goal loop)
+
+- **M12 ship-prep: share card (canvas 1200x630, native share sheet or
+  download), achievements on the death screen (7, stat-driven), README with
+  both deploy paths (GitHub Pages subtree + Caddy on the Mac mini), mobile
+  viewport verified (tools/mobile-check.mjs: title + intro flow at 390x844
+  with touch). Task #7 UI/UX: COMPLETE.
 
 - **M11 balance: done (sim-side).** test/balance/run.ts (`npm run sim [N] [emit]`,
   ~1s/run — keep batches ≤200). Findings + fixes this round:
