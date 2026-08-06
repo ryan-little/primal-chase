@@ -128,3 +128,37 @@ static `dist/` with relative base. Portable Node at `C:\Users\ryan\tools\node`
 **Verdict: replaced with cheap, budgeted Node sims.** Game logic is pure TS with no
 renderer dependency, so thousands of runs take seconds of CPU, run in short batches
 (heat mandate). No browser in the loop for balance.
+
+---
+
+## Addendum — decisions made during the build (iterations 7–16)
+
+**Reach as a shader field, not UI geometry.** The trot/push contour is a
+blurred cost texture painted by the terrain shader under the fog grade —
+the decision surface is literally drawn on the land.
+
+**Standard push/trot signature choices removed.** On a map, choosing where
+to run IS the push/trot decision; V1's phantom-mile buttons died. Signature
+choices with their own effects (including distance credit) remain.
+
+**Landmarks force signatures.** Signature encounters are no longer dice —
+they are places. Arriving at an unvisited landmark plays an unused
+signature card. The chance-roll path still exists for ordinary ground.
+
+**Hunters never lose you entirely (maxDistance 32 mi).** Sim batches proved
+early kiting otherwise outruns escalation forever.
+
+**Trackers learn (new).** Trail-break odds decay ×0.72 per prior loss and
+searches shorten — river-country chain-breaking is bounded, and "they come
+back faster" became mechanical rather than only narrative.
+
+**Passive hunger eased 3.5 → 3.0.** Terrain-true encounters make food
+genuinely rarer than V1's random deck; the drain compensates (sim-verified:
+smart-play day quartiles 6/7/10/12, zero survivors, five causes live).
+
+**Escalation as CSS, not post-processing.** The proximity vignette +
+desaturation runs on the compositor for free and reads identically.
+
+**Score formula is new** (days/miles/breaks/landmarks/night-pushes with
+difficulty multipliers); percentiles regenerated from smart-policy sim runs
+rather than ported.
