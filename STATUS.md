@@ -1,6 +1,22 @@
 # STATUS — read me first when resuming
 
-Updated: 2026-08-06 (iteration 15 of the goal loop)
+Updated: 2026-08-06 (iteration 16 — BUILD COMPLETE, awaiting Ryan's playtest)
+
+## Definition-of-done audit (GOAL.md)
+
+1. ✅ Static build, playable start-to-death, desktop + mobile layouts verified.
+2. ✅ Rendering upgrade verified by screenshots: literal relief, real water,
+   fog of war, cohesive palette, day/night, weather, 60fps on dist.
+3. ✅ Every system reconsidered → docs/DECISIONS.md (+ build addendum).
+4. ✅ Prose fully ported (verbatim, tested) and reachable in play.
+5. ✅ Balance via budgeted sims; percentiles regenerated; unwinnable holds.
+6. ✅ Deploy story: README covers GitHub Pages + Mac mini (Caddy); dist is
+   relative-base static, served cold by every harness run.
+7. ⏳ **Ryan's playtest + sign-off — the only open item.**
+
+To playtest: `export PATH="/c/Users/ryan/tools/node:$PATH"` then
+`cd Primal-Chase-Fable && npm run preview` → http://localhost:4173
+(or `npm run dev` for the dev server on :8777).
 
 - **M13 renderer close-out: Task #5 COMPLETE.** Cat rebuilt (chest/haunch
   counter-bob gallop, ears, muzzle); fog + reach sample wobble (wavelength
