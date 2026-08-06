@@ -15,6 +15,7 @@ import { Sky } from '../render/sky';
 import { FogOfWar, attachFog } from '../render/fogwar';
 import { Cat, HunterBand } from '../render/entities';
 import { ReachOverlay } from '../render/overlay';
+import { ReachField, REACH_GLSL } from '../render/reachfield';
 import { Hud } from '../ui/hud';
 
 const DAY_SUN = 0.55;
@@ -52,8 +53,10 @@ export function startGame(): void {
   scene.add(terrain.group);
   const sky = new Sky(scene);
   const fog = new FogOfWar(game.biomes.field);
-  attachFog(terrain.groundMaterial, fog);
-  attachFog(terrain.waterMaterial, fog);
+  const reachField = new ReachField();
+  const reachAttachment = { uniforms: reachField.uniforms as unknown as Record<string, { value: unknown }>, glsl: REACH_GLSL };
+  attachFog(terrain.groundMaterial, fog, reachAttachment);
+  attachFog(terrain.waterMaterial, fog, reachAttachment);
 
   const cat = new Cat();
   const hunters = new HunterBand();
@@ -112,12 +115,17 @@ export function startGame(): void {
     hud.setVitals(s);
     hud.setHunters(s);
     hud.setProse(s.encounter?.text ?? '', s.monologue, lastNote);
-    hud.setActions(s.encounter?.actions ?? []);
+    // Standard push/trot choices are V1-isms — on the map, movement IS the
+    // push/trot decision, so only in-place verbs become buttons.
+    hud.setActions((s.encounter?.actions ?? []).filter(
+      (a) => !(a.isStandard && (a.key === 'push' || a.key === 'trot'))));
   };
 
   const showReach = () => {
     reachMap = game.reach();
-    overlay.show(reachMap, game.config.movement.trotMiles);
+    reachField.show(
+      reachMap, S().x, S().z,
+      game.config.movement.pushMiles, game.config.movement.trotMiles);
   };
 
   const spatialNote = (r: TurnResult): string | null => {
@@ -144,6 +152,7 @@ export function startGame(): void {
     refreshHud();
     if (r.died && r.deathCause) {
       overlay.hide();
+      reachField.hide();
       hud.showDeath(r.deathCause, S());
       busy = true;
       return;
@@ -184,6 +193,7 @@ export function startGame(): void {
     hud.setBusy(true);
     hud.hidePreview();
     overlay.hide();
+    reachField.hide();
     const path = game.nav.path(reachMap, pendingNode.ix + ',' + pendingNode.iz);
     moveAnim = {
       pts: path.map((n) => new Vector3(n.x, 0, n.z)),
@@ -205,6 +215,7 @@ export function startGame(): void {
     busy = true;
     hud.setBusy(true);
     overlay.hide();
+    reachField.hide();
     hud.hidePreview();
     const r = game.commitAction(key);
     if (r) afterTurn(r); else { busy = false; hud.setBusy(false); showReach(); }
@@ -244,7 +255,24 @@ export function startGame(): void {
   refreshHud();
   showReach();
 
-  camera.position.set(S().x + 900, groundY(S().x, S().z) + 700, S().z + 900);
+  // Boot framing: stand the camera on the side with the LEAST visible ground
+  // so the frame looks across the cat into the open sight pool.
+  {
+    let bestAz = 0.785, bestScore = Infinity;
+    for (let a = 0; a < 12; a++) {
+      const az = (a / 12) * Math.PI * 2;
+      let score = 0;
+      for (const r of [900, 1800, 2700]) {
+        if (fog.visibleAt(S().x + Math.cos(az) * r, S().z + Math.sin(az) * r)) score++;
+      }
+      if (score < bestScore) { bestScore = score; bestAz = az; }
+    }
+    camera.position.set(
+      S().x + Math.cos(bestAz) * 560,
+      groundY(S().x, S().z) + 620,
+      S().z + Math.sin(bestAz) * 560
+    );
+  }
   controls.target.copy(cat.group.position);
 
   // Test hooks for automated verification.

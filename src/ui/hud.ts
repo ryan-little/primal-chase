@@ -59,6 +59,8 @@ export class Hud {
       </div>`).join('');
   }
 
+  private lastFlavorKey = '';
+
   setHunters(s: GameState): void {
     const d = s.hunters.distance;
     this.els['trackerMiles']!.textContent = s.hunters.state === 'tracking'
@@ -67,13 +69,21 @@ export class Hud {
     (this.els['trackerFill'] as HTMLElement).style.width = `${pct}%`;
 
     let texts: string[];
+    let key: string;
     if (s.hunters.state === 'tracking') {
       texts = trackingTexts;
+      key = `tracking|${s.day}|${s.phase}`;
     } else {
       const band = distanceBands.find((b) => d >= b.min) ?? distanceBands[distanceBands.length - 1]!;
       texts = s.phase === 'night' ? band.night : band.day;
+      key = `${band.min}|${s.day}|${s.phase}`;
     }
-    this.els['trackerFlavor']!.textContent = texts[Math.floor(this.flavorRng() * texts.length)]!;
+    // Only re-roll when the situation actually changes — the voice should
+    // not stutter through six variants while the HUD refreshes.
+    if (key !== this.lastFlavorKey) {
+      this.lastFlavorKey = key;
+      this.els['trackerFlavor']!.textContent = texts[Math.floor(this.flavorRng() * texts.length)]!;
+    }
   }
 
   setProse(encounterText: string, monologue: string, note: string | null): void {

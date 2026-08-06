@@ -104,11 +104,27 @@ export class Game {
     this.encounters.reset();
     this.monologueEngine.reset();
 
-    // Open on walkable open ground.
+    // Open on true open country: flat grassland, clear of mountain belts and
+    // water, so the chase begins the way the fiction says it does — on the
+    // wide savannah with sight in every direction.
     let x = 0, z = 0;
-    for (let r = 0; r < 20000; r += 800) {
-      const s = this.biomes.sample(r, 0);
-      if (s.terrainId === 'open_plain' && s.waterDepth === 0) { x = r; break; }
+    const startAngle = (seed % 360) * (Math.PI / 180);
+    outer: for (let r = 0; r < 60000; r += 1200) {
+      for (let a = 0; a < 8; a++) {
+        const t = startAngle + (a / 8) * Math.PI * 2;
+        const sx = Math.cos(t) * r, sz = Math.sin(t) * r;
+        const s = this.biomes.sample(sx, sz);
+        if (s.terrainId !== 'open_plain' || s.waterDepth > 0) continue;
+        if (s.belt > 0.05 || s.river > 0.1 || s.basin > 0.1) continue;
+        // Reject bowls: neighbours must sit near the same height.
+        let flat = true;
+        for (let k = 0; k < 4; k++) {
+          const nk = this.biomes.field.height(
+            sx + Math.cos(k * 1.57) * 900, sz + Math.sin(k * 1.57) * 900);
+          if (Math.abs(nk - s.height) > 60) { flat = false; break; }
+        }
+        if (flat) { x = sx; z = sz; break outer; }
+      }
     }
     const snapped = this.nav.snap(x, z);
     x = snapped.ix * 220; z = snapped.iz * 220;

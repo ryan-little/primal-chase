@@ -181,7 +181,8 @@ export class FogOfWar {
         for (let dj = -1; dj <= 1; dj++) {
           for (let di = -1; di <= 1; di++) sum += dilated[(j + dj) * TEX_SIZE + i + di]!;
         }
-        const v = Math.round(sum / 9);
+        // Renormalize after blur so solidly-seen ground stays fully seen.
+        const v = Math.min(255, Math.round((sum / 9) * 1.45));
         const idx = (j * TEX_SIZE + i) * 2;
         this.data[idx + 1] = v;
         if (v > this.data[idx]!) this.data[idx] = v;
@@ -206,28 +207,41 @@ export class FogOfWar {
 }
 
 /**
- * Patch a built-in material to grade its output by the fog state.
- * Injects a world-position varying and a final color remap.
+ * Patch a built-in material to grade its output by the fog state, and
+ * optionally paint the reach field in the same pass (reach is only ever
+ * visible on ground the player can see, so it belongs under the same grade).
  */
-export function attachFog(material: Material, fog: FogOfWar): void {
+export function attachFog(
+  material: Material, fog: FogOfWar,
+  reach?: { uniforms: Record<string, { value: unknown }>; glsl: string }
+): void {
   material.onBeforeCompile = (shader) => {
     shader.uniforms['fogMap'] = fog.uniforms.fogMap;
     shader.uniforms['fogOrigin'] = fog.uniforms.fogOrigin;
     shader.uniforms['fogSizeInv'] = fog.uniforms.fogSizeInv;
+    if (reach) Object.assign(shader.uniforms, reach.uniforms);
 
     shader.vertexShader = shader.vertexShader
       .replace('#include <common>', '#include <common>\nvarying vec3 vFowWorldPos;')
       .replace('#include <begin_vertex>',
         '#include <begin_vertex>\nvFowWorldPos = (modelMatrix * vec4(position, 1.0)).xyz;');
 
+    const reachDecls = reach ? `
+        uniform sampler2D reachMap;
+        uniform vec2 reachOrigin;
+        uniform float reachSizeInv;
+        uniform float reachShow;
+        uniform float reachTrotFrac;` : '';
+
     shader.fragmentShader = shader.fragmentShader
       .replace('#include <common>', `#include <common>
         varying vec3 vFowWorldPos;
         uniform sampler2D fogMap;
         uniform vec2 fogOrigin;
-        uniform float fogSizeInv;`)
+        uniform float fogSizeInv;${reachDecls}`)
       .replace('#include <dithering_fragment>', `
         {
+          ${reach ? reach.glsl : ''}
           vec2 fuv = (vFowWorldPos.xz - fogOrigin) * fogSizeInv + 0.5;
           vec2 fw = texture2D(fogMap, fuv).rg;
           float inRegion = step(0.005, fuv.x) * step(fuv.x, 0.995)
@@ -243,7 +257,7 @@ export function attachFog(material: Material, fog: FogOfWar): void {
           // so it reads as night country, not a hole in the screen.
           vec3 unknown = vec3(0.030, 0.024, 0.018) + vec3(lum) * 0.085;
 
-          vec3 known = mix(remembered, lit, smoothstep(0.25, 0.7, visible));
+          vec3 known = mix(remembered, lit, smoothstep(0.12, 0.45, visible));
           gl_FragColor.rgb = mix(unknown, known, smoothstep(0.02, 0.28, explored));
         }
         #include <dithering_fragment>`);

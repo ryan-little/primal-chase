@@ -1,6 +1,6 @@
 # STATUS — read me first when resuming
 
-Updated: 2026-08-06 (iteration 7 of the goal loop)
+Updated: 2026-08-06 (iteration 8 of the goal loop)
 
 ## Where things stand
 
@@ -70,11 +70,17 @@ Updated: 2026-08-06 (iteration 7 of the goal loop)
   playtest: `node tools/playtest.mjs <seed> <turns>` — plays real turns via
   window.__pc hooks, screenshots each state. Verified 4 turns on seed 7 inc.
   a ground trail-break.
-  **Known issues for polish:** reach shown as sparse discs (should be soft
-  contour); boot camera faces unexplored dark; V1 tutorial/signature choices
-  with standard keys (push/trot) grant miles without map movement — rebind
-  to real destinations; hunter flavor text re-rolls on every HUD refresh;
-  reach compute blocks main thread ~200ms.
+- **M6b fixes (iteration 8):** reach is now a shader FIELD (src/render/
+  reachfield.ts — cost texture tinting trot/push zones with contour rim,
+  painted in the same material patch as fog); standard push/trot signature
+  buttons removed (movement on the map IS that decision); hunter flavor only
+  re-rolls when the situation changes; new-game start scan requires true
+  open country (flat grassland, no belt/river/basin) so the opening pool is
+  wide; boot camera auto-aims across the cat into the most-visible ground.
+  **Known issues for polish:** fog boundary shows 64m texel staircase (soften
+  or raise fog texture res); reach compute blocks main thread ~200ms;
+  signature choices with non-push/trot null-effect keys (e.g. 'opposite')
+  still grant abstract miles without map movement.
 
 ## Environment quirks (this machine)
 
