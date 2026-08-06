@@ -6,6 +6,7 @@ export interface GameOptions {
   tutorial: boolean;
   quality: 'auto' | 'low' | 'medium' | 'high';
   reducedMotion: boolean;
+  sound: boolean;
 }
 
 const KEY = 'primalchase.options.v3';
@@ -16,7 +17,8 @@ const DEFAULTS: GameOptions = {
   tutorial: true,
   quality: 'auto',
   reducedMotion: typeof matchMedia !== 'undefined'
-    ? matchMedia('(prefers-reduced-motion: reduce)').matches : false
+    ? matchMedia('(prefers-reduced-motion: reduce)').matches : false,
+  sound: true
 };
 
 export function loadOptions(): GameOptions {

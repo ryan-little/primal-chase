@@ -1,6 +1,14 @@
 # STATUS — read me first when resuming
 
-Updated: 2026-08-06 (iteration 11 of the goal loop)
+Updated: 2026-08-06 (iteration 12 of the goal loop)
+
+- **M10 audio: done (tuning by ear pending Ryan's playtest).**
+  src/audio/soundscape.ts — fully synthesized Web Audio: wind (LFO-breathing
+  lowpassed brown noise) + high wind, day insects, night cricket chirp train,
+  water proximity, rain hiss, hunter drums under 7mi quickening as they
+  close, heartbeat under danger, footsteps on the run, phase swells, trail-
+  break relief notes, death tones. Gated on first user gesture; 'Sound'
+  option in Options. No assets, nothing fetched.
 
 - **M9 renderer polish A:** sky-bounce fill light (no more crushed-black
   slopes), animated water glint (time uniform via generalized FogInjection

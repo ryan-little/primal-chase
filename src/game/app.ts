@@ -20,6 +20,7 @@ import { landmarkMaterials, vegetationMaterials } from '../render/vegetation';
 import { Hud } from '../ui/hud';
 import { Screens } from '../ui/screens';
 import { Rain } from '../ui/rain';
+import { Soundscape } from '../audio/soundscape';
 import { scoreRun, submitScore } from '../sim/score';
 
 const DAY_SUN = 0.55;
@@ -92,6 +93,9 @@ export function startGame(): void {
 
   const hud = new Hud(() => game.rng.next());
   const rain = new Rain();
+  const sound = new Soundscape();
+  sound.enabled = screens.options.sound;
+  let nearWater = 0;
 
   // Quality tier: DPR, shadows, vegetation density, draw radius.
   {
@@ -196,12 +200,17 @@ export function startGame(): void {
     refreshFog();
     placeHunters();
     refreshHud();
+    const here = game.biomes.sample(S().x, S().z);
+    nearWater = Math.max(here.river, here.basin, here.waterDepth > 0 ? 1 : 0);
+    sound.phaseSwell(S().phase === 'night');
+    if (r.brokeTrail) sound.trailBreak();
     if (r.died && r.deathCause) {
       overlay.hide();
       reachField.hide();
       const run = scoreRun(S(), game.difficulty);
       const rank = submitScore(run);
       hud.showDeath(r.deathCause, S(), run.score, rank);
+      sound.death();
       busy = true;
       return;
     }
@@ -312,6 +321,8 @@ export function startGame(): void {
   }
 
   screens.onStart = () => {
+    sound.enabled = screens.options.sound;
+    sound.init(); // user gesture: safe to create the AudioContext
     // Difficulty/tutorial may have changed on the options screen.
     if (screens.options.difficulty !== game.difficulty ||
         screens.options.tutorial !== game.tutorial) {
@@ -382,6 +393,7 @@ export function startGame(): void {
   // ---- frame loop ----
   let last = performance.now();
   let readyFrames = 0;
+  let stepAccum = 0;
   renderer.setAnimationLoop(() => {
     const now = performance.now();
     const dt = Math.min(0.1, (now - last) / 1000);
@@ -422,6 +434,24 @@ export function startGame(): void {
     rain.update(dt);
     cat.update(dt, moving);
     hunters.update(dt, S().phase === 'night');
+
+    // Soundscape follows the world.
+    if (moving) {
+      stepAccum += dt;
+      if (stepAccum > 0.27) { stepAccum = 0; sound.footstep(); }
+    }
+    const H = S().hunters;
+    const dangerV = Math.max(
+      1 - Math.max(0, H.state === 'pursuit' ? H.distance : 30) / 6,
+      S().heat >= 88 || S().thirst >= 88 || S().hunger >= 88 || S().stamina <= 12 ? 0.7 : 0
+    );
+    sound.update({
+      daylight: Math.min(1, Math.max(0, (sky.elevation + 0.3) / 0.85)),
+      hunterDistance: H.state === 'pursuit' ? H.distance : Infinity,
+      nearWater,
+      danger: Math.min(1, dangerV),
+      rain: rain.target
+    }, dt);
 
     // Camera rides with the cat; on the title it drifts in a slow orbit.
     const catPos = cat.group.position;

@@ -102,6 +102,7 @@ export class Screens {
         <div class="opt-row">${check('typewriter', 'Typewriter text')}</div>
         <div class="opt-row">${check('tutorial', 'First-day guidance')}</div>
         <div class="opt-row">${check('reducedMotion', 'Reduce motion')}</div>
+        <div class="opt-row">${check('sound', 'Sound')}</div>
         <div class="note">Difficulty and quality apply to the next run.</div>
         <button data-act="back">Back</button>
       </div>`;
