@@ -4,7 +4,11 @@ CLAUDE.md
 .mcp.json
 
 # Internal tooling
-test/
+# NOTE: test/charts.html, test/report.js and test/simulate.js are intentionally
+# tracked. Blanket-ignoring test/ meant any *new* file added there was silently
+# skipped by `git add`. Ignore the noisy output instead, not the whole directory.
+test/out/
+test/results/
 docs/
 
 # Dependencies (dev only — vanilla JS game, no runtime deps)
