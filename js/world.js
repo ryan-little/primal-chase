@@ -5,6 +5,7 @@ import { hash2, rng } from './util.js';
 import { P } from './palette.js';
 import { canvas } from './art.js';
 import { Terrain, G, B, GROUND_INFO, CHUNK, isWaterType, BIOME_NAMES } from './terrain.js';
+import { landmarkForCell, CELL } from './secrets.js';
 
 export { G, B, GROUND_INFO, CHUNK, BIOME_NAMES };
 
@@ -44,6 +45,7 @@ export class World {
     this.chunks = new Map(); // painted chunks
     this.props = new Map(); // props + water samples, per chunk, built lazily on the main thread
     this.pending = new Set();
+    this.lmCache = new Map();
     this.useWorker = false;
     if (worker && typeof Worker !== 'undefined') {
       try {
@@ -167,6 +169,32 @@ export class World {
     }
   }
 
+  // ---------------- landmarks ----------------
+  landmark(i, j) {
+    const k = i * 100003 + j;
+    if (this.lmCache.has(k)) return this.lmCache.get(k);
+    const lm = landmarkForCell(this.T, i, j);
+    if (lm) lm.def = this.art.landmarks[lm.type];
+    this.lmCache.set(k, lm);
+    return lm;
+  }
+  landmarkNear(x, y, r) {
+    const i = Math.floor(x / CELL), j = Math.floor(y / CELL);
+    for (let a = i - 1; a <= i + 1; a++) for (let b = j - 1; b <= j + 1; b++) {
+      const lm = this.landmark(a, b);
+      if (lm && Math.abs(lm.x - x) < r && Math.abs(lm.y - y) < r) return lm;
+    }
+    return null;
+  }
+  *landmarksNear(x, y, r) {
+    const i0 = Math.floor((x - r) / CELL), i1 = Math.floor((x + r) / CELL);
+    const j0 = Math.floor((y - r) / CELL), j1 = Math.floor((y + r) / CELL);
+    for (let a = i0; a <= i1; a++) for (let b = j0; b <= j1; b++) {
+      const lm = this.landmark(a, b);
+      if (lm && Math.hypot(lm.x - x, lm.y - y) < r) yield lm;
+    }
+  }
+
   // ---------------- props (main thread, cheap, no pixels needed) ----------------
   propChunk(cx, cy) {
     const k = this.key(cx, cy);
@@ -184,6 +212,7 @@ export class World {
         const g = this.typeAt(jx, jy);
         if (g === G.SHALLOW || g === G.DEEP) waterPts.push(jx, jy);
         if (Math.abs(jx) < 60 && Math.abs(jy) < 60) continue;
+        if (this.landmarkNear(jx, jy, 70)) continue;
         const h = hash2(wx, wy, this.seed);
         if (h > 0.45) continue;
         const bio = T.biomeAt(jx, jy);
@@ -204,6 +233,12 @@ export class World {
           flip: hash2(wx, wy, this.seed + 39) < 0.5,
         });
       }
+    }
+    // a landmark whose anchor falls in this chunk becomes a (large) prop here
+    for (const lm of this.landmarksNear(ox + 64, oy + 64, 120)) {
+      if (lm.x < ox || lm.x >= ox + CHUNK || lm.y < oy || lm.y >= oy + CHUNK) continue;
+      props.push({ kind: 'landmark', type: lm.type, lm, def: lm.def, x: lm.x, y: lm.y, shade: lm.def.shade || 0, solid: lm.def.solid || 0, flip: false });
+      if (lm.def.pool) waterPts.push(lm.x, lm.y - 3);
     }
     c = { cx, cy, props, waterPts };
     this.props.set(k, c);

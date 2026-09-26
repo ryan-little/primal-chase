@@ -1,0 +1,10 @@
+import { chromium } from '../../Primal-Chase-Fable/node_modules/playwright/index.mjs';
+const b = await chromium.launch({ channel: 'msedge' });
+const p = await b.newPage({ viewport: { width: 1280, height: 720 } });
+p.on('pageerror', e => console.log('PAGEERR ' + e.stack)); p.on('console', m => console.log('LOG', m.text()));
+await p.goto('http://127.0.0.1:8791/index.html'); await p.waitForTimeout(1000);
+await p.click('#btn-start'); await p.waitForTimeout(500);
+console.log(await p.evaluate(() => window.__pc.state + ' t=' + window.__pc.game.time.toFixed(2) + ' ev=' + window.__pc.game.events.length)); await p.evaluate(() => { const g = window.__pc.game; g.emit('secret', { type: 'camp', key: 'x', x: g.player.x, y: g.player.y }); });
+await p.waitForTimeout(500);
+console.log(await p.evaluate(() => window.__pc.state + ' t=' + window.__pc.game.time.toFixed(2) + ' ev=' + window.__pc.game.events.length)); console.log(await p.evaluate(() => document.getElementById('lore').className + '|' + document.getElementById('lore-title').textContent));
+await b.close();

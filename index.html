@@ -28,10 +28,13 @@
       <div class="vital" id="v-water"><img alt="water"><div class="bar"><i></i></div></div>
       <div class="vital" id="v-food"><img alt="food"><div class="bar"><i></i></div></div>
     </div>
+    <canvas id="minimap" width="240" height="240" aria-label="Map of where you have been"></canvas>
     <div id="status-line"></div>
+    <div id="lore"><p class="kicker" id="lore-kicker">Secret found</p><h3 id="lore-title"></h3><p id="lore-text"></p><p id="lore-gift"></p></div>
     <div id="toast"></div>
     <div id="card"><h2 id="card-title"></h2><p id="card-sub"></p></div>
     <button id="pause-btn" aria-label="Pause">II</button>
+    <button id="map-btn" aria-label="Map">MAP</button>
   </div>
 
   <!-- touch controls -->
@@ -51,6 +54,7 @@
         <button class="btn" id="btn-daily">Daily hunt</button>
         <button class="btn" id="btn-how">How to survive</button>
         <button class="btn" id="btn-feats">Feats</button>
+        <button class="btn" id="btn-journal">Journal</button>
         <button class="btn" id="btn-settings">Settings</button>
       </div>
       <p class="best" id="best-title"></p>
@@ -73,6 +77,36 @@
       <p class="keys desk">Move: WASD / arrows · Sprint: hold SHIFT · Pounce: SPACE · Pause: P / ESC · Mute: M</p>
       <p class="keys touchonly">Move: drag on the left · Push to the rim (or tap RUN) to sprint · POUNCE button</p>
       <p class="keys">Gamepad: left stick · RT / RB sprint · A pounce · Start pause</p>
+      <button class="btn primary" data-back>Back</button>
+    </div>
+  </div>
+
+  <!-- perk choice -->
+  <div id="perk" class="screen hidden">
+    <div class="panel wide perk-panel">
+      <p class="kicker" id="perk-kicker">A new dawn</p>
+      <h2 id="perk-title">Choose an instinct</h2>
+      <div id="perk-cards"></div>
+      <p class="keys desk">Press 1, 2 or 3</p>
+    </div>
+  </div>
+
+  <!-- full map -->
+  <div id="mapview" class="screen hidden">
+    <div class="panel wide map-panel">
+      <h2>What you remember</h2>
+      <canvas id="bigmap"></canvas>
+      <p class="keys">Stars are secrets you found this run. <span class="desk">TAB or N to close.</span></p>
+      <button class="btn primary" id="btn-map-close">Back to the chase</button>
+    </div>
+  </div>
+
+  <!-- journal -->
+  <div id="journal" class="screen hidden">
+    <div class="panel wide">
+      <h2>Journal</h2>
+      <p class="quote" id="journal-count"></p>
+      <div id="journal-list"></div>
       <button class="btn primary" data-back>Back</button>
     </div>
   </div>
@@ -104,6 +138,7 @@
     <div class="panel">
       <h2>Paused</h2>
       <p class="quote" id="pause-quote"></p>
+      <div id="pause-perks"></div>
       <div class="menu">
         <button class="btn primary" id="btn-resume">Resume</button>
         <button class="btn" id="btn-pause-how">How to survive</button>
@@ -122,6 +157,7 @@
       <p id="rank"></p>
       <p id="new-best" class="hidden">New best</p>
       <div id="new-feats"></div>
+      <div id="death-perks"></div>
       <div id="death-stats"></div>
       <div class="menu row-menu">
         <button class="btn primary" id="btn-again">Run again</button>

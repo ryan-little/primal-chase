@@ -3,6 +3,9 @@
 import { buildArt, canvas } from './art.js';
 import { Audio } from './audio.js';
 import { Game, BITS } from './game.js';
+import { PERK_BY_ID } from './perks.js';
+import { SECRETS, SECRET_IDS } from './secrets.js';
+import { Minimap } from './minimap.js';
 import { Renderer } from './render.js';
 import { Input } from './input.js';
 import { drawText } from './font.js';
@@ -15,6 +18,7 @@ const art = buildArt();
 const audio = new Audio();
 const renderer = new Renderer($('game'), art);
 const input = new Input($('game'));
+const minimap = new Minimap($('minimap'), $('bigmap'));
 
 // ---------------- persistence ----------------
 const store = {
@@ -90,10 +94,10 @@ let state = 'title';
 let game = null;
 let attract = null;
 let returnTo = 'title';
-const screens = ['title', 'how', 'settings', 'pause', 'death', 'feats'];
+const screens = ['title', 'how', 'settings', 'pause', 'death', 'feats', 'perk', 'mapview', 'journal'];
 function show(name) {
   for (const s of screens) $(s).classList.toggle('hidden', s !== name);
-  const first = name && $(name).querySelector('.btn.primary, .btn');
+  const first = name && $(name).querySelector('.perk-card, .btn.primary, .btn');
   if (first && !input.usingTouch) setTimeout(() => first.focus({ preventScroll: true }), 30);
 }
 function bestLine() {
@@ -130,6 +134,34 @@ $('btn-start').onclick = () => { click(); startRun(); };
 $('btn-how').onclick = () => { click(); returnTo = 'title'; show('how'); };
 $('btn-daily').onclick = () => { click(); startRun(true); };
 $('btn-feats').onclick = () => { click(); returnTo = 'title'; renderFeats(); show('feats'); };
+$('btn-journal').onclick = () => { click(); returnTo = 'title'; renderJournal(); show('journal'); };
+$('map-btn').onclick = () => openMap();
+$('btn-map-close').onclick = () => closeMap();
+function openMap() {
+  if (state !== 'playing') return;
+  state = 'map';
+  audio.setMuffle(true);
+  show('mapview');
+  minimap.drawBig(game);
+}
+function closeMap() {
+  if (state !== 'map') return;
+  state = 'playing';
+  audio.setMuffle(false);
+  show(null);
+}
+let journal = store.get('journal', {});
+function renderJournal() {
+  const n = SECRET_IDS.filter((id) => journal[id]).length;
+  $('journal-count').textContent = `${n} of ${SECRET_IDS.length} secret places found`;
+  $('journal-list').innerHTML = SECRET_IDS.map((id) => {
+    const S = SECRETS[id];
+    return journal[id]
+      ? `<div class="jentry"><h3>${S.name}</h3><p>${S.lore}</p><small>found ${journal[id]} time${journal[id] > 1 ? 's' : ''}</small></div>`
+      : '<div class="jentry locked"><h3>???</h3><p>Somewhere out there.</p></div>';
+  }).join('');
+}
+let loreT = 0;
 $('btn-settings').onclick = () => { click(); returnTo = 'title'; show('settings'); };
 $('btn-resume').onclick = () => { click(); resume(); };
 $('btn-pause-how').onclick = () => { click(); returnTo = 'pause'; show('how'); };
@@ -169,6 +201,7 @@ function pause() {
   state = 'paused';
   audio.setMuffle(true);
   $('pause-quote').textContent = BITS[Math.floor(Math.random() * BITS.length)];
+  $('pause-perks').innerHTML = perkChips(game);
   returnTo = 'pause';
   show('pause');
 }
@@ -212,6 +245,36 @@ function checkFeats(g, dt) {
 function renderFeats() {
   $('feats-count').textContent = `${feats.size} of ${FEATS.length} earned`;
   $('feats-list').innerHTML = FEATS.map(([id, icon, name, desc]) => `<div class="feat ${feats.has(id) ? 'got' : ''}"><i>${feats.has(id) ? icon : '·'}</i><div><b>${name}</b><span>${desc}</span></div></div>`).join('');
+}
+
+// ---------------- perks ----------------
+let perkOffer = [];
+function perkChips(g) {
+  return Object.entries(g.perks).map(([id, n]) => `<span class="chip">${PERK_BY_ID[id].icon} ${PERK_BY_ID[id].name}${n > 1 ? ` <b>x${n}</b>` : ''}</span>`).join('');
+}
+function openPerks(title = 'Choose an instinct', kicker = `Dawn of day ${game.day}`) {
+  state = 'perk';
+  audio.setMuffle(true);
+  perkOffer = game.offerPerks(3);
+  if (!perkOffer.length) { game.perkChoices = 0; resume(); return; }
+  $('perk-title').textContent = title;
+  $('perk-kicker').textContent = kicker;
+  $('perk-cards').innerHTML = perkOffer.map((k, i) => {
+    const have = game.perks[k.id] || 0;
+    return `<button class="perk-card" data-i="${i}"><span class="pk">${i + 1}</span><span class="pi">${k.icon}</span><span class="pn">${k.name}</span><span class="pt">${k.text}</span><span class="pl">${k.max > 1 ? `Rank ${have + 1} of ${k.max}` : 'Unique'}</span></button>`;
+  }).join('');
+  $('perk-cards').querySelectorAll('.perk-card').forEach((b) => (b.onclick = () => choosePerk(+b.dataset.i)));
+  show('perk');
+  audio.play('trail');
+}
+function choosePerk(i) {
+  const k = perkOffer[i];
+  if (!k || state !== 'perk') return;
+  game.takePerk(k.id);
+  audio.play('ui', { pitch: 86 });
+  toast(`<b>${k.icon} ${k.name}</b> ${k.text}`, 3);
+  if (game.perkChoices > 0) openPerks('Another instinct', 'The land gives more');
+  else { state = 'playing'; audio.setMuffle(false); show(null); }
 }
 
 // ---------------- hints ----------------
@@ -295,6 +358,7 @@ function startRun(isDaily = daily) {
   const seed = daily ? [...todayKey()].reduce((h, c) => (h * 31 + c.charCodeAt(0)) | 0, 7) >>> 0 : (Math.random() * 1e9) | 0;
   game = new Game(seed, art, audio);
   runFeats = new Set();
+  minimap.reset();
   renderer.camInit = false;
   renderer.parts = [];
   renderer.pops = [];
@@ -318,6 +382,7 @@ function startRun(isDaily = daily) {
 }
 
 function finishRun() {
+  $('lore').classList.remove('on');
   $('toast').classList.remove('on');
   $('card').classList.remove('on');
   toastT = 0;
@@ -334,6 +399,7 @@ function finishRun() {
     dailyLine = ` · daily best ${Math.max(db, game.score).toLocaleString()}`;
   }
   $('new-feats').textContent = runFeats.size ? 'Feats earned: ' + [...runFeats].join(', ') : '';
+  $('death-perks').innerHTML = perkChips(game);
   const runs = store.get('runs', []);
   const entry = { score: game.score, day: game.day, date: Date.now() };
   runs.push(entry);
@@ -351,6 +417,7 @@ function finishRun() {
     ['Trails broken', s.breaks],
     ['Spears dodged', s.dodges],
     ['Escapes', s.escapes || 0],
+    ['Secrets', s.secrets || 0],
     ['Takedowns', s.knockdowns + s.dogs],
     ['Time alive', fmtTime(game.time)],
     ['Top multiplier', 'x' + (s.bestMult || 1).toFixed(1)],
@@ -439,8 +506,26 @@ function handleEvents(g) {
       case 'hyenas': audio.play('laugh', { vol: near(e, 600) }); hint('hyenas'); break;
       case 'snarl': audio.play('snarl'); break;
       case 'stampede': audio.play('rumble'); renderer.shake(2); hint('stampede', true); break;
+      case 'secret': {
+        const S = SECRETS[e.secret];
+        journal[e.secret] = (journal[e.secret] || 0) + 1;
+        store.set('journal', journal);
+        $('lore-kicker').textContent = journal[e.secret] === 1 ? 'A new secret' : 'Secret place';
+        $('lore-title').textContent = S.name;
+        $('lore-text').textContent = S.lore;
+        $('lore-gift').textContent = S.gift;
+        $('lore').classList.add('on');
+        loreT = 8;
+        audio.sting('dawn');
+        renderer.burst('spark', e.x, e.y - 30, 24, { col: '#ffe08a' });
+        break;
+      }
+      case 'secondwind': toast('<b>Second wind!</b> Stamina restored.', 2.5); audio.play('roar', { vol: 0.6 }); renderer.burst('spark', e.x, e.y - 8, 10, { col: '#ffe08a' }); break;
       case 'mult': multBumpT = 0.25; audio.play('ui', { pitch: 84 + Math.min(12, Math.round(e.v * 3)) }); hint('mult'); break;
       case 'multloss': break;
+      case 'linewarn': toast('They are reading your line. <b>Change direction</b> or they will run ahead to meet you.', 4.5); audio.play('shout', { vol: 0.5 }); break;
+      case 'intercept': toast('<b style="color:#ff4a2e">Interceptors ahead!</b> They cut across your line.', 3.5); audio.play('sighted'); renderer.shake(2); break;
+      case 'ambush': toast('<b style="color:#ff4a2e">Ambush!</b> They were waiting where your line led.', 3.5); audio.play('sighted'); renderer.shake(3); break;
       case 'scoutsee': audio.play('sighted', { vol: 0.9 }); renderer.shake(1.5); break;
     }
   }
@@ -469,7 +554,7 @@ function updateHUD(g, dt) {
   const fill = clamp(1 - (d - 40) / 900, 0.03, 1);
   $('tracker-fill').style.width = (fill * 100).toFixed(1) + '%';
   const mode = g.band.mode;
-  $('band-state').textContent = mode === 'chase' ? 'They see you!' : mode === 'search' ? 'Searching for your trail' : d < 300 ? 'Close on your trail' : 'Following your tracks';
+  $('band-state').textContent = mode === 'chase' ? 'They see you!' : g.lineP > 14 ? 'Reading your line' : mode === 'search' ? 'Searching for your trail' : d < 300 ? 'Close on your trail' : 'Following your tracks';
   $('hud').className = mode === 'chase' ? 'chase' : mode === 'search' ? 'search' : '';
   const set = (id, v, low, good) => {
     const el = $(id);
@@ -516,7 +601,7 @@ function contextHints(g) {
 function updateMusic(g, dt) {
   const th = g.threat();
   let I = 0;
-  const sc = g.scout && !g.scout.leaving && dist(g.scout.x, g.scout.y, g.player.x, g.player.y) < 300;
+  const sc = g.runners.some((r) => !r.leaving && dist(r.x, r.y, g.player.x, g.player.y) < 300);
   if (g.band.mode === 'chase' || th.dogD < 180 || sc) I = 3;
   else if (th.d < 260) I = 2;
   else if (th.d < 520) I = 1;
@@ -539,7 +624,7 @@ function updateMusic(g, dt) {
 function menuNav(inp) {
   const open = screens.find((n) => !$(n).classList.contains('hidden'));
   if (!open) return;
-  const btns = [...$(open).querySelectorAll('.btn')].filter((b) => b.offsetParent);
+  const btns = [...$(open).querySelectorAll('.btn, .perk-card')].filter((b) => b.offsetParent);
   if (!btns.length) return;
   let i = btns.indexOf(document.activeElement);
   const E = inp.edges;
@@ -590,8 +675,12 @@ function frame(now) {
     updateMusic(game, dt);
     renderer.draw(game, sdt, true);
     updateHUD(game, dt);
+    minimap.update(game, dt);
+    if (loreT > 0) { loreT -= dt; if (loreT <= 0) $('lore').classList.remove('on'); }
+    if (inp.edges.has('Tab') || inp.edges.has('KeyN')) openMap();
     updateToasts(dt);
     if (cardT > 0) { cardT -= dt; if (cardT <= 0) $('card').classList.remove('on'); }
+    if (game.perkChoices > 0 && !game.over && cardT < 2.4 && state === 'playing') openPerks(...(game.lastPerkSource ? [game.lastPerkSource.title, game.lastPerkSource.kicker] : []));
     if (game.over && !deathShown && game.time - game.deathTime > 0.9) {
       deathShown = true;
       state = 'dead';
@@ -601,6 +690,11 @@ function frame(now) {
     game.update(dt * 0.3, { x: 0, y: 0 });
     renderer.draw(game, dt * 0.3, true);
     if (inp.confirm && !$('death').classList.contains('hidden') && document.activeElement?.tagName !== 'BUTTON') startRun();
+  } else if (state === 'map') {
+    if (inp.edges.has('Tab') || inp.edges.has('KeyN') || inp.pause) closeMap();
+  } else if (state === 'perk') {
+    for (const [k, i] of [['Digit1', 0], ['Digit2', 1], ['Digit3', 2], ['Numpad1', 0], ['Numpad2', 1], ['Numpad3', 2]]) if (inp.edges.has(k)) choosePerk(i);
+    renderer.draw(game, 0, true);
   } else if (state === 'paused') {
     if (inp.pause) resume();
   }

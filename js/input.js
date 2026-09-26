@@ -14,7 +14,7 @@ export class Input {
     this.lastDevice = 'keyboard';
 
     window.addEventListener('keydown', (e) => {
-      if (['ArrowUp', 'ArrowDown', 'ArrowLeft', 'ArrowRight', ' ', 'Space'].includes(e.key) || e.code === 'Space') e.preventDefault();
+      if (['ArrowUp', 'ArrowDown', 'ArrowLeft', 'ArrowRight', ' ', 'Space', 'Tab'].includes(e.key) || e.code === 'Space') e.preventDefault();
       const k = e.code;
       if (!this.keys.has(k)) this.edges.add(k);
       this.keys.add(k);

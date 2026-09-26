@@ -34,6 +34,8 @@ function skyAt(c) {
   return [255, 255, 255];
 }
 
+const TALL_PROPS = new Set(['acacia', 'baobab', 'kopje', 'mopane', 'fever', 'palm', 'deadtree', 'landmark']);
+
 export class Renderer {
   constructor(el, art) {
     this.el = el;
@@ -199,7 +201,7 @@ export class Renderer {
     };
 
     // spear telegraphs on the ground
-    for (const hu of game.scout ? [...game.hunters, game.scout] : game.hunters) {
+    for (const hu of [...game.hunters, ...game.runners]) {
       if (hu.windup > 0) {
         const k = clamp(1 - hu.windup / 0.8, 0, 1);
         ctx.fillStyle = `rgba(255,74,46,${0.12 + k * 0.25})`;
@@ -240,7 +242,7 @@ export class Renderer {
     for (const q of game.prey) list.push({ y: q.y, k: 3, o: q });
     for (const d of game.dogs) list.push({ y: d.y, k: 4, o: d });
     for (const hu of game.hunters) list.push({ y: hu.y, k: 5, o: hu });
-    if (game.scout) list.push({ y: game.scout.y, k: 5, o: game.scout });
+    for (const r of game.runners) list.push({ y: r.y, k: 5, o: r });
     for (const hy of game.hyenas) list.push({ y: hy.y, k: 7, o: hy });
     for (const gn of game.gnus) list.push({ y: gn.y, k: 8, o: gn });
     if (game.croc) list.push({ y: game.croc.y - 4, k: 9, o: game.croc });
@@ -282,7 +284,8 @@ export class Renderer {
       const o = it.o;
       if (it.k === 0) {
         let alpha = 1;
-        if ((o.kind === 'acacia' || o.kind === 'baobab' || o.kind === 'kopje') && p.y < o.y && p.y > o.y - o.def.oy - 4 && Math.abs(p.x - o.x) < o.def.img.width / 2) alpha = 0.5;
+        if (TALL_PROPS.has(o.kind) && p.y < o.y - 3 && p.y > o.y - o.def.oy + 6 && Math.abs(p.x - o.x) < o.def.img.width / 2 - 4) alpha = 0.5;
+        if (o.kind === 'landmark' && !game.found.has(o.lm.key) && Math.random() < dt * 5) this.burst('spark', o.x + (Math.random() - 0.5) * o.def.img.width * 0.7, o.y - Math.random() * o.def.oy * 0.8, 1, { col: '#ffe08a' });
         spr(o.def.img, o.x, o.y, o.def.ox, o.def.oy, o.flip, alpha);
       } else if (it.k === 1) {
         shadow(o.x, o.y, 9, 3);
@@ -442,7 +445,7 @@ export class Renderer {
       };
       const k = clamp((darkness - 0.12) * 2.2, 0, 1);
       glow(p.x - cx, p.y - cy - 6, 100, 120, 118, 150, 0.6 * k);
-      for (const hu of game.scout ? [...game.hunters, game.scout] : game.hunters) {
+      for (const hu of [...game.hunters, ...game.runners]) {
         if (hu.state === 'down') continue;
         const fl = 0.85 + Math.sin(t * 17 + hu.id) * 0.08 + Math.random() * 0.07;
         glow(hu.x - hu.face * 4 - cx, hu.y - 36 - cy, 78 * fl, 255, 150, 70, 0.8 * k);
@@ -566,14 +569,27 @@ export class Renderer {
     if (nh) arrow(nh.x, nh.y - 10, P.danger, Math.round(nd / 10) + 'M', nd < 300 ? Math.sin(game.time * 10) * 1.5 + 1 : 0);
     for (const d of game.dogs) if (!d.dead && dist(d.x, d.y, p.x, p.y) < 500) arrow(d.x, d.y, P.fire1, null);
     if (game.gnus.length && game.stampedeWarn > 0) { const g0 = game.gnus[0]; arrow(g0.x, g0.y, P.sand3, 'STAMPEDE', Math.sin(game.time * 14) * 2 + 2); }
-    if (game.scout && !game.scout.leaving) arrow(game.scout.x, game.scout.y - 10, P.danger, null, Math.sin(game.time * 12) * 1.5 + 1);
+    for (const r of game.runners) if (!r.leaving) arrow(r.x, r.y - 10, P.danger, null, Math.sin(game.time * 12) * 1.5 + 1);
+    // secrets: a pull toward the unknown
+    {
+      const R = game.has('nose') ? 900 : 520;
+      let best = null, bd = R;
+      for (const lm of game.world.landmarksNear(p.x, p.y, R)) {
+        if (game.found.has(lm.key)) continue;
+        const d = dist(lm.x, lm.y, p.x, p.y);
+        if (d < bd) { bd = d; best = lm; }
+      }
+      if (best) arrow(best.x, best.y - 20, P.gold1, '?', Math.sin(game.time * 4) * 0.8);
+    }
+    // what you learned at their camp
+    if (game.intelDay === game.day) for (const hu of game.hunters) arrow(hu.x, hu.y - 10, P.fire1, null);
     // water when thirsty
-    if (p.water < 50) {
+    if (p.water < 50 || game.has('nose')) {
       const wpt = game.world.nearestWater(p.x, p.y, 900);
       if (wpt) arrow(wpt[0], wpt[1], P.cool, p.water < 25 ? 'WATER' : null);
     }
     // food when hungry
-    if (p.food < 45) {
+    if (p.food < 45 || game.has('nose')) {
       let best = null, bd = 1e9;
       for (const c of game.carcasses) if (c.meat > 0) { const d = dist(c.x, c.y, p.x, p.y); if (d < bd) { bd = d; best = c; } }
       if (!best) for (const q of game.prey) { const d = dist(q.x, q.y, p.x, p.y); if (d < bd) { bd = d; best = q; } }

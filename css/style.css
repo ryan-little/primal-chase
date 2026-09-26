@@ -190,3 +190,42 @@ input[type=checkbox] { width: 18px; height: 18px; accent-color: var(--ochre); }
 #new-feats { margin-top: 6px; color: var(--gold); font-family: var(--serif); font-size: 15px; }
 #new-feats:empty { display: none; }
 @media (max-width: 700px) { #feats-list { grid-template-columns: 1fr; } }
+
+/* ---------- perks ---------- */
+.perk-panel { background: rgba(26,17,12,.92); }
+#perk-cards { display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px; margin: 8px 0 6px; }
+.perk-card { min-width: 0; text-transform: none; letter-spacing: 0; font: inherit; cursor: pointer; text-align: left; color: var(--paper); background: var(--ink2); border: 2px solid #6b4b2e; border-radius: 4px;
+  padding: 14px 14px 12px; display: flex; flex-direction: column; gap: 6px; min-height: 150px; box-shadow: 0 3px 0 var(--ink); transition: transform .1s, border-color .15s, background .15s; }
+.perk-card:hover, .perk-card:focus-visible { outline: none; border-color: var(--gold); background: #3d2918; transform: translateY(-3px); }
+.perk-card .pi { font-size: 30px; color: var(--gold); line-height: 1; }
+.perk-card .pn { font-family: var(--serif); font-size: 19px; color: var(--gold); }
+.perk-card .pt { font-size: 14px; color: #e8d6b4; line-height: 1.35; }
+.perk-card .pl { margin-top: auto; font-size: 11px; letter-spacing: .15em; text-transform: uppercase; color: #b89b72; }
+.perk-card .pk { float: right; font-size: 11px; color: #8a7050; }
+#pause-perks, #death-perks { display: flex; flex-wrap: wrap; gap: 6px; justify-content: center; margin: 0 0 14px; }
+#death-perks { margin: 10px 0 0; }
+.chip { font-size: 12px; background: var(--ink2); border: 1px solid #5a3b24; border-radius: 12px; padding: 3px 9px; color: #e8d6b4; }
+.chip b { color: var(--gold); }
+@media (max-width: 700px) { #perk-cards { grid-template-columns: 1fr; } .perk-card { min-height: 0; } }
+
+/* ---------- minimap, map, lore, journal ---------- */
+#minimap { position: absolute; right: 14px; top: 66px; width: 120px; height: 120px; border: 1px solid #6b4b2e; border-radius: 50%; box-shadow: 0 0 0 2px var(--ink), 0 4px 14px rgba(0,0,0,.5); image-rendering: pixelated; opacity: .92; }
+#map-btn { position: absolute; right: 62px; bottom: max(14px, env(safe-area-inset-bottom)); pointer-events: auto; height: 40px; padding: 0 12px; font: bold 12px var(--ui); letter-spacing: .1em;
+  background: rgba(26,17,12,.7); color: var(--paper); border: 1px solid #6b4b2e; border-radius: 3px; cursor: pointer; }
+.map-panel { max-width: 900px; }
+#bigmap { width: 100%; height: min(62vh, 620px); border: 1px solid #4a3220; border-radius: 3px; display: block; margin-bottom: 8px; image-rendering: pixelated; }
+#lore { position: absolute; left: 50%; bottom: 70px; transform: translate(-50%, 12px); width: min(560px, 92vw); text-align: center; opacity: 0; transition: opacity .6s, transform .6s;
+  background: rgba(26,17,12,.9); border: 1px solid #8a6a3a; box-shadow: 0 0 0 2px var(--ink); border-radius: 4px; padding: 14px 20px; }
+#lore.on { opacity: 1; transform: translate(-50%, 0); }
+#lore h3 { font-size: 24px; color: var(--gold); margin: 2px 0 6px; }
+#lore-text { font-family: var(--serif); font-style: italic; font-size: 16px; color: #e8d6b4; margin: 0 0 8px; }
+#lore-gift { font-size: 13px; letter-spacing: .12em; text-transform: uppercase; color: var(--cool); margin: 0; }
+#journal-list { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; text-align: left; margin-bottom: 16px; }
+.jentry { background: var(--ink2); border: 1px solid #4a3220; border-radius: 3px; padding: 10px 12px; }
+.jentry h3 { margin: 0 0 4px; font-size: 17px; }
+.jentry p { margin: 0; font-family: var(--serif); font-style: italic; font-size: 14px; color: #d9c49e; }
+.jentry.locked { opacity: .45; }
+.jentry small { color: #8a7050; font-size: 11px; letter-spacing: .1em; text-transform: uppercase; }
+@media (max-width: 700px) { #journal-list { grid-template-columns: 1fr; } #minimap { width: 84px; height: 84px; } }
+.touch #minimap { top: auto; bottom: 150px; right: 18px; width: 84px; height: 84px; }
+.touch #map-btn { top: max(112px, env(safe-area-inset-top)); bottom: auto; right: 14px; }

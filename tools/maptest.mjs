@@ -1,0 +1,14 @@
+import { chromium } from '../../Primal-Chase-Fable/node_modules/playwright/index.mjs';
+const b = await chromium.launch({ channel: 'msedge' });
+const p = await b.newPage({ viewport: { width: 1280, height: 720 } });
+p.on('pageerror', e => console.log('PAGEERR ' + e.stack));
+await p.goto('http://127.0.0.1:8791/index.html'); await p.waitForTimeout(1000);
+await p.click('#btn-start'); await p.waitForTimeout(500);
+await p.evaluate(async () => { const { makeBot } = await import('/tools/bot.js'); const bot = makeBot(2); window.__pc.override = (g) => bot(g); window.__pc.timeScale = 3; });
+await p.waitForTimeout(25000);
+await p.evaluate(() => { window.__pc.game.reveals.push({ x: window.__pc.game.player.x, y: window.__pc.game.player.y, r: 900 }); });
+await p.waitForTimeout(1500);
+await p.keyboard.press('Tab'); await p.waitForTimeout(600);
+await p.screenshot({ path: 'tools/shots/bigmap.png' });
+console.log(await p.evaluate(() => window.__pc.state));
+await b.close();

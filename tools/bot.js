@@ -9,6 +9,8 @@ export function makeBot(skill = 1) {
     for (const h of g.hunters) { const d = dist(h.x, h.y, p.x, p.y); if (d < nd) { nd = d; nh = h; } }
     let dogD = 1e9; for (const d of g.dogs) if (!d.dead) dogD = Math.min(dogD, dist(d.x, d.y, p.x, p.y));
     let ax = p.x - g.band.x, ay = p.y - g.band.y; const al = Math.hypot(ax, ay) || 1; ax /= al; ay /= al;
+    // weave: a good player doesn't run a straight line
+    { const wv = Math.sin(g.time / 9) * 0.9 + (g.lineP > 8 ? 0.8 : 0); const c = Math.cos(wv), sn = Math.sin(wv); const nx = ax * c - ay * sn, ny = ax * sn + ay * c; ax = nx; ay = ny; }
     const chase = g.band.mode === 'chase';
     const inp = { x: 0, y: 0, sprint: false, pounce: false };
     const go = (tx, ty, sprint = false) => { const dx = tx - p.x, dy = ty - p.y, l = Math.hypot(dx, dy) || 1; inp.x = dx / l; inp.y = dy / l; inp.sprint = sprint; return l; };
@@ -21,7 +23,7 @@ export function makeBot(skill = 1) {
     if (skill <= 0) s.mode = 'flee';
     // dodge: any spear or windup aimed near me -> sidestep perpendicular to its line
     const threats = [];
-    for (const h of g.scout ? [...g.hunters, g.scout] : g.hunters) if (h.windup > 0) threats.push([h.x, h.y, h.tx, h.ty, h.windup]);
+    for (const h of [...g.hunters, ...g.runners]) if (h.windup > 0) threats.push([h.x, h.y, h.tx, h.ty, h.windup]);
     for (const sp of g.spears) if (!sp.done) threats.push([sp.x0, sp.y0, sp.tx, sp.ty, 0]);
     for (const [x0, y0, tx, ty, wu] of threats) {
       if (dist(tx, ty, p.x, p.y) < 26 && (wu === 0 || wu < 0.35)) {
@@ -33,7 +35,7 @@ export function makeBot(skill = 1) {
         return inp;
       }
     }
-    const sc = g.scout && !g.scout.leaving && g.scout.seen && g.scout.down <= 0 ? g.scout : null;
+    const sc = g.runners.find((r) => !r.leaving && r.seen && r.down <= 0) || null;
     if (sc) {
       const sd = dist(sc.x, sc.y, p.x, p.y);
       if (skill >= 2 && sd < 60 && p.stamina > 25) { go(sc.x, sc.y); inp.pounce = sd < 36; return inp; }

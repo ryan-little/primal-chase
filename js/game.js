@@ -4,6 +4,8 @@
 
 import { clamp, dist, rng, TAU, wrapAngle, lerp } from './util.js';
 import { World, G, GROUND_INFO } from './world.js';
+import { PERKS, PERK_BY_ID } from './perks.js';
+import { SECRETS } from './secrets.js';
 
 export const DAY_LEN = 170; // seconds per full day/night cycle
 export const T = {
@@ -87,8 +89,18 @@ export class Game {
     this.vultures = [];
     this.spawnT = 0;
     this.bit = null;
-    this.scout = null;
+    this.runners = [];
+    this.perks = {};
+    this.found = new Set();
+    this.intelDay = 0;
+    this.reveals = [];
+    this.perkChoices = 0;
+    this.windUsedDay = 0;
     this.scoutT = 95;
+    this.hist = [];
+    this.lineP = 0;
+    this.intercepts = 0;
+    this.straightness = 0;
     this.croc = null;
     this.deepT = 0;
     this.hyenas = [];
@@ -116,6 +128,27 @@ export class Game {
       id: UID++, x: b.x + this.r.range(-20, 20), y: b.y + this.r.range(-20, 20), vx: 0, vy: 0, face: 1, anim: 0,
       idx: b.idx, state: 'track', bite: 0, dead: false, stun: 0, searchT: 0, barkT: 0,
     });
+  }
+
+  // n stacks of a perk: base * mult^n
+  perk(id, mult, base = 1) { return base * Math.pow(mult, this.perks[id] || 0); }
+  has(id) { return (this.perks[id] || 0) > 0; }
+
+  offerPerks(n = 3) {
+    const pool = PERKS.filter((k) => (this.perks[k.id] || 0) < k.max);
+    const out = [];
+    while (out.length < n && pool.length) out.push(pool.splice(Math.floor(this.r() * pool.length), 1)[0]);
+    return out;
+  }
+  takePerk(id) {
+    this.perks[id] = (this.perks[id] || 0) + 1;
+    this.perkChoices = Math.max(0, this.perkChoices - 1);
+    this.emit('perk', { id, name: PERK_BY_ID[id].name });
+  }
+  grantPerkChoice(source = null) {
+    this.lastPerkSource = source;
+    this.perkChoices++;
+    this.emit('perkchoice');
   }
 
   emit(type, data = {}) {
@@ -164,6 +197,7 @@ export class Game {
       this.day++;
       this.addScore(400 + this.day * 100, `DAY ${this.day}`, this.player.x, this.player.y - 30, '#ffe08a');
       this.emit('dawn', { day: this.day });
+      this.grantPerkChoice();
       // escalation
       if ([3, 5, 7, 9].includes(this.day)) this.addHunters(1);
       const dogsWanted = this.day >= 2 ? Math.min(4, Math.floor(this.day / 2)) : 0;
@@ -208,13 +242,14 @@ export class Game {
 
     // pounce
     p.pounceCd -= dt;
-    if (inp.pounce && p.pounce <= 0 && p.pounceCd <= 0 && p.stamina >= 18 && !p.overheated) {
+    const pounceCost = 22 * this.perk('pounce', 0.8);
+    if (inp.pounce && p.pounce <= 0 && p.pounceCd <= 0 && p.stamina >= pounceCost * 0.8 && !p.overheated) {
       let dx = moving ? ix : p.face, dy = moving ? iy : 0;
       const l = Math.hypot(dx, dy) || 1;
       p.pdx = dx / l; p.pdy = dy / l;
-      p.pounce = T.pounceTime;
+      p.pounce = T.pounceTime * this.perk('pounce', 1.25);
       p.pounceCd = 0.55;
-      p.stamina -= 22;
+      p.stamina -= pounceCost;
       p.heat += 2.5;
       p.iframes = Math.max(p.iframes, T.pounceTime + 0.08);
       this.emit('pounce', { x: p.x, y: p.y });
@@ -229,9 +264,10 @@ export class Game {
       if (p.pdx) p.face = Math.sign(p.pdx);
       this.pounceHits();
     } else {
-      speed = wantSprint ? T.sprint : T.trot * Math.max(0.35, mag);
+      speed = wantSprint ? T.sprint : T.trot * this.perk('stride', 1.07) * Math.max(0.35, mag);
+      if (this.isNight && this.has('night')) speed *= 1.12;
       if (p.overheated) speed = T.trot * 0.5;
-      speed *= gi.speed;
+      speed *= water && this.has('river') ? Math.min(1, gi.speed * 1.4) : gi.speed;
       if (p.health < 30) speed *= 0.88;
       const tx = moving ? ix * speed : 0, ty = moving ? iy * speed : 0;
       const acc = moving ? 9 : 12;
@@ -257,9 +293,10 @@ export class Game {
     // tracks
     if (p.odom - p.lastPrint > 9) {
       p.lastPrint = p.odom;
-      let s = gi.prints * (this.perk ? this.perk('softpaws', 0.7, 1) : 1);
+      let s = gi.prints * this.perk('softpaws', 0.75);
       if (rain > 0.3) s *= 1 - rain * 0.75;
       if (p.dropMark) { s = 0; p.dropMark = false; }
+      if (p.landmark && p.landmark.type === 'arch') s = 0;
       this.trail.push({ x: p.x, y: p.y, s, water, id: UID++, face: p.face, t: this.time, g });
       if (this.trail.length > 4000) this.trail.splice(0, 1000), this.band.idx = Math.max(0, this.band.idx - 1000), this.dogs.forEach((d) => (d.idx = Math.max(0, d.idx - 1000)));
     }
@@ -277,6 +314,9 @@ export class Game {
     p.eating = null;
     let nearWater = water;
     for (let k = 0; k < 8 && !nearWater; k++) nearWater = W.isWater(W.typeAt(p.x + Math.cos(k * 0.785) * 12, p.y + Math.sin(k * 0.785) * 9));
+    const lm = W.landmarkNear(p.x, p.y, 90);
+    p.landmark = lm && dist(lm.x, lm.y, p.x, p.y) < 60 ? lm : null;
+    if (lm && lm.def.pool && Math.hypot((p.x - lm.x) / (lm.def.pool.rx + 10), (p.y - lm.y - lm.def.pool.dy) / (lm.def.pool.ry + 8)) < 1) nearWater = true;
     if (p.still > 0.25) {
       if (nearWater && p.water < 99.5) p.drinking = true;
       else {
@@ -291,13 +331,16 @@ export class Game {
     let dh = 0;
     if (p.pounce > 0) dh += 8;
     else if (p.sprinting) dh += 7.0 + sun * 2.2;
-    else if (sp > 10) dh += 1.1 + sun * 1.5;
+    else if (sp > 10) dh += (1.1 + sun * 1.5) * this.perk('marathon', 0.75);
     else dh -= 2.2 - sun * 1.1;
     dh += gi.heat * (water ? 1 : sun);
     if (p.inShade) dh -= sp > 10 ? 1.5 : 5.5;
     if (p.lying) dh -= 2.5;
+    if (p.lying && p.landmark && p.landmark.type === 'whistle') dh -= 8;
     if (this.isNight) dh -= 2.5;
     dh -= rain * 3.2;
+    dh += this.weatherHeat ? this.weatherHeat(p, sun) : 0;
+    if (dh > 0) dh *= this.perk('coat', 0.85);
     p.heat = clamp(p.heat + dh * dt, 0, 100);
     if (!p.overheated && p.heat >= 100) {
       p.overheated = true;
@@ -307,14 +350,20 @@ export class Game {
 
     // stamina
     const maxSt = p.food < 20 ? 55 : 100;
-    if (p.sprinting) p.stamina -= 21 * dt;
-    else p.stamina += (p.lying ? 26 : sp < 6 ? 20 : 13) * dt;
+    if (p.sprinting) p.stamina -= 21 * this.perk('lungs', 0.85) * dt;
+    else p.stamina += (p.lying ? 26 : sp < 6 ? 20 : 13) * (1 + 0.2 * (this.perks.lungs || 0)) * (this.isNight && this.has('night') ? 1.5 : 1) * dt;
     p.stamina = clamp(p.stamina, 0, maxSt);
+    if (p.stamina <= 1 && this.has('wind') && this.windUsedDay !== this.day) {
+      this.windUsedDay = this.day;
+      p.stamina = maxSt;
+      p.heat = Math.max(0, p.heat - 30);
+      this.emit('secondwind', { x: p.x, y: p.y });
+    }
     if (p.stamina <= 1) p.exhausted = true;
     if (p.exhausted && p.stamina > 30) p.exhausted = false;
 
     // water & food
-    p.water -= (0.62 + p.heat * 0.0085 + (p.sprinting ? 0.5 : 0)) * dt;
+    p.water -= (0.62 + p.heat * 0.0085 + (p.sprinting ? 0.5 : 0)) * this.perk('camel', 0.82) * (this.weatherThirst || 1) * dt;
     if (p.drinking) {
       p.water += 24 * dt;
       p.heat -= 4 * dt;
@@ -323,7 +372,7 @@ export class Game {
     }
     p.food -= 0.36 * dt;
     if (p.eating) {
-      const take = Math.min(p.eating.meat, 18 * dt);
+      const take = Math.min(p.eating.meat, 18 * this.perk('scavenger', 1.4) * dt);
       p.eating.meat -= take;
       p.food += take;
       p.eatSfx = (p.eatSfx || 0) - dt;
@@ -338,7 +387,8 @@ export class Game {
     if (p.food <= 0) dhp -= 1.3;
     if (p.overheated) dhp -= 1.2;
     if (dhp === 0) {
-      if (p.lying && p.water > 15 && p.food > 15) dhp += 2.2;
+      if (p.lying && p.landmark && p.landmark.type === 'baobab') dhp += 7;
+      else if (p.lying && p.water > 15 && p.food > 15) dhp += 2.2;
       else if (p.still > 0.5 && p.water > 15 && p.food > 15) dhp += 0.8;
       else if (p.water > 30 && p.food > 30) dhp += 0.15;
     }
@@ -358,18 +408,40 @@ export class Game {
     const animRate = p.state === 'run' ? sp / 95 : p.state === 'walk' ? sp / 40 : p.state === 'lie' ? 0.25 : 0.6;
     p.anim = (p.anim + dt * animRate) % 1;
 
+    if (p.landmark && !this.found.has(p.landmark.key) && !this.over) this.discover(p.landmark);
     if (p.health <= 0 && !this.over) this.die();
+  }
+
+  discover(lm) {
+    const p = this.player;
+    const S = SECRETS[lm.type];
+    this.found.add(lm.key);
+    this.stats.secrets = (this.stats.secrets || 0) + 1;
+    this.addScore(300, 'SECRET', lm.x, lm.y - 50, '#ffe08a', 0.3);
+    switch (S.reward) {
+      case 'perk': this.grantPerkChoice({ title: 'A secret instinct', kicker: S.name }); break;
+      case 'map': this.reveals.push({ x: lm.x, y: lm.y, r: 1600 }); this.addScore(200, 'THE LAND REVEALED', lm.x, lm.y - 60, '#7fd6e0'); break;
+      case 'water': p.water = 100; p.heat = 0; break;
+      case 'heal': p.health = 100; break;
+      case 'intel': this.intelDay = this.day; break;
+      case 'cool': p.heat = 0; break;
+      case 'hide':
+        if ((this.perks.hide || 0) < 3) { this.perks.hide = (this.perks.hide || 0) + 1; this.emit('perk', { id: 'hide', name: PERK_BY_ID.hide.name }); }
+        else this.grantPerkChoice({ title: 'A secret instinct', kicker: S.name });
+        break;
+    }
+    this.emit('secret', { secret: lm.type, key: lm.key, x: lm.x, y: lm.y });
   }
 
   pounceHits() {
     const p = this.player;
     for (const q of this.prey) {
       if (q.dead) continue;
-      if (dist(q.x, q.y, p.x, p.y) < (q.kind === 'hare' ? 12 : 15)) {
+      if (dist(q.x, q.y, p.x, p.y) < (q.kind === 'hare' ? 12 : 15) + 3 * (this.perks.pounce || 0)) {
         q.dead = true;
         this.stats.prey++;
         if (q.kind === 'gazelle') this.stats.gazelles = (this.stats.gazelles || 0) + 1;
-        const meat = q.kind === 'hare' ? 24 : 70;
+        const meat = (q.kind === 'hare' ? 24 : 70) * this.perk('scavenger', 1.4);
         this.carcasses.push({ id: UID++, x: q.x, y: q.y, meat, max: meat, kind: q.kind, face: q.face, t: 0 });
         this.addScore(q.kind === 'hare' ? 60 : 150, q.kind === 'hare' ? 'HARE' : 'GAZELLE', q.x, q.y - 16, '#ffe08a', q.kind === 'hare' ? 0.15 : 0.3);
         this.emit('kill', { x: q.x, y: q.y });
@@ -377,11 +449,12 @@ export class Game {
         p.vx *= 0.2; p.vy *= 0.2;
       }
     }
-    for (const h of this.scout ? [...this.hunters, this.scout] : this.hunters) {
+    for (const h of [...this.hunters, ...this.runners]) {
       if (h.down > 0) continue;
       if (dist(h.x, h.y - 4, p.x, p.y) < 14) {
-        h.down = 4.5;
+        h.down = 4.5 * this.perk('apex', 2);
         h.windup = 0;
+        if (this.has('apex')) p.health = Math.min(100, p.health + 8 * this.perks.apex);
         h.vx = p.pdx * 120; h.vy = p.pdy * 120;
         this.stats.knockdowns++;
         this.addScore(200, 'TAKEDOWN', h.x, h.y - 40, '#ff9a6a', 0.5);
@@ -413,6 +486,7 @@ export class Game {
   hurtPlayer(dmg, fromX, fromY, kind) {
     const p = this.player;
     if (p.iframes > 0 || this.over) return false;
+    dmg *= this.perk('hide', 0.85);
     p.health -= dmg;
     p.hurt = 0.4;
     if (this.mult > 1) { this.mult = 1 + (this.mult - 1) * 0.5; this.emit('multloss'); }
@@ -442,10 +516,11 @@ export class Game {
   // ---------------- hunters ----------------
   sightRange() {
     const p = this.player;
-    let r = this.isNight ? 125 : 240;
+    let r = (this.isNight ? 125 : 240) * this.perk('ghost', 0.88) * (this.weatherSight || 1);
     r *= 1 - this.weather.rain * 0.4;
     if (p.ground === G.TALL) r *= p.lying || p.still > 0.3 ? 0.35 : 0.62;
     else if (p.lying && p.inShade) r *= 0.75;
+    if (p.lying && p.landmark && p.landmark.type === 'whistle') r = 0;
     return r;
   }
 
@@ -460,6 +535,7 @@ export class Game {
     // they read the land faster when far behind: persistence
     if (d > 420) walk *= 1 + Math.min(0.85, (d - 420) / 800);
     if (b.rush > 0) { b.rush -= dt; walk *= 1.35; }
+    if (this.lineP > 14) walk *= 1.25; // a straight trail reads itself
 
     // ---- sighting ----
     let closest = 1e9;
@@ -641,7 +717,7 @@ export class Game {
     if (engaged && gateOk && h.windup <= 0 && h.throwCd <= 0 && pd < 185 && pd > 45 && !this.over) {
       // one spear in the air at a time from the band: readable, dodgeable
       if (!h.scout) this.throwGate = Math.max(0.9, 1.6 - this.day * 0.1);
-      h.windup = Math.max(0.5, 0.8 - this.day * 0.03);
+      h.windup = Math.max(0.5, 0.8 - this.day * 0.03) + (this.has('sense') ? 0.18 : 0);
       h.face = Math.sign(p.x - h.x) || 1;
       this.emit('windup', { x: h.x, y: h.y });
     }
@@ -672,7 +748,7 @@ export class Game {
     const p = this.player, W = this.world;
     // --- crocodiles lurk in deep water: cooling off there is a gamble
     if (p.ground === G.DEEP) this.deepT += dt; else this.deepT = Math.max(0, this.deepT - dt * 2);
-    if (!this.croc && this.deepT > 1.2 && this.r() < dt * 0.5 && !this.over) {
+    if (!this.croc && this.deepT > 1.6 && this.r() < dt * (this.day === 1 ? 0.3 : 0.5) * (this.has('river') ? 0.5 : 1) && !this.over) {
       for (let k = 0; k < 16; k++) {
         const a = this.r() * TAU, r = this.r.range(60, 90);
         const x = p.x + Math.cos(a) * r, y = p.y + Math.sin(a) * r;
@@ -792,30 +868,55 @@ export class Game {
   // ---------------- the scout ----------------
   // Every minute or so one young hunter is sent running wide to cut you off.
   // He's alone: dodge him, outrun him, or knock him flat.
+  makeRunner(x, y, life = 26, maxThrows = 3) {
+    return {
+      id: UID++, x, y, vx: 0, vy: 0, face: 1, anim: 0, variant: (UID + this.day) % 2,
+      slot: 0, state: 'run', throwCd: 1.2 + this.r() * 0.8, windup: 0, down: 0, stab: 0, tx: 0, ty: 0, mark: 0, markType: '',
+      life, seen: false, leaving: false, scout: true, maxThrows,
+    };
+  }
+
+  // A spot on open ground around the player, in a fan around `heading`.
+  groundPoint(heading, spread, r0, r1) {
+    const p = this.player;
+    for (let k = 0; k < 16; k++) {
+      const a = heading + this.r.range(-spread, spread);
+      const r = this.r.range(r0, r1);
+      const x = p.x + Math.cos(a) * r, y = p.y + Math.sin(a) * r;
+      const g = this.world.ground(x, y);
+      if (!this.world.isWater(g) && g !== G.CLIFF) return [x, y];
+    }
+    return null;
+  }
+
+  heading() {
+    const p = this.player;
+    if (this.hist && this.hist.length > 6) {
+      const a = this.hist[this.hist.length - 6];
+      if (dist(a[0], a[1], p.x, p.y) > 30) return Math.atan2(p.y - a[1], p.x - a[0]);
+    }
+    return Math.hypot(p.vx, p.vy) > 10 ? Math.atan2(p.vy, p.vx) : this.r() * TAU;
+  }
+
+  // The periodic lone runner, plus any interceptors the band sends ahead of you.
   updateScout(dt) {
     const p = this.player;
     this.scoutT = (this.scoutT ?? 75) - dt;
-    let sc = this.scout;
-    if (!sc && this.scoutT <= 0 && !this.over && this.band.mode !== 'chase' && this.hunterDist() > 280) {
-      const heading = Math.hypot(p.vx, p.vy) > 10 ? Math.atan2(p.vy, p.vx) : this.r() * TAU;
-      let pos = null;
-      for (let k = 0; k < 12 && !pos; k++) {
-        const a = heading + (this.r() < 0.5 ? 1 : -1) * this.r.range(0.6, 1.5);
-        const r = this.r.range(250, 300);
-        const x = p.x + Math.cos(a) * r, y = p.y + Math.sin(a) * r;
-        if (!this.world.isWater(this.world.ground(x, y))) pos = [x, y];
-      }
+    if (!this.runners.length && this.scoutT <= 0 && !this.over && this.band.mode !== 'chase' && this.hunterDist() > 280) {
+      const h = this.heading();
+      const side = this.r() < 0.5 ? 1 : -1;
+      const pos = this.groundPoint(h + side * 1.05, 0.45, 250, 300);
       if (pos) {
-        sc = this.scout = {
-          id: UID++, x: pos[0], y: pos[1], vx: 0, vy: 0, face: 1, anim: 0, variant: (this.day + 1) % 2,
-          slot: 0, state: 'run', throwCd: 1.2, windup: 0, down: 0, stab: 0, tx: 0, ty: 0, mark: 0, markType: '',
-          life: 26, seen: false, leaving: false, scout: true,
-        };
-        this.emit('scout', { x: sc.x, y: sc.y });
+        this.runners.push(this.makeRunner(pos[0], pos[1], 26, this.day === 1 ? 2 : 3));
+        this.emit('scout', { x: pos[0], y: pos[1] });
       }
       this.scoutT = Math.max(38, this.r.range(60, 85) - this.day * 4);
     }
-    if (!sc) return;
+    this.runners = this.runners.filter((sc) => this.updateRunner(sc, dt));
+  }
+
+  updateRunner(sc, dt) {
+    const p = this.player;
     sc.mark = Math.max(0, sc.mark - dt);
     sc.life -= dt;
     const pd = dist(sc.x, sc.y, p.x, p.y);
@@ -824,7 +925,7 @@ export class Game {
       this.world.move(sc, sc.vx * dt, sc.vy * dt, { drop: false }); sc.vx *= 0.9; sc.vy *= 0.9;
       sc.state = 'down';
       if (sc.down <= 0) sc.leaving = true;
-      return;
+      return true;
     }
     if (sc.life <= 0 || pd > 520) sc.leaving = true;
     let tx, ty, sp;
@@ -832,7 +933,7 @@ export class Game {
     if (sc.leaving) {
       const a = Math.atan2(sc.y - p.y, sc.x - p.x);
       tx = sc.x + Math.cos(a) * 50; ty = sc.y + Math.sin(a) * 50; sp = run * 0.8;
-      if (pd > 420) { this.scout = null; return; }
+      if (pd > 420) return false;
     } else {
       const sees = pd < this.sightRange() * 1.1;
       if (sees && !sc.seen) {
@@ -840,7 +941,6 @@ export class Game {
         this.emit('scoutsee', { x: sc.x, y: sc.y });
         this.band.rush = 10; // his call carries: the band hurries
       }
-      // run to cut you off, then circle at throwing distance
       if (sc.seen && pd < 170) {
         const a0 = Math.atan2(sc.y - p.y, sc.x - p.x) + 0.5 * (sc.id & 1 ? 1 : -1);
         tx = p.x + Math.cos(a0) * 125; ty = p.y + Math.sin(a0) * 125;
@@ -850,7 +950,7 @@ export class Game {
         tx = p.x + p.vx * lead; ty = p.y + p.vy * lead;
         sp = run;
       }
-      if ((sc.throws || 0) >= (this.day === 1 ? 2 : 3) && sc.throwCd < 0.5) sc.leaving = true;
+      if ((sc.throws || 0) >= sc.maxThrows && sc.throwCd < 0.5) sc.leaving = true;
     }
     const a = Math.atan2(ty - sc.y, tx - sc.x);
     const gi = GROUND_INFO[this.world.typeAt(sc.x, sc.y)];
@@ -862,6 +962,51 @@ export class Game {
     sc.state = sc.windup > 0 ? 'windup' : Math.hypot(sc.vx, sc.vy) > 60 ? 'run' : 'walk';
     sc.anim = (sc.anim + dt * (sc.state === 'run' ? 1.9 : 1.1)) % 1;
     this.combat(sc, dt, sc.seen && !sc.leaving);
+    return true;
+  }
+
+  // ---------------- predictability ----------------
+  // Persistence hunters read a straight line like a map. Run one for too long and they
+  // stop following your trail and start meeting you at the far end of it.
+  updatePressure(dt) {
+    const p = this.player;
+    this.histT = (this.histT || 0) - dt;
+    if (this.histT <= 0) {
+      this.histT = 1;
+      this.hist.push([p.x, p.y]);
+      if (this.hist.length > 40) this.hist.shift();
+    }
+    const H = this.hist, N = 30;
+    let straight = 0, net = 0;
+    if (H.length >= N) {
+      let path = 0;
+      for (let i = H.length - N + 1; i < H.length; i++) path += dist(H[i][0], H[i][1], H[i - 1][0], H[i - 1][1]);
+      const a = H[H.length - N];
+      const disp = dist(a[0], a[1], p.x, p.y);
+      straight = path > 1 ? disp / path : 0;
+      net = disp / N;
+    }
+    this.straightness = straight;
+    const before = this.lineP;
+    if (straight > 0.8 && net > 36) this.lineP += dt * (1 + (straight - 0.8) * 6);
+    else this.lineP = Math.max(0, this.lineP - dt * (straight < 0.6 ? 2.5 : 1));
+    this.interceptCd = Math.max(0, (this.interceptCd || 0) - dt);
+    if (before < 14 && this.lineP >= 14) this.emit('linewarn', { x: p.x, y: p.y });
+    if (this.lineP >= 30 && this.interceptCd <= 0 && !this.over) {
+      this.lineP = 0;
+      this.interceptCd = 35;
+      this.intercepts++;
+      const h = this.heading();
+      const kind = this.intercepts >= 3 && this.day >= 2 && this.r() < 0.5 ? 'ambush' : 'intercept';
+      const n = kind === 'ambush' ? 3 + Math.min(2, Math.floor(this.day / 3)) : 2;
+      for (let i = 0; i < n; i++) {
+        const pos = this.groundPoint(h + (i - (n - 1) / 2) * 0.4, 0.15, 230, 290);
+        if (pos) this.runners.push(this.makeRunner(pos[0], pos[1], 24, 2));
+      }
+      // the dogs are slipped and sent straight at you
+      for (const d of this.dogs) if (!d.dead && d.state !== 'chase') { d.state = 'chase'; d.chaseT = 0; d.x = p.x - Math.cos(h) * 320; d.y = p.y - Math.sin(h) * 320; }
+      this.emit(kind, { x: p.x, y: p.y });
+    }
   }
 
   // Reward the time a broken trail cost them, once they pick it back up.
@@ -1113,6 +1258,7 @@ export class Game {
     this.updateBand(dt);
     this.updateDogs(dt);
     this.updateScout(dt);
+    this.updatePressure(dt);
     this.updateHazards(dt);
     this.updateSpears(dt);
     this.updatePrey(dt);
