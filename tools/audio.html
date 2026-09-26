@@ -1,9 +1,9 @@
 <!doctype html><html><body><script type="module">
 import { Audio } from '../js/audio.js';
-window.render = async (intensity, night, secs, sfx) => {
+window.render = async (intensity, night, secs, sfx, biome = 0, menu = false) => {
   const sr = 22050;
   const off = new OfflineAudioContext(2, sr * secs, sr);
-  const a = new Audio(); a.init(off); a.menu = false; a.intensity = intensity; a.night = night;
+  const a = new Audio(); a.init(off); a.menu = menu; a.intensity = intensity; a.night = night; a.biome = biome; a.amb.gain.value = 0;
   const spb = 60 / a.tempo / 4;
   let t = 0.05, step = 0;
   while (t < secs - 0.5) { a.schedule(step++, t, spb); t += spb; }

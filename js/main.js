@@ -271,7 +271,7 @@ function choosePerk(i) {
   const k = perkOffer[i];
   if (!k || state !== 'perk') return;
   game.takePerk(k.id);
-  audio.play('ui', { pitch: 86 });
+  audio.play('perk');
   toast(`<b>${k.icon} ${k.name}</b> ${k.text}`, 3);
   if (game.perkChoices > 0) openPerks('Another instinct', 'The land gives more');
   else { state = 'playing'; audio.setMuffle(false); show(null); }
@@ -519,7 +519,7 @@ function handleEvents(g) {
         $('lore-gift').textContent = S.gift;
         $('lore').classList.add('on');
         loreT = 8;
-        audio.sting('dawn');
+        audio.sting('secret');
         renderer.burst('spark', e.x, e.y - 30, 24, { col: '#ffe08a' });
         break;
       }
@@ -623,6 +623,15 @@ function updateMusic(g, dt) {
   audio.intensity = I;
   audio.night = g.isNight ? 1 : 0;
   audio.rain = g.weather.rain;
+  audio.dust = g.weather.dust;
+  audio.fire = g.fireAlarm ? 1 : 0;
+  g._bioT = (g._bioT || 0) - dt;
+  if (g._bioT <= 0) {
+    g._bioT = 1;
+    audio.biome = g.world.biomeAt(g.player.x, g.player.y);
+    const coast = g.world.T.large(g.player.x, g.player.y)[4];
+    audio.coast = clamp(1 - coast / 700, 0, 1);
+  }
   // heartbeat when wounded
   if (!g.over && g.player.health < 35) {
     g._hb = (g._hb || 0) - dt;
