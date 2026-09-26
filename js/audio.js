@@ -600,6 +600,32 @@ export class Audio {
         f.frequency.exponentialRampToValueAtTime(80, t + 2);
         break;
       }
+      case 'rumble': {
+        const f = this.noiseHit(t, 180, 0.7, 3.2, 0.9 * v, S, 'lowpass', 0.4);
+        f.frequency.linearRampToValueAtTime(320, t + 2);
+        for (let i = 0; i < 14; i++) this.drum(t + 0.4 + i * 0.17 + Math.random() * 0.06, 70, 40, 0.12, 0.35 * v, 0.2);
+        break;
+      }
+      case 'laugh': {
+        for (let i = 0; i < 5; i++) {
+          const o = ctx.createOscillator();
+          o.type = 'triangle';
+          const s = t + i * 0.11;
+          o.frequency.setValueAtTime(700 + i * 40, s);
+          o.frequency.linearRampToValueAtTime(1050 + i * 30, s + 0.05);
+          o.frequency.linearRampToValueAtTime(650, s + 0.09);
+          const g = ctx.createGain();
+          this.env(g, s, 0.005, 0.14 * v, 0.08);
+          o.connect(g).connect(S);
+          o.start(s); o.stop(s + 0.11);
+        }
+        break;
+      }
+      case 'snap': {
+        this.noiseHit(t, 2500, 1, 0.05, 0.7 * v, S, 'bandpass');
+        this.drum(t, 300, 90, 0.1, 0.6 * v, 0.5);
+        break;
+      }
       case 'snarl': {
         this.growl(t, 0.25, 0.7 * v, false, 1.4);
         break;

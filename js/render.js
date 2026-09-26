@@ -224,6 +224,9 @@ export class Renderer {
     for (const d of game.dogs) list.push({ y: d.y, k: 4, o: d });
     for (const hu of game.hunters) list.push({ y: hu.y, k: 5, o: hu });
     if (game.scout) list.push({ y: game.scout.y, k: 5, o: game.scout });
+    for (const hy of game.hyenas) list.push({ y: hy.y, k: 7, o: hy });
+    for (const gn of game.gnus) list.push({ y: gn.y, k: 8, o: gn });
+    if (game.croc) list.push({ y: game.croc.y - 4, k: 9, o: game.croc });
     list.push({ y: p.y, k: 6, o: p });
     list.sort((a, b) => a.y - b.y);
 
@@ -311,6 +314,31 @@ export class Renderer {
           const bounce = Math.abs(Math.sin(o.mark * 8)) * 3;
           drawText(ctx, o.markType, o.x - cx - 2, o.y - cy - 52 - bounce, { color: o.markType === '!' ? P.danger : P.cool });
         }
+      } else if (it.k === 7) {
+        const S = A.hyena;
+        const spd = Math.hypot(o.vx, o.vy);
+        const fr = o.state === 'eat' ? S.drink[Math.floor(t * 3) % 2] : spd > 60 ? S.run[Math.floor(o.anim * 8) % 8] : spd > 4 ? S.walk[Math.floor(o.anim * 8) % 8] : S.idle[0];
+        shadow(o.x, o.y, 8, 2.5);
+        spr(fr, o.x, o.y, S.ox, S.oy, o.face < 0);
+      } else if (it.k === 8) {
+        if (game.stampedeWarn > 1.2) continue;
+        const S = A.gnu;
+        shadow(o.x, o.y, 9, 3);
+        spr(S.run[Math.floor(o.anim * 8) % 8], o.x, o.y, S.ox, S.oy, o.face < 0);
+        if (Math.random() < dt * 14) this.burst('dust', o.x - Math.cos(o.a) * 10, o.y, 2, { col: P.sand2 });
+      } else if (it.k === 9) {
+        const img = A.croc[o.state === 'snap' ? 1 : 0];
+        const X = Math.round(o.x - cx), Y = Math.round(o.y - cy);
+        if (o.state === 'sink') ctx.globalAlpha = Math.max(0, 1 - o.t);
+        // wake
+        ctx.fillStyle = P.foam;
+        for (let i = 1; i < 4; i++) {
+          ctx.fillRect(X - o.face * (10 + i * 6), Y - i * 2 + 2, 3, 1);
+          ctx.fillRect(X - o.face * (10 + i * 6), Y + i * 2 + 5, 3, 1);
+        }
+        if (o.face < 0) { ctx.save(); ctx.translate(X, 0); ctx.scale(-1, 1); ctx.drawImage(img, -12, Y - 3); ctx.restore(); }
+        else ctx.drawImage(img, X - 12, Y - 3);
+        ctx.globalAlpha = 1;
       } else if (it.k === 6) {
         const S = A.cat;
         let arr = S[p.state] || S.idle;
@@ -517,6 +545,7 @@ export class Renderer {
     for (const hu of game.hunters) { const d = dist(hu.x, hu.y, p.x, p.y); if (d < nd) { nd = d; nh = hu; } }
     if (nh) arrow(nh.x, nh.y - 10, P.danger, Math.round(nd / 10) + 'M', nd < 300 ? Math.sin(game.time * 10) * 1.5 + 1 : 0);
     for (const d of game.dogs) if (!d.dead && dist(d.x, d.y, p.x, p.y) < 500) arrow(d.x, d.y, P.fire1, null);
+    if (game.gnus.length && game.stampedeWarn > 0) { const g0 = game.gnus[0]; arrow(g0.x, g0.y, P.sand3, 'STAMPEDE', Math.sin(game.time * 14) * 2 + 2); }
     if (game.scout && !game.scout.leaving) arrow(game.scout.x, game.scout.y - 10, P.danger, null, Math.sin(game.time * 12) * 1.5 + 1);
     // water when thirsty
     if (p.water < 50) {

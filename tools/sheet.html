@@ -9,10 +9,10 @@ const S = 3; let X = 4, Y = 4, rowH = 0;
 function put(img){ if (X + img.width*S > 1400){X=4;Y+=rowH+6;rowH=0;} x.drawImage(img,X,Y,img.width*S,img.height*S); X+=img.width*S+6; rowH=Math.max(rowH,img.height*S); }
 function nl(){X=4;Y+=rowH+10;rowH=0;}
 for (const g of ['idle','walk','run','lie','drink','pounce','dead']) { for (const f of A.cat[g]) put(f); nl(); }
-for (const k of ['gazelle','dog','hyena']) { for (const g of ['run','walk']) (A[k][g]||[]).slice(0,8).forEach(put); nl(); }
+for (const k of ['gazelle','dog','hyena','gnu']) { for (const g of ['run','walk']) (A[k][g]||[]).slice(0,8).forEach(put); nl(); }
 for (const g of ['walk','run','search','windup','throw','down']) A.hunter[0].d[g].forEach(put); nl();
 A.hunter[1].n.walk.forEach(put); A.hare.run.forEach(put); nl();
 for (const k in A.props) A.props[k].forEach(p=>put(p.img));
-put(A.carcass); put(A.carcassBones); A.vulture.forEach(put);
+put(A.carcass); put(A.carcassBones); A.croc.forEach(put); A.vulture.forEach(put);
 window.done = true;
 </script></body></html>

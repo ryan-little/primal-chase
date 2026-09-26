@@ -75,7 +75,7 @@ export class World {
   isWater(g) { return g === G.SHALLOW || g === G.DEEP; }
 
   // ---- chunks ----
-  key(cx, cy) { return cx * 73856093 ^ cy * 19349663; }
+  key(cx, cy) { return (cx + 100000) * 262144 + (cy + 100000); }
 
   get(cx, cy) {
     const k = this.key(cx, cy);

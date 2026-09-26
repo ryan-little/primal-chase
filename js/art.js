@@ -347,6 +347,51 @@ function hyenaSpec() {
   };
 }
 
+function gnuSpec() {
+  const C = { body: P.rock1, belly: P.rock2, far: P.rock0 };
+  return {
+    w: 40, h: 32, ground: 29, body: { x: 17, y: 15, rx: 9, ry: 4.4 },
+    hipF: 6, hipR: 6, l1: 5.4, l2: 5.6, legW: 1.9, knee: 0.6, neckW: 3.6, tailW: 1.4, neckX: 2.5, neckY: 0.5, headR: 3,
+    col: C, back: P.rock0,
+    spots(ctx, bx, by, rx, ry) {
+      for (let i = 0; i < 5; i++) line(ctx, [bx + rx * (0.1 + i * 0.15), by - ry * 0.7, bx + rx * (0.05 + i * 0.15), by + ry * 0.2], 1, P.rock0);
+      ell(ctx, bx + rx * 0.55, by - ry * 0.75, rx * 0.35, ry * 0.45, P.rock0); // hump
+    },
+    tail(ctx, [x, y], w) {
+      line(ctx, [x, y, x - 3, y + 4 + w * 0.4], 1.4, P.ink);
+    },
+    head(ctx, x, y, tilt) {
+      line(ctx, [x - 1.5, y - 2, x - 3.8, y - 4.4, x - 2.6, y - 6], 1.1, P.bone0);
+      line(ctx, [x + 0.5, y - 2, x + 2.8, y - 4.2, x + 2, y - 5.8], 1.1, P.bone0);
+      ell(ctx, x, y, 3, 2.6, P.rock0);
+      ell(ctx, x + 2.8, y + 1.6 + tilt, 2.3, 1.7, P.rock1);
+      line(ctx, [x - 0.5, y + 2, x + 1.5, y + 5.5], 1.6, P.ink); // beard
+      px(ctx, x + 0.6, y - 0.6, P.ink);
+      line(ctx, [x - 2, y - 2.5, x - 5, y - 1], 1.4, P.ink); // mane
+    },
+  };
+}
+
+function croc(frame) {
+  const c = canvas(34, 14), x = c.getContext('2d');
+  if (frame === 0) {
+    ell(x, 17, 8, 12, 2.2, P.leaf0);
+    ell(x, 27, 8, 4, 1.8, P.leaf0);
+    ell(x, 12, 6.5, 1.6, 1.4, P.leaf1); ell(x, 16, 6.5, 1.6, 1.4, P.leaf1);
+    px(x, 12, 6, P.hint); px(x, 16, 6, P.hint);
+    px(x, 30, 7.5, P.ink); px(x, 30, 8.5, P.ink);
+  } else {
+    ell(x, 12, 9, 7, 2.6, P.leaf0);
+    tri(x, [14, 8], [33, 1], [31, 5], P.leaf1);
+    tri(x, [14, 9], [33, 13], [31, 10], P.leaf1);
+    for (let i = 0; i < 5; i++) { px(x, 18 + i * 3, 4.2 + i * -0.4 + 1.5, P.bone); px(x, 18 + i * 3, 11 - i * -0.2 - 1, P.bone); }
+    tri(x, [15, 8.5], [31, 5.5], [31, 10.5], P.blood);
+    px(x, 11, 6.5, P.hint);
+  }
+  crisp(c);
+  return c;
+}
+
 // ---------- human rig ----------
 // pose: walk | run | windup | throw | search | down ; p phase
 function drawHuman(ctx, pose, p, night, variant) {
@@ -624,6 +669,8 @@ export function buildArt() {
   A.gazelle = quad(gazelleSpec(), [['idle', 4], ['walk', 8], ['run', 8], ['drink', 2], ['dead', 1]]);
   A.dog = quad(dogSpec(), [['idle', 4], ['run', 8], ['walk', 8], ['dead', 1], ['pounce', 1]]);
   A.hyena = quad(hyenaSpec(), [['idle', 4], ['walk', 8], ['run', 8], ['drink', 2]]);
+  A.gnu = quad(gnuSpec(), [['run', 8]]);
+  A.croc = [croc(0), croc(1)];
 
   // hare: tiny hop cycle
   A.hare = { ox: 8, oy: 12, idle: [], run: [], dead: [] };

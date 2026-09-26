@@ -89,6 +89,12 @@ export class Game {
     this.bit = null;
     this.scout = null;
     this.scoutT = 95;
+    this.croc = null;
+    this.deepT = 0;
+    this.hyenas = [];
+    this.gnus = [];
+    this.stampedeT = this.r.range(40, 80);
+    this.stampedeWarn = 0;
   }
 
   addHunters(n) {
@@ -377,6 +383,14 @@ export class Game {
         p.vx = -p.pdx * 60; p.vy = -p.pdy * 60;
       }
     }
+    for (const h of this.hyenas) {
+      if (h.state === 'flee') continue;
+      if (dist(h.x, h.y, p.x, p.y) < 15) {
+        for (const o of this.hyenas) if (o.target === h.target) o.state = 'flee';
+        this.addScore(80, 'HYENAS SCATTER', h.x, h.y - 20, '#ff9a6a', 0.2);
+        this.emit('dogdown', { x: h.x, y: h.y });
+      }
+    }
     for (const d of this.dogs) {
       if (d.dead) continue;
       if (dist(d.x, d.y, p.x, p.y) < 14) {
@@ -412,7 +426,8 @@ export class Game {
     this.over = true;
     this.deathTime = this.time;
     this.cause = kind === 'spear' ? 'A spear found you.' : kind === 'stab' ? 'They closed the distance.' :
-      kind === 'dog' ? 'The dogs pulled you down.' : p.water <= 0 ? 'Thirst took you.' :
+      kind === 'dog' ? 'The dogs pulled you down.' : kind === 'croc' ? 'The river had teeth.' :
+      kind === 'hyena' ? 'The hyenas would not share.' : kind === 'stampede' ? 'Lost beneath the herd.' : p.water <= 0 ? 'Thirst took you.' :
       p.food <= 0 ? 'Hunger took you.' : p.overheated ? 'Your heart gave out in the heat.' : 'The chase ended.';
     this.emit('death', { x: p.x, y: p.y });
   }
@@ -626,6 +641,127 @@ export class Game {
       h.stab = 1.3;
       if (this.hurtPlayer(22, h.x, h.y, 'stab')) this.emit('stab', { x: p.x, y: p.y });
     }
+  }
+
+  // ---------------- the land's other dangers ----------------
+  updateHazards(dt) {
+    const p = this.player, W = this.world;
+    // --- crocodiles lurk in deep water: cooling off there is a gamble
+    if (p.ground === G.DEEP) this.deepT += dt; else this.deepT = Math.max(0, this.deepT - dt * 2);
+    if (!this.croc && this.deepT > 1.2 && this.r() < dt * 0.5 && !this.over) {
+      for (let k = 0; k < 16; k++) {
+        const a = this.r() * TAU, r = this.r.range(60, 90);
+        const x = p.x + Math.cos(a) * r, y = p.y + Math.sin(a) * r;
+        if (W.typeAt(x, y) === G.DEEP) { this.croc = { x, y, state: 'stalk', t: 0, face: 1, id: UID++ }; this.emit('croc', { x, y }); break; }
+      }
+    }
+    const c = this.croc;
+    if (c) {
+      c.t += dt;
+      const pd = dist(c.x, c.y, p.x, p.y);
+      if (c.state === 'stalk') {
+        const a = Math.atan2(p.y - c.y, p.x - c.x);
+        const nx = c.x + Math.cos(a) * 62 * dt, ny = c.y + Math.sin(a) * 62 * dt;
+        if (W.isWater(W.typeAt(nx, ny))) { c.x = nx; c.y = ny; }
+        c.face = Math.sign(Math.cos(a)) || 1;
+        if (pd < 22) { c.state = 'snap'; c.t = 0; this.emit('crocsnap', { x: c.x, y: c.y }); }
+        if (c.t > 6 || (pd > 140)) { c.state = 'sink'; c.t = 0; }
+      } else if (c.state === 'snap') {
+        if (c.t > 0.32 && !c.bit) {
+          c.bit = true;
+          if (dist(c.x + c.face * 8, c.y, p.x, p.y) < 18) this.hurtPlayer(20, c.x, c.y, 'croc');
+          else { this.stats.dodges++; this.addScore(60, 'JAWS MISSED', p.x, p.y - 28, '#ffffff', 0.3); this.emit('dodge', { x: p.x, y: p.y, close: true }); }
+        }
+        if (c.t > 0.8) { c.state = 'sink'; c.t = 0; }
+      } else if (c.t > 1) this.croc = null;
+    }
+
+    // --- hyenas smell a kill left too long
+    for (const k of this.carcasses) {
+      if (k.meat > 0 && k.t > 14 && !k.hyenas && !this.over) {
+        k.hyenas = true;
+        for (let i = 0; i < 2; i++) {
+          const a = this.r() * TAU;
+          this.hyenas.push({ id: UID++, x: k.x + Math.cos(a) * 230, y: k.y + Math.sin(a) * 230, vx: 0, vy: 0, face: 1, anim: this.r(), state: 'come', target: k, bite: 0, flee: 0 });
+        }
+        this.emit('hyenas', { x: k.x, y: k.y });
+      }
+    }
+    for (const h of this.hyenas) {
+      h.bite -= dt;
+      const k = h.target;
+      const pd = dist(h.x, h.y, p.x, p.y);
+      let tx = k.x + (h.id & 1 ? 12 : -12), ty = k.y + 2, sp = 95;
+      if (h.state === 'flee' || k.meat <= 0) {
+        h.state = 'flee';
+        h.flee += dt;
+        const a = Math.atan2(h.y - p.y, h.x - p.x);
+        tx = h.x + Math.cos(a) * 60; ty = h.y + Math.sin(a) * 60; sp = 120;
+        if (h.flee > 5) h.gone = true;
+      } else if (dist(h.x, h.y, k.x, k.y) < 18) {
+        h.state = 'eat';
+        k.meat = Math.max(0, k.meat - 5 * dt);
+        sp = 0;
+        // guard the kill: bite if you crowd them
+        if (pd < 34 && !this.over) {
+          tx = p.x; ty = p.y; sp = 110; h.state = 'fight';
+          if (pd < 13 && h.bite <= 0) { h.bite = 1.3; if (this.hurtPlayer(7, h.x, h.y, 'hyena')) this.emit('snarl', { x: h.x, y: h.y }); }
+        }
+      }
+      const a = Math.atan2(ty - h.y, tx - h.x);
+      const mv = Math.min(dist(h.x, h.y, tx, ty), sp * dt);
+      h.vx = (Math.cos(a) * mv) / dt; h.vy = (Math.sin(a) * mv) / dt;
+      h.x += h.vx * dt; h.y += h.vy * dt;
+      W.collide(h, 3);
+      if (Math.abs(h.vx) > 3) h.face = Math.sign(h.vx);
+      else h.face = Math.sign(k.x - h.x) || h.face;
+      h.anim = (h.anim + dt * (Math.hypot(h.vx, h.vy) > 60 ? 2.4 : 1.2)) % 1;
+    }
+    this.hyenas = this.hyenas.filter((h) => !h.gone);
+
+    // --- stampedes: a river of hooves that tramples your trail flat
+    this.stampedeT -= dt;
+    if (this.stampedeT <= 0 && this.day >= 2 && !this.gnus.length && !this.over) {
+      this.stampedeT = this.r.range(110, 170);
+      const a = this.r() * TAU; // travel direction
+      const perp = a + Math.PI / 2;
+      const off = this.r.range(-30, 30);
+      const sx = p.x - Math.cos(a) * 360 + Math.cos(perp) * off, sy = p.y - Math.sin(a) * 360 + Math.sin(perp) * off;
+      const n = this.r.int(11, 16);
+      for (let i = 0; i < n; i++) {
+        const lat = this.r.range(-38, 38), back = this.r.range(0, 150);
+        this.gnus.push({ id: UID++, x: sx + Math.cos(perp) * lat - Math.cos(a) * back, y: sy + Math.sin(perp) * lat - Math.sin(a) * back,
+          a, sp: this.r.range(150, 175), anim: this.r(), face: Math.sign(Math.cos(a)) || 1, life: 0, hitCd: 0 });
+      }
+      this.stampedeWarn = 2.5;
+      this.emit('stampede', { x: sx, y: sy, a });
+    }
+    if (this.stampedeWarn > 0) this.stampedeWarn -= dt;
+    for (const g of this.gnus) {
+      g.life += dt;
+      if (this.stampedeWarn > 1.2) continue; // the rumble comes before the herd
+      g.x += Math.cos(g.a) * g.sp * dt; g.y += Math.sin(g.a) * g.sp * dt;
+      g.anim = (g.anim + dt * 2.3) % 1;
+      g.hitCd -= dt;
+      // trample the trail
+      for (let i = Math.max(0, this.trail.length - 700); i < this.trail.length; i++) {
+        const tp = this.trail[i];
+        if (tp.s > 0 && Math.abs(tp.x - g.x) < 14 && Math.abs(tp.y - g.y) < 12) tp.s = 0;
+      }
+      if (g.hitCd <= 0 && dist(g.x, g.y, p.x, p.y) < 13 && p.pounce <= 0) {
+        g.hitCd = 1;
+        this.hurtPlayer(12, g.x - Math.cos(g.a) * 10, g.y - Math.sin(g.a) * 10, 'stampede');
+      }
+      for (const h of this.hunters) {
+        if (h.down <= 0 && dist(g.x, g.y, h.x, h.y) < 12) {
+          h.down = 5; h.vx = Math.cos(g.a) * 90; h.vy = Math.sin(g.a) * 90;
+          this.addScore(150, 'TRAMPLED', h.x, h.y - 40, '#ff9a6a', 0.4);
+          this.emit('knockdown', { x: h.x, y: h.y });
+        }
+      }
+      if (g.life > 9) g.gone = true;
+    }
+    this.gnus = this.gnus.filter((g) => !g.gone);
   }
 
   // ---------------- the scout ----------------
@@ -952,6 +1088,7 @@ export class Game {
     this.updateBand(dt);
     this.updateDogs(dt);
     this.updateScout(dt);
+    this.updateHazards(dt);
     this.updateSpears(dt);
     this.updatePrey(dt);
     this.world.ensure(this.player.x, this.player.y, 420, 300, 2);

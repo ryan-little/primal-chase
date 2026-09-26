@@ -189,6 +189,9 @@ const HINTS = {
   night: 'Night. Cooler and darker. Their torches show where they are.',
   rain: 'Rain! Your tracks are washing away.',
   dogs: 'Dogs run faster than you and follow scent over rock. Pounce to drive them off.',
+  croc: 'Something moves in the deep water. Get out!',
+  hyenas: 'Hyenas are coming for your kill. Eat fast, or pounce to scatter them.',
+  stampede: 'Stampede! Get clear. The herd will trample your trail, and anyone in its way.',
   mult: 'Danger survived raises your <b>multiplier</b> (top right). Getting hurt halves it.',
   scout: () => `A runner is cutting you off! Dodge his spears, or ${input.usingTouch ? 'POUNCE' : '<kbd>Space</kbd>'} to knock him flat.`,
   pounce: () => `A pounce is a dodge. ${input.usingTouch ? 'POUNCE' : '<kbd>Space</kbd>'} a hunter to knock him flat.`,
@@ -199,6 +202,14 @@ let toastT = 0;
 function hint(key, force = false) {
   if (!settings.hints && !force) return;
   if (seenHints.has(key) || hintQ.includes(key)) return;
+  if (force) {
+    // urgent: show now, not after whatever is queued
+    seenHints.add(key);
+    store.set('hints', [...seenHints]);
+    const h = HINTS[key];
+    toast(typeof h === 'function' ? h() : h);
+    return;
+  }
   hintQ.push(key);
 }
 function toast(html, dur = 4.2) {
@@ -368,6 +379,11 @@ function handleEvents(g) {
       case 'thunder': audio.play('thunder'); break;
       case 'death': audio.sting('death'); renderer.shake(8); break;
       case 'scout': audio.play('shout', { vol: 0.5 }); hint('scout'); break;
+      case 'croc': audio.play('splash', { vol: 0.5 }); hint('croc', true); break;
+      case 'crocsnap': audio.play('snap'); renderer.burst('splash', e.x, e.y, 12); renderer.shake(3); break;
+      case 'hyenas': audio.play('laugh', { vol: near(e, 600) }); hint('hyenas'); break;
+      case 'snarl': audio.play('snarl'); break;
+      case 'stampede': audio.play('rumble'); renderer.shake(2); hint('stampede', true); break;
       case 'mult': multBumpT = 0.25; audio.play('ui', { pitch: 84 + Math.min(12, Math.round(e.v * 3)) }); hint('mult'); break;
       case 'multloss': break;
       case 'scoutsee': audio.play('sighted', { vol: 0.9 }); renderer.shake(1.5); break;
