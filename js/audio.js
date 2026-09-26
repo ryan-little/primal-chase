@@ -565,7 +565,7 @@ export class Audio {
   update(dt) {
     if (!this.ctx || !this.playing) return;
     const ctx = this.ctx;
-    for (let k = 0; k < 3 && this.warm.length; k++) { const [i, m] = this.warm.shift(); this.note(i, m); }
+    if (this.warm.length && dt < 0.02) { const [i, m] = this.warm.shift(); this.note(i, m); }
     const I = this.menu ? 0 : this.intensity;
     const base = { desert: 80, highland: 76, ash: 72, wetland: 84, woodland: 92, title: 90, night: 80 }[this.theme] || 88;
     const want = I >= 3 ? 108 : base + (I >= 2 ? 6 : 0);

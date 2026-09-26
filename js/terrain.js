@@ -73,35 +73,50 @@ export class Terrain {
   }
 
   // ---- large-scale fields on an 8px grid, bilinear between ----
+  // Cached in 32x32 blocks of typed arrays: no per-point allocation, cheap eviction.
   largeAt(gx, gy) {
-    const key = (gx + 60000) * 131072 + (gy + 60000);
-    let v = this.cache.get(key);
-    if (v) return v;
-    if (this.cache.size > 250000) this.cache.clear();
-    const x = gx * GRID, y = gy * GRID;
-    let A = this.nA.fbm(x / 5200, y / 5200, 2);
-    let H = this.nH.fbm(x / 4200, y / 4200, 2);
-    let V = this.nV.fbm(x / 3600, y / 3600, 2);
-    const E = this.nE.fbm(x / 1000, y / 1000, 3);
-    const d = Math.hypot(x, y);
-    const coast = this.coastR + this.nC.fbm(x / 2600, y / 2600, 3) * 2000 - d;
-    // the land you wake in is always open savanna
-    const k = clamp(1 - (d - 1300) / 1900, 0, 1);
-    A *= 1 - k; H = H * (1 - k) - k * 0.35; V = V * (1 - k) - k * 0.6;
-    v = new Float32Array([A, H, V, E, coast]);
-    this.cache.set(key, v);
-    return v;
+    const bx = gx >> 5, by = gy >> 5;
+    const key = (bx + 32768) * 65536 + (by + 32768);
+    let blk = this.cache.get(key);
+    if (!blk) {
+      if (this.cache.size > 700) {
+        let n = 0;
+        for (const k of this.cache.keys()) { this.cache.delete(k); if (++n > 200) break; }
+      }
+      blk = { v: new Float32Array(32 * 32 * 5), f: new Uint8Array(32 * 32) };
+      this.cache.set(key, blk);
+    }
+    const li = ((gy & 31) << 5) | (gx & 31);
+    const o = li * 5, v = blk.v;
+    if (!blk.f[li]) {
+      blk.f[li] = 1;
+      const x = gx * GRID, y = gy * GRID;
+      let A = this.nA.fbm(x / 5200, y / 5200, 2);
+      let H = this.nH.fbm(x / 4200, y / 4200, 2);
+      let V = this.nV.fbm(x / 3600, y / 3600, 2);
+      const E = this.nE.fbm(x / 1000, y / 1000, 3);
+      const d = Math.hypot(x, y);
+      const coast = this.coastR + this.nC.fbm(x / 2600, y / 2600, 3) * 2000 - d;
+      const k = clamp(1 - (d - 1300) / 1900, 0, 1);
+      A *= 1 - k; H = H * (1 - k) - k * 0.35; V = V * (1 - k) - k * 0.6;
+      v[o] = A; v[o + 1] = H; v[o + 2] = V; v[o + 3] = E; v[o + 4] = coast;
+    }
+    this.tmpBlk = v;
+    return o;
   }
 
   large(x, y) {
     const fx = x / GRID, fy = y / GRID;
     const gx = Math.floor(fx), gy = Math.floor(fy);
     const u = fx - gx, w = fy - gy;
-    const a = this.largeAt(gx, gy), b = this.largeAt(gx + 1, gy), c = this.largeAt(gx, gy + 1), d = this.largeAt(gx + 1, gy + 1);
     const L = this.L;
+    const oa = this.largeAt(gx, gy), va = this.tmpBlk;
+    const ob = this.largeAt(gx + 1, gy), vb = this.tmpBlk;
+    const oc = this.largeAt(gx, gy + 1), vc = this.tmpBlk;
+    const od = this.largeAt(gx + 1, gy + 1), vd = this.tmpBlk;
     for (let i = 0; i < 5; i++) {
-      const t = a[i] + (b[i] - a[i]) * u;
-      L[i] = t + (c[i] + (d[i] - c[i]) * u - t) * w;
+      const t = va[oa + i] + (vb[ob + i] - va[oa + i]) * u;
+      L[i] = t + (vc[oc + i] + (vd[od + i] - vc[oc + i]) * u - t) * w;
     }
     return L;
   }

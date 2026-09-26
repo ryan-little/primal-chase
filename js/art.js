@@ -788,5 +788,62 @@ export function buildArt() {
   A.landmarks = buildLandmarks();
   Object.assign(A, buildFauna());
   A.icons = makeIcons();
+  packAtlases(A);
   return A;
+}
+
+// ---------- texture atlases ----------
+// Hundreds of tiny canvases mean hundreds of GPU textures. Pack every sprite into a few big
+// sheets and draw from sub-rectangles instead.
+class AtlasImage {
+  constructor(atlas, sx, sy, w, h) { this.atlas = atlas; this.sx = sx; this.sy = sy; this.width = w; this.height = h; }
+}
+
+let patched = false;
+function patchDrawImage() {
+  if (patched) return;
+  patched = true;
+  const proto = CanvasRenderingContext2D.prototype;
+  const orig = proto.drawImage;
+  proto.drawImage = function (img, a, b, c, d, e, f, g, h) {
+    if (!(img instanceof AtlasImage)) return orig.apply(this, arguments);
+    const n = arguments.length;
+    if (n === 3) return orig.call(this, img.atlas, img.sx, img.sy, img.width, img.height, a, b, img.width, img.height);
+    if (n === 5) return orig.call(this, img.atlas, img.sx, img.sy, img.width, img.height, a, b, c, d);
+    return orig.call(this, img.atlas, img.sx + a, img.sy + b, c, d, e, f, g, h);
+  };
+}
+
+function packAtlases(root) {
+  patchDrawImage();
+  const found = new Map(); // canvas -> list of [parent, key]
+  const walk = (o) => {
+    if (!o || typeof o !== 'object') return;
+    for (const k of Object.keys(o)) {
+      const v = o[k];
+      if (v instanceof HTMLCanvasElement) {
+        if (v.width * v.height > 160 * 160) continue;
+        if (!found.has(v)) found.set(v, []);
+        found.get(v).push([o, k]);
+      } else if (v && typeof v === 'object') walk(v);
+    }
+  };
+  walk(root);
+  const list = [...found.keys()].sort((a, b) => b.height - a.height);
+  const SIZE = 2048, PAD = 1;
+  let atlas = null, ax = 0, ay = 0, rowH = 0, sheets = 0;
+  const fresh = () => { atlas = canvas(SIZE, SIZE); ax = 0; ay = 0; rowH = 0; sheets++; };
+  fresh();
+  for (const c of list) {
+    const w = c.width + PAD, h = c.height + PAD;
+    if (ax + w > SIZE) { ax = 0; ay += rowH; rowH = 0; }
+    if (ay + h > SIZE) fresh();
+    atlas.getContext('2d').drawImage(c, ax, ay);
+    const img = new AtlasImage(atlas, ax, ay, c.width, c.height);
+    for (const [o, k] of found.get(c)) o[k] = img;
+    ax += w;
+    rowH = Math.max(rowH, h);
+  }
+  root.atlasSheets = sheets;
+  root.atlasCount = list.length;
 }

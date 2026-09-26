@@ -727,7 +727,10 @@ function menuNav(inp) {
 // ---------------- main loop ----------------
 let last = performance.now();
 let logoT = 0;
+const prof = { on: false, t: {}, frames: [], gaps: [] };
+const tick = (k, t0) => { if (prof.on) prof.t[k] = (prof.t[k] || 0) + performance.now() - t0; return performance.now(); };
 function frame(now) {
+  const f0 = performance.now();
   let dt = clamp((now - last) / 1000, 0, 0.05);
   last = now;
   let inp = input.read();
@@ -747,14 +750,20 @@ function frame(now) {
     slow = Math.min(1, slow + (game.over ? 0.12 : 1.4) * dt);
     if (game.over) slow = Math.min(slow, 0.3);
     const sdt = dt * slow * (window.__pc?.timeScale || 1);
+    let t0 = performance.now();
     game.update(sdt, inp);
+    t0 = tick('update', t0);
     handleEvents(game);
     contextHints(game);
     checkFeats(game, dt);
     updateMusic(game, dt);
+    t0 = tick('events', t0);
     renderer.draw(game, sdt, true);
+    t0 = tick('draw', t0);
     updateHUD(game, dt);
+    t0 = tick('hud', t0);
     minimap.update(game, dt);
+    t0 = tick('minimap', t0);
     if (loreT > 0) { loreT -= dt; if (loreT <= 0) $('lore').classList.remove('on'); }
     if (inp.edges.has('Tab') || inp.edges.has('KeyN')) openMap();
     updateToasts(dt);
@@ -777,7 +786,10 @@ function frame(now) {
   } else if (state === 'paused') {
     if (inp.pause) resume();
   }
+  let ta = performance.now();
   audio.update(dt);
+  tick('audio', ta);
+  if (prof.on) { prof.frames.push(performance.now() - f0); if (prof.last) prof.gaps.push(now - prof.last); prof.last = now; }
   requestAnimationFrame(frame);
 }
 
@@ -785,4 +797,4 @@ toTitle();
 requestAnimationFrame(frame);
 
 // debug hook for automated testing
-window.__pc = { get game() { return game; }, startRun, renderer, audio, art, get state() { return state; } };
+window.__pc = { get game() { return game; }, startRun, renderer, audio, art, prof, get state() { return state; } };

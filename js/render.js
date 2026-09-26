@@ -6,6 +6,7 @@ import { drawText } from './font.js';
 import { P } from './palette.js';
 import { clamp, lerp, TAU, dist, hash2 } from './util.js';
 import { canvas } from './art.js';
+import { Presenter } from './present.js';
 
 const SKY = [
   // clock, r, g, b
@@ -37,11 +38,14 @@ function skyAt(c) {
 const TALL_PROPS = new Set(['acacia', 'umbrella', 'baobab', 'kopje', 'mopane', 'marula', 'fig', 'quiver', 'candelabra', 'mangrove', 'fever', 'palm', 'deadtree', 'charred', 'landmark']);
 
 export class Renderer {
+  static cpuBuffer = new URLSearchParams(location.search).has('cpu');
   constructor(el, art) {
     this.el = el;
     this.art = art;
     this.cv = el;
-    this.ctx = el.getContext('2d');
+    this.presenter = new Presenter(el);
+    this.buf = canvas(10, 10);
+    this.ctx = this.buf.getContext('2d', { alpha: false, willReadFrequently: Renderer.cpuBuffer });
     this.light = canvas(10, 10);
     this.lctx = this.light.getContext('2d');
     this.cam = { x: 0, y: 0, shake: 0, zoomT: 0 };
@@ -60,18 +64,22 @@ export class Renderer {
     const portrait = H > W;
     const target = portrait ? 300 : 270;
     this.scale = Math.max(2, Math.round(Math.min(H / target, W / (portrait ? 190 : 400))));
-    let dpr = Math.min(window.devicePixelRatio || 1, 2);
-    if (W * H * dpr * dpr > 3.8e6) dpr = Math.sqrt(3.8e6 / (W * H));
+    const dpr = Math.min(window.devicePixelRatio || 1, 2);
     this.dpr = dpr;
     this.S = this.scale * dpr; // device pixels per art pixel
-    this.w = W / this.scale;
-    this.h = H / this.scale;
+    this.viewW = W / this.scale; // visible art pixels
+    this.viewH = H / this.scale;
+    // the art buffer: one pixel of margin so a sub-pixel camera never shows an edge
+    this.w = Math.ceil(this.viewW) + 2;
+    this.h = Math.ceil(this.viewH) + 2;
+    this.buf.width = this.w;
+    this.buf.height = this.h;
     this.cv.width = Math.round(W * dpr);
     this.cv.height = Math.round(H * dpr);
     this.cv.style.width = W + 'px';
     this.cv.style.height = H + 'px';
-    this.light.width = Math.ceil(this.w) + 2;
-    this.light.height = Math.ceil(this.h) + 2;
+    this.light.width = this.w;
+    this.light.height = this.h;
     this.ctx.imageSmoothingEnabled = false;
   }
 
@@ -108,10 +116,10 @@ export class Renderer {
     const p = game.player;
     const w = this.w, h = this.h;
     const t = game.time;
-    const S = this.S;
-    const Q = (v) => Math.round(v * S) / S;
+    const S = 1; // drawing happens at art resolution; the presenter scales it up
+    const Q = Math.round;
     this.Q = Q;
-    ctx.setTransform(S, 0, 0, S, 0, 0);
+    ctx.setTransform(1, 0, 0, 1, 0, 0);
     ctx.imageSmoothingEnabled = false;
 
     // camera
@@ -122,11 +130,14 @@ export class Renderer {
     this.cam.y = lerp(this.cam.y, ty, Math.min(1, dt * 3.2));
     this.cam.shake = Math.max(0, this.cam.shake - dt * 18);
     const sx = (Math.random() - 0.5) * this.cam.shake, sy = (Math.random() - 0.5) * this.cam.shake;
-    const cx = Q(this.cam.x - w / 2 + sx), cy = Q(this.cam.y - h / 2 + sy);
+    const camL = this.cam.x - this.viewW / 2 + sx, camT = this.cam.y - this.viewH / 2 + sy;
+    const cx = Math.floor(camL), cy = Math.floor(camT);
+    this.fx = camL - cx; this.fy = camT - cy;
     this.cx = cx; this.cy = cy;
 
     // keep painting ahead of the camera (off-thread)
     W.ensure(this.cam.x, this.cam.y, w / 2 + 180, h / 2 + 160);
+    W.flush(2);
 
     // ground
     const x0 = Math.floor(cx / CHUNK), x1 = Math.floor((cx + w) / CHUNK);
@@ -300,7 +311,7 @@ export class Renderer {
       if (alpha < 1) ctx.globalAlpha = 1;
       if (sub) {
         // waterline ripple
-        const rw = Math.max(6, Math.round(img.width * 0.28));
+        const rw = Math.min(9, Math.max(4, Math.round(oy * 0.3)));
         const wob = Math.sin(t * 6 + x * 0.1) > 0 ? 1 : 0;
         ctx.fillStyle = P.foam;
         ctx.fillRect(X - rw, Y + 1, rw * 2 + wob, 1);
@@ -558,9 +569,7 @@ export class Renderer {
       L.fillRect(0, 0, w, h);
     }
     ctx.globalCompositeOperation = 'multiply';
-    ctx.imageSmoothingEnabled = true;
     ctx.drawImage(this.light, 0, 0);
-    ctx.imageSmoothingEnabled = false;
     ctx.globalCompositeOperation = 'source-over';
 
     // fog, dust, heat haze
@@ -645,6 +654,7 @@ export class Renderer {
       ctx.lineWidth = 2;
       ctx.beginPath(); ctx.arc(X, Y, 4, -Math.PI / 2, -Math.PI / 2 + frac * TAU); ctx.stroke();
     }
+    this.presenter.present(this.buf, this.fx, this.fy, this.S);
   }
 
   vignette(game, dt) {
@@ -677,7 +687,7 @@ export class Renderer {
       const sx = tx - cx, sy = ty - cy;
       if (sx > 6 && sy > 6 && sx < w - 6 && sy < h - 6) return false;
       // keep arrows inside a frame that clears the HUD strips
-      const top = 30, bot = h - 14, left = 14, right = w - 14;
+      const top = Math.ceil(84 / this.scale), bot = h - 14, left = 14, right = w - 14;
       const mx = (left + right) / 2, my = (top + bot) / 2;
       const a = Math.atan2(sy - my, sx - mx);
       const k = Math.min(Math.abs((right - mx) / Math.cos(a)), Math.abs((bot - my) / Math.sin(a)));

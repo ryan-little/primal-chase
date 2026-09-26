@@ -47,6 +47,8 @@ export class World {
     this.chunks = new Map(); // painted chunks
     this.props = new Map(); // props + water samples, per chunk, built lazily on the main thread
     this.pending = new Set();
+    this.ready = [];
+    this.pool = [];
     this.lmCache = new Map();
     this.fire = new Map();
     this.burnt = new Map();
@@ -71,14 +73,21 @@ export class World {
   // ---------------- painted chunks ----------------
   receive(d) {
     if (d.seed !== this.seed) return;
-    const k = this.key(d.cx, d.cy);
-    this.pending.delete(k);
-    this.chunks.set(k, this.finish(d.cx, d.cy, d));
+    this.ready.push(d); // finished a couple per frame in flush()
+  }
+
+  flush(max = 2) {
+    for (let n = 0; n < max && this.ready.length; n++) {
+      const d = this.ready.shift();
+      const k = this.key(d.cx, d.cy);
+      this.pending.delete(k);
+      this.chunks.set(k, this.finish(d.cx, d.cy, d));
+    }
   }
 
   finish(cx, cy, d) {
     const S = CHUNK;
-    const c = canvas(S, S);
+    const c = this.pool.pop() || canvas(S, S);
     const ctx = c.getContext('2d');
     ctx.putImageData(new ImageData(d.rgba, S, S), 0, 0);
     this.decals(ctx, cx, cy, d.types);
@@ -103,6 +112,7 @@ export class World {
 
   get(cx, cy) {
     const c = this.chunks.get(this.key(cx, cy));
+    if (!c && this.ready.length) this.flush(6);
     if (c) { c.used = performance.now(); return c; }
     this.request(cx, cy);
     return null;
@@ -122,7 +132,7 @@ export class World {
     want.sort((a, b) => a[2] - b[2]);
     for (const [cx, cy] of want) {
       if (sync) { this.buildSync(cx, cy); continue; }
-      if (this.pending.size >= 6) break;
+      if (this.pending.size >= 4) break;
       this.request(cx, cy);
     }
   }
@@ -130,7 +140,10 @@ export class World {
   evict(x, y, keep) {
     if (this.chunks.size > 160) {
       for (const [k, c] of this.chunks) {
-        if (Math.abs(c.cx * CHUNK + 64 - x) > keep || Math.abs(c.cy * CHUNK + 64 - y) > keep) this.chunks.delete(k);
+        if (Math.abs(c.cx * CHUNK + 64 - x) > keep || Math.abs(c.cy * CHUNK + 64 - y) > keep) {
+          this.chunks.delete(k);
+          if (this.pool.length < 48) this.pool.push(c.img);
+        }
       }
     }
     if (this.props.size > 900) {
