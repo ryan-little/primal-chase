@@ -477,6 +477,26 @@ function updateMusic(g, dt) {
   }
 }
 
+// ---------------- menu navigation (keyboard arrows, gamepad) ----------------
+function menuNav(inp) {
+  const open = screens.find((n) => !$(n).classList.contains('hidden'));
+  if (!open) return;
+  const btns = [...$(open).querySelectorAll('.btn')].filter((b) => b.offsetParent);
+  if (!btns.length) return;
+  let i = btns.indexOf(document.activeElement);
+  const E = inp.edges;
+  const up = E.has('NavUp') || E.has('ArrowUp') || E.has('ArrowLeft') || E.has('KeyW');
+  const down = E.has('NavDown') || E.has('ArrowDown') || E.has('ArrowRight') || E.has('KeyS');
+  if (up || down) {
+    i = i < 0 ? 0 : (i + (down ? 1 : -1) + btns.length) % btns.length;
+    btns[i].focus();
+    audio.play('ui', { pitch: 76 });
+  }
+  if (inp.padConfirm && i >= 0) btns[i].click();
+  if (open === 'how' || open === 'settings') inp.pause = false;
+  if (E.has('NavBack') || (E.has('Escape') && (open === 'how' || open === 'settings'))) { const back = $(open).querySelector('[data-back]'); if (back) back.click(); else if (open === 'pause') resume(); }
+}
+
 // ---------------- main loop ----------------
 let last = performance.now();
 let logoT = 0;
@@ -487,6 +507,7 @@ function frame(now) {
   if (window.__pc?.override && game && state === 'playing') inp = Object.assign(inp, window.__pc.override(game));
   if (inp.edges.has('KeyM')) { audio.muted = !audio.muted; audio.applyVolumes(); }
 
+  menuNav(inp);
   if (state === 'title') {
     logoT += dt;
     drawLogo(logoT);

@@ -107,7 +107,13 @@ export class Input {
       const edge = (i) => b(i) && !this.padPrev[i];
       if (edge(0) || edge(2)) { pounce = true; this.lastDevice = 'pad'; }
       if (edge(9)) pause = true;
-      if (edge(0) || edge(9)) confirm = true;
+      if (edge(0) || edge(9)) { confirm = true; this.padConfirm = true; }
+      const ay2 = gp.axes[1] || 0;
+      const up = b(12) || ay2 < -0.6, down = b(13) || ay2 > 0.6;
+      if (up && !this.padUp) this.edges.add('NavUp');
+      if (down && !this.padDown) this.edges.add('NavDown');
+      this.padUp = up; this.padDown = down;
+      if (edge(1)) this.edges.add('NavBack');
       for (let i = 0; i < gp.buttons.length; i++) this.padPrev[i] = b(i);
     }
 
@@ -125,8 +131,9 @@ export class Input {
     if (this.touchSprint) sprint = true;
     if (this.touchPounce) { pounce = true; this.touchPounce = false; }
 
+    const padConfirm = this.padConfirm; this.padConfirm = false;
     const edges = new Set(this.edges);
     this.edges.clear();
-    return { x, y, sprint, pounce, pause, confirm, edges };
+    return { x, y, sprint, pounce, pause, confirm, padConfirm, edges };
   }
 }
