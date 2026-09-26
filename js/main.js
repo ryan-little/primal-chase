@@ -90,7 +90,7 @@ let state = 'title';
 let game = null;
 let attract = null;
 let returnTo = 'title';
-const screens = ['title', 'how', 'settings', 'pause', 'death'];
+const screens = ['title', 'how', 'settings', 'pause', 'death', 'feats'];
 function show(name) {
   for (const s of screens) $(s).classList.toggle('hidden', s !== name);
   const first = name && $(name).querySelector('.btn.primary, .btn');
@@ -99,7 +99,8 @@ function show(name) {
 function bestLine() {
   const best = store.get('best', 0);
   const runs = store.get('runs', []);
-  return best ? `Best: ${best.toLocaleString()} · ${runs.length} run${runs.length === 1 ? '' : 's'}` : '';
+  const db = store.get('daily_' + todayKey(), 0);
+  return best ? `Best: ${best.toLocaleString()} · ${runs.length} run${runs.length === 1 ? '' : 's'}${db ? ` · today's daily ${db.toLocaleString()}` : ''} · feats ${feats.size}/${FEATS.length}` : '';
 }
 function toTitle() {
   state = 'title';
@@ -127,17 +128,19 @@ function makeAttract() {
 const click = () => audio.play('ui', { pitch: 81 });
 $('btn-start').onclick = () => { click(); startRun(); };
 $('btn-how').onclick = () => { click(); returnTo = 'title'; show('how'); };
+$('btn-daily').onclick = () => { click(); startRun(true); };
+$('btn-feats').onclick = () => { click(); returnTo = 'title'; renderFeats(); show('feats'); };
 $('btn-settings').onclick = () => { click(); returnTo = 'title'; show('settings'); };
 $('btn-resume').onclick = () => { click(); resume(); };
 $('btn-pause-how').onclick = () => { click(); returnTo = 'pause'; show('how'); };
 $('btn-pause-settings').onclick = () => { click(); returnTo = 'pause'; show('settings'); };
 $('btn-quit').onclick = () => { click(); game.die('quit'); game.cause = 'You lay down in the grass and let them come.'; resume(); };
 $('btn-again').onclick = () => { click(); startRun(); };
-$('btn-title').onclick = () => { click(); toTitle(); };
+$('btn-title').onclick = () => { click(); daily = false; toTitle(); };
 $('btn-share').onclick = () => {
   const s = lastResult;
   if (!s) return;
-  const text = `Primal Chase: I survived to Day ${s.day} (${s.phase}), ran ${(s.dist / 1000).toFixed(2)} km and scored ${s.score.toLocaleString()}. They always catch you. How long can you last? https://primalchase.com`;
+  const text = `Primal Chase${daily ? ' (daily ' + todayKey() + ')' : ''}: I survived to Day ${s.day} (${s.phase}), ran ${(s.dist / 1000).toFixed(2)} km and scored ${s.score.toLocaleString()}. They always catch you. How long can you last? https://primalchase.com`;
   navigator.clipboard?.writeText(text).then(() => { $('btn-share').textContent = 'Copied'; setTimeout(() => ($('btn-share').textContent = 'Copy result'), 1500); });
 };
 document.querySelectorAll('[data-back]').forEach((b) => (b.onclick = () => { click(); show(returnTo); }));
@@ -173,6 +176,42 @@ function resume() {
   state = 'playing';
   audio.setMuffle(false);
   show(null);
+}
+
+// ---------------- feats ----------------
+const FEATS = [
+  ['day2', '☀', 'First dawn', 'Live to see Day 2', (g) => g.day >= 2],
+  ['day4', '☀', 'Long legs', 'Live to see Day 4', (g) => g.day >= 4],
+  ['day7', '★', 'Legend of the plain', 'Live to see Day 7', (g) => g.day >= 7],
+  ['hunt', '✦', 'Apex', 'Catch a gazelle', (g) => (g.stats.gazelles || 0) > 0],
+  ['glutton', '✦', 'Well fed', 'Catch 8 prey in one run', (g) => g.stats.prey >= 8],
+  ['takedown', '✕', 'Turn the hunt', 'Knock a hunter flat', (g) => g.stats.knockdowns > 0],
+  ['whisker', '≈', 'By a whisker', 'Dodge 5 spears in one run', (g) => g.stats.dodges >= 5],
+  ['ghost', '~', 'Ghost', 'Break your trail 10 times in one run', (g) => g.stats.breaks >= 10],
+  ['escape', '»', 'Slipped away', 'Escape after being seen', (g) => (g.stats.escapes || 0) > 0],
+  ['wild', '×', 'Wild', 'Reach a x3 multiplier', (g) => g.mult >= 3],
+  ['trample', '▲', 'Let the herd do it', 'Get a hunter trampled', (g) => (g.stats.trampled || 0) > 0],
+  ['marathon', '∞', 'Marathon', 'Run 5 km in one run', (g) => g.stats.dist >= 5000],
+];
+let feats = new Set(store.get('feats', []));
+let runFeats = new Set();
+let featT = 0;
+function checkFeats(g, dt) {
+  featT -= dt;
+  if (featT > 0) return;
+  featT = 0.5;
+  for (const [id, icon, name, , test] of FEATS) {
+    if (feats.has(id) || !test(g)) continue;
+    feats.add(id);
+    runFeats.add(name);
+    store.set('feats', [...feats]);
+    toast(`<b>Feat:</b> ${icon} ${name}`, 3);
+    audio.play('trail');
+  }
+}
+function renderFeats() {
+  $('feats-count').textContent = `${feats.size} of ${FEATS.length} earned`;
+  $('feats-list').innerHTML = FEATS.map(([id, icon, name, desc]) => `<div class="feat ${feats.has(id) ? 'got' : ''}"><i>${feats.has(id) ? icon : '·'}</i><div><b>${name}</b><span>${desc}</span></div></div>`).join('');
 }
 
 // ---------------- hints ----------------
@@ -244,10 +283,18 @@ let deathShown = false;
 let lastResult = null;
 let hitstop = 0;
 let slow = 1;
-function startRun() {
+function todayKey() {
+  const d = new Date();
+  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+}
+let daily = false;
+function startRun(isDaily = daily) {
   audio.init();
   audio.menu = false;
-  game = new Game((Math.random() * 1e9) | 0, art, audio);
+  daily = !!isDaily;
+  const seed = daily ? [...todayKey()].reduce((h, c) => (h * 31 + c.charCodeAt(0)) | 0, 7) >>> 0 : (Math.random() * 1e9) | 0;
+  game = new Game(seed, art, audio);
+  runFeats = new Set();
   renderer.camInit = false;
   renderer.parts = [];
   renderer.pops = [];
@@ -260,7 +307,7 @@ function startRun() {
   $('hud').className = '';
   $('best-inline').textContent = store.get('best', 0) ? 'best ' + store.get('best', 0).toLocaleString() : '';
   show(null);
-  card('Day 1', 'The hunters have your scent.');
+  card(daily ? 'Daily hunt' : 'Day 1', daily ? `The same land for everyone today, ${todayKey()}.` : 'The hunters have your scent.');
   audio.sting('start');
   if (!store.get('played', false)) {
     seenHints = new Set();
@@ -279,6 +326,14 @@ function finishRun() {
   const best = store.get('best', 0);
   const isBest = game.score > best;
   if (isBest) store.set('best', game.score);
+  let dailyLine = '';
+  if (daily) {
+    const dk = 'daily_' + todayKey();
+    const db = store.get(dk, 0);
+    if (game.score > db) store.set(dk, game.score);
+    dailyLine = ` · daily best ${Math.max(db, game.score).toLocaleString()}`;
+  }
+  $('new-feats').textContent = runFeats.size ? 'Feats earned: ' + [...runFeats].join(', ') : '';
   const runs = store.get('runs', []);
   const entry = { score: game.score, day: game.day, date: Date.now() };
   runs.push(entry);
@@ -287,7 +342,7 @@ function finishRun() {
   lastResult = { score: game.score, day: game.day, phase: game.phaseName.toLowerCase(), dist: s.dist };
 
   $('death-cause').textContent = game.cause;
-  $('rank').textContent = rankOf(game.score);
+  $('rank').textContent = rankOf(game.score) + (daily ? ' (daily hunt)' : '');
   $('new-best').classList.toggle('hidden', !isBest);
   const stats = [
     ['Day', `${game.day}`, game.phaseName.toLowerCase()],
@@ -303,7 +358,7 @@ function finishRun() {
   ];
   $('death-stats').innerHTML = stats.map(([k, v, sub]) => `<div class="stat"><b>${v}</b><span>${k}${sub ? ' · ' + sub : ''}</span></div>`).join('');
   const top = store.get('runs', []).slice(0, 5);
-  $('history').innerHTML = `Your longest chases<ol>${top.map((r, i) => `<li class="${r.date === entry.date ? 'me' : ''}">${i + 1}. ${r.score.toLocaleString()} <small>day ${r.day}</small></li>`).join('')}</ol>`;
+  $('history').innerHTML = `Your longest chases${dailyLine}<ol>${top.map((r, i) => `<li class="${r.date === entry.date ? 'me' : ''}">${i + 1}. ${r.score.toLocaleString()} <small>day ${r.day}</small></li>`).join('')}</ol>`;
   show('death');
   // count the score up
   const el = $('final-score');
@@ -528,6 +583,7 @@ function frame(now) {
     game.update(sdt, inp);
     handleEvents(game);
     contextHints(game);
+    checkFeats(game, dt);
     updateMusic(game, dt);
     renderer.draw(game, sdt, true);
     updateHUD(game, dt);

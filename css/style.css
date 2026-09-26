@@ -178,3 +178,14 @@ input[type=checkbox] { width: 18px; height: 18px; accent-color: var(--ochre); }
   .btn { min-width: 200px; }
 }
 .noscript { position: fixed; inset: 0; display: grid; place-items: center; }
+
+/* ---------- feats ---------- */
+#feats-list { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; text-align: left; margin-bottom: 16px; }
+.feat { display: flex; gap: 10px; align-items: center; background: var(--ink2); border: 1px solid #4a3220; padding: 8px 10px; border-radius: 3px; opacity: .5; }
+.feat.got { opacity: 1; border-color: #8a6a3a; }
+.feat i { font-style: normal; font-size: 20px; width: 26px; text-align: center; color: var(--gold); }
+.feat b { display: block; font-family: var(--serif); font-size: 16px; }
+.feat span { font-size: 12px; color: #c9b491; }
+#new-feats { margin-top: 6px; color: var(--gold); font-family: var(--serif); font-size: 15px; }
+#new-feats:empty { display: none; }
+@media (max-width: 700px) { #feats-list { grid-template-columns: 1fr; } }

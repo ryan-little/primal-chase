@@ -48,7 +48,9 @@
       <p class="tag">They never tire. They never stop. They never forget.</p>
       <div class="menu">
         <button class="btn primary" id="btn-start">Start the hunt</button>
+        <button class="btn" id="btn-daily">Daily hunt</button>
         <button class="btn" id="btn-how">How to survive</button>
+        <button class="btn" id="btn-feats">Feats</button>
         <button class="btn" id="btn-settings">Settings</button>
       </div>
       <p class="best" id="best-title"></p>
@@ -71,6 +73,16 @@
       <p class="keys desk">Move: WASD / arrows · Sprint: hold SHIFT · Pounce: SPACE · Pause: P / ESC · Mute: M</p>
       <p class="keys touchonly">Move: drag on the left · Push to the rim (or tap RUN) to sprint · POUNCE button</p>
       <p class="keys">Gamepad: left stick · RT / RB sprint · A pounce · Start pause</p>
+      <button class="btn primary" data-back>Back</button>
+    </div>
+  </div>
+
+  <!-- feats -->
+  <div id="feats" class="screen hidden">
+    <div class="panel wide">
+      <h2>Feats</h2>
+      <p class="quote" id="feats-count"></p>
+      <div id="feats-list"></div>
       <button class="btn primary" data-back>Back</button>
     </div>
   </div>
@@ -109,6 +121,7 @@
       <div class="big-score"><span id="final-score">0</span><small>score</small></div>
       <p id="rank"></p>
       <p id="new-best" class="hidden">New best</p>
+      <div id="new-feats"></div>
       <div id="death-stats"></div>
       <div class="menu row-menu">
         <button class="btn primary" id="btn-again">Run again</button>

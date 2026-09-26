@@ -14,5 +14,17 @@ window.render = async (intensity, night, secs, sfx) => {
   for (let s = 0; s < secs; s++) { let pk = 0, sum = 0; for (let i = s * sr; i < (s + 1) * sr; i++) { const v = Math.abs(d[i]); pk = Math.max(pk, v); sum += v * v; } per.push([+pk.toFixed(2), +Math.sqrt(sum / sr).toFixed(3)]); }
   return per;
 };
+window.sfx = async (name) => {
+  const sr = 22050, secs = 3.5;
+  const off = new OfflineAudioContext(2, sr * secs, sr);
+  const a = new Audio(); a.init(off); a.menu = true; a.playing = false; a.amb.gain.value = 0;
+  a.play(name, {});
+  if (['dawn','dusk','death','start'].includes(name)) a.sting(name);
+  const buf = await off.startRendering();
+  const d = buf.getChannelData(0);
+  let pk = 0, last = 0, sum = 0;
+  for (let i = 0; i < d.length; i++) { const v = Math.abs(d[i]); pk = Math.max(pk, v); sum += v*v; if (v > 0.01) last = i; }
+  return { name, peak: +pk.toFixed(2), rms: +Math.sqrt(sum / d.length).toFixed(3), dur: +(last / sr).toFixed(2) };
+};
 window.ready = true;
 </script></body></html>

@@ -475,7 +475,7 @@ export class Audio {
     const S = this.sfx;
     switch (name) {
       case 'step': {
-        this.noiseHit(t, opts.water ? 900 : 380 + Math.random() * 200, 1.2, opts.water ? 0.09 : 0.04, 0.12 * v, S, 'bandpass', 0.8);
+        this.noiseHit(t, opts.water ? 900 : 380 + Math.random() * 200, 1.2, opts.water ? 0.09 : 0.04, 0.4 * v, S, 'bandpass', 0.8);
         break;
       }
       case 'pounce': {
@@ -506,7 +506,7 @@ export class Audio {
         break;
       }
       case 'throw': {
-        const f = this.noiseHit(t, 400, 2, 0.35, 0.35 * v, S, 'bandpass');
+        const f = this.noiseHit(t, 400, 0.8, 0.35, 1.8 * v, S, 'bandpass');
         f.frequency.exponentialRampToValueAtTime(2200, t + 0.3);
         break;
       }
@@ -520,7 +520,7 @@ export class Audio {
         break;
       }
       case 'thunk': {
-        this.drum(t, 260, 120, 0.08, 0.4 * v, 0.4);
+        this.drum(t, 260, 120, 0.1, 1.3 * v, 0.9);
         break;
       }
       case 'dodge': {
@@ -579,7 +579,7 @@ export class Audio {
         break;
       }
       case 'pant': {
-        this.noiseHit(t, 1400, 1.5, 0.12, 0.13 * v, S, 'bandpass', 0.7);
+        this.noiseHit(t, 1400, 1.2, 0.14, 0.5 * v, S, 'bandpass', 0.7);
         break;
       }
       case 'heart': {
@@ -675,7 +675,7 @@ export class Audio {
     o.frequency.setValueAtTime(f0, t);
     o.frequency.exponentialRampToValueAtTime(f0 * 0.5, t + dur);
     const g = ctx.createGain();
-    this.env(g, t, 0.005, 0.18, dur);
+    this.env(g, t, 0.005, 0.4, dur);
     o.connect(g).connect(this.sfx);
     o.start(t); o.stop(t + dur + 0.05);
   }
@@ -689,7 +689,7 @@ export class Audio {
     o.frequency.setValueAtTime(f * 1.25, t);
     o.frequency.linearRampToValueAtTime(f, t + 0.25);
     const g = ctx.createGain();
-    this.env(g, t, 0.02, 0.35 * vel, 0.3);
+    this.env(g, t, 0.02, 2.4 * vel, 0.3);
     for (const [a, b, q] of [[600, 850, 6], [1000, 1250, 8]]) {
       const bp = ctx.createBiquadFilter();
       bp.type = 'bandpass'; bp.Q.value = q;

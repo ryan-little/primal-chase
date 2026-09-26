@@ -362,6 +362,7 @@ export class Game {
       if (dist(q.x, q.y, p.x, p.y) < (q.kind === 'hare' ? 12 : 15)) {
         q.dead = true;
         this.stats.prey++;
+        if (q.kind === 'gazelle') this.stats.gazelles = (this.stats.gazelles || 0) + 1;
         const meat = q.kind === 'hare' ? 24 : 70;
         this.carcasses.push({ id: UID++, x: q.x, y: q.y, meat, max: meat, kind: q.kind, face: q.face, t: 0 });
         this.addScore(q.kind === 'hare' ? 60 : 150, q.kind === 'hare' ? 'HARE' : 'GAZELLE', q.x, q.y - 16, '#ffe08a', q.kind === 'hare' ? 0.15 : 0.3);
@@ -755,6 +756,7 @@ export class Game {
       for (const h of this.hunters) {
         if (h.down <= 0 && dist(g.x, g.y, h.x, h.y) < 12) {
           h.down = 5; h.vx = Math.cos(g.a) * 90; h.vy = Math.sin(g.a) * 90;
+          this.stats.trampled = (this.stats.trampled || 0) + 1;
           this.addScore(150, 'TRAMPLED', h.x, h.y - 40, '#ff9a6a', 0.4);
           this.emit('knockdown', { x: h.x, y: h.y });
         }
