@@ -125,6 +125,9 @@ export class Renderer {
     const cx = Q(this.cam.x - w / 2 + sx), cy = Q(this.cam.y - h / 2 + sy);
     this.cx = cx; this.cy = cy;
 
+    // keep painting ahead of the camera (off-thread)
+    W.ensure(this.cam.x, this.cam.y, w / 2 + 180, h / 2 + 160);
+
     // ground
     const x0 = Math.floor(cx / CHUNK), x1 = Math.floor((cx + w) / CHUNK);
     const y0 = Math.floor(cy / CHUNK), y1 = Math.floor((cy + h) / CHUNK);

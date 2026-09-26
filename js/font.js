@@ -59,6 +59,7 @@ export function textWidth(str, scale = 1) {
 
 export function drawText(ctx, str, x, y, { color = '#fff', shadow = '#1a110c', scale = 1, align = 'left', snap = 1 } = {}) {
   const rnd = (v) => Math.round(v * snap) / snap;
+  ctx.imageSmoothingEnabled = false;
   const s = glyphSheet(color, shadow);
   str = String(str).toUpperCase();
   let cx = rnd(align === 'center' ? x - textWidth(str, scale) / 2 : align === 'right' ? x - textWidth(str, scale) : x);

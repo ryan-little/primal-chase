@@ -6,6 +6,7 @@ import { Game, BITS } from './game.js';
 import { PERK_BY_ID } from './perks.js';
 import { SECRETS, SECRET_IDS } from './secrets.js';
 import { Minimap } from './minimap.js';
+import { makeBot } from './bot.js';
 import { Renderer } from './render.js';
 import { Input } from './input.js';
 import { drawText } from './font.js';
@@ -47,28 +48,42 @@ for (const [id, key] of [['v-health', 'health'], ['v-heat', 'heat'], ['v-water',
   $('favicon').href = f.toDataURL();
 }
 const silCache = new Map();
+let logoText = null;
 function drawLogo(t = 0) {
   const c = $('logo'), x = c.getContext('2d');
   x.imageSmoothingEnabled = false;
   x.clearRect(0, 0, c.width, c.height);
   // sun
-  const g = x.createRadialGradient(130, 58, 4, 130, 58, 40);
+  const g = x.createRadialGradient(170, 66, 4, 170, 66, 44);
   g.addColorStop(0, '#fff0a0'); g.addColorStop(0.5, '#ff9a3a'); g.addColorStop(1, 'rgba(255,106,26,0)');
   x.fillStyle = g;
-  x.beginPath(); x.arc(130, 58, 40, 0, Math.PI * 2); x.fill();
-  // text with ink outline
-  const txt = 'PRIMAL CHASE', s = 3, X = 130, Y = 6;
-  for (const [dx, dy] of [[-1, 0], [1, 0], [0, -1], [0, 1], [-1, -1], [1, 1], [1, -1], [-1, 1], [0, 2], [1, 2], [-1, 2]]) {
-    drawText(x, txt, X + dx * 2, Y + dy * 2, { color: P.ink, shadow: P.ink, scale: s, align: 'center' });
+  x.beginPath(); x.arc(170, 66, 44, 0, Math.PI * 2); x.fill();
+  // lettering: a mask of the words, outlined in ink one font-pixel thick, filled with a sunset
+  if (!logoText) {
+    const s = 4, txt = 'PRIMAL CHASE';
+    const W = c.width, H = 60;
+    const mask = canvas(W, H), mx = mask.getContext('2d');
+    drawText(mx, txt, W / 2, 10, { color: '#fff', shadow: 'rgba(0,0,0,0)', scale: s, align: 'center' });
+    const tint = (col) => {
+      const k = canvas(W, H), kx = k.getContext('2d');
+      kx.drawImage(mask, 0, 0);
+      kx.globalCompositeOperation = 'source-in';
+      kx.fillStyle = col;
+      kx.fillRect(0, 0, W, H);
+      return k;
+    };
+    const g2 = mask.getContext('2d').createLinearGradient(0, 10, 0, 10 + 7 * s);
+    g2.addColorStop(0, '#fff3c4'); g2.addColorStop(0.45, '#ffd166'); g2.addColorStop(1, '#e8763a');
+    const ink = tint(P.ink), fill = tint(g2);
+    logoText = canvas(W, H);
+    const lx = logoText.getContext('2d');
+    for (const [dx, dy] of [[-1, 0], [1, 0], [0, -1], [0, 1], [-1, -1], [1, -1], [-1, 1], [1, 1], [0, 2], [1, 2], [-1, 2]]) lx.drawImage(ink, dx * s, dy * s);
+    lx.drawImage(fill, 0, 0);
   }
-  drawText(x, txt, X, Y, { color: P.gold || '#ffe08a', shadow: '#c2562e', scale: s, align: 'center' });
-  x.globalCompositeOperation = 'source-atop';
-  x.fillStyle = 'rgba(255,154,58,0.55)';
-  x.fillRect(0, Y + 13, c.width, 10);
-  x.globalCompositeOperation = 'source-over';
+  x.drawImage(logoText, 0, 2);
   // horizon silhouettes: the cat running, the band behind
   x.fillStyle = P.ink;
-  x.fillRect(10, 86, 240, 1);
+  x.fillRect(24, 104, 292, 1);
   const cat = art.cat.run[Math.floor(t * 10) % 8];
   const sil = (img, dx, dy, flip) => {
     let tmp = silCache.get(img);
@@ -85,8 +100,8 @@ function drawLogo(t = 0) {
     if (flip) { x.translate(dx + img.width, dy); x.scale(-1, 1); x.drawImage(tmp, 0, 0); } else x.drawImage(tmp, dx, dy);
     x.restore();
   };
-  sil(cat, 160, 60);
-  for (let i = 0; i < 3; i++) sil(art.hunter[i % 2].d.run[Math.floor(t * 8 + i * 3) % 8], 40 + i * 18, 49 + (i % 2));
+  sil(cat, 196, 78);
+  for (let i = 0; i < 3; i++) sil(art.hunter[i % 2].d.run[Math.floor(t * 8 + i * 3) % 8], 70 + i * 20, 67 + (i % 2));
 }
 
 // ---------------- screens ----------------
@@ -119,14 +134,41 @@ function toTitle() {
   makeAttract();
   show('title');
 }
+// The title screen plays the real game: a bot runs, the band follows, the world turns.
+let attractBot = null;
+let attractT = 0;
 function makeAttract() {
-  attract = new Game((Math.random() * 1e9) | 0, art, audio, { startClock: 0.56 });
-  // hide the band far away; the title is the calm before
-  for (const h of attract.hunters) { h.x += 5000; h.y += 5000; }
-  attract.dogs = [];
-  attract.player.state = 'lie';
-  for (let i = 0; i < 3; i++) attract.spawnHerd();
+  if (attract) attract.world.destroy();
+  attract = new Game((Math.random() * 1e9) | 0, art, audio, { startClock: 0.2 + Math.random() * 0.4 });
+  attract.demo = true;
+  attractBot = makeBot(2);
+  attractT = 0;
+  // start the band closer so the chase is on screen soon
+  const p = attract.player, b = attract.band;
+  const a = Math.atan2(b.y - p.y, b.x - p.x);
+  attract.hunters.forEach((h, i) => { h.x = p.x + Math.cos(a) * 260 + i * 12; h.y = p.y + Math.sin(a) * 260 + i * 8; });
+  b.x = p.x + Math.cos(a) * 260; b.y = p.y + Math.sin(a) * 260;
+  b.idx = Math.max(0, attract.trail.length - 26);
   renderer.camInit = false;
+}
+function stepAttract(dt) {
+  const g = attract;
+  attractT += dt;
+  const p = g.player;
+  // the demo cat cannot die, and never needs to stop for long
+  p.health = Math.max(p.health, 60);
+  p.water = Math.max(p.water, 45);
+  p.food = Math.max(p.food, 45);
+  if (g.perkChoices > 0) { const o = g.offerPerks(1); if (o.length) g.takePerk(o[0].id); else g.perkChoices = 0; }
+  g.update(dt, attractBot(g));
+  for (const e of g.events) {
+    if (e.type === 'kill' || e.type === 'hurt') renderer.burst('blood', e.x, e.y, 10);
+    else if (e.type === 'step' && e.sprint && !e.water) renderer.burst('dust', e.x, e.y, 1);
+    else if (e.type === 'step' && e.water) renderer.burst('splash', e.x, e.y, 2);
+    else if (e.type === 'thunk' || e.type === 'knockdown') renderer.burst('dust', e.x, e.y, 5);
+  }
+  g.events.length = 0;
+  if (g.over || attractT > 110) makeAttract();
 }
 
 const click = () => audio.play('ui', { pitch: 81 });
@@ -356,6 +398,8 @@ function todayKey() {
 let daily = false;
 function startRun(isDaily = daily) {
   audio.init();
+  if (attract) { attract.world.destroy(); attract = null; }
+  if (game) game.world.destroy();
   audio.menu = false;
   daily = !!isDaily;
   const seed = daily ? [...todayKey()].reduce((h, c) => (h * 31 + c.charCodeAt(0)) | 0, 7) >>> 0 : (Math.random() * 1e9) | 0;
@@ -678,12 +722,7 @@ function frame(now) {
     logoT += dt;
     drawLogo(logoT);
     if (inp.confirm && document.activeElement?.tagName !== 'BUTTON') startRun();
-    attract.time += dt;
-    attract.clock = 0.56 + Math.sin(attract.time * 0.02) * 0.02;
-    attract.player.state = 'lie';
-    attract.player.anim = (attract.player.anim + dt * 0.25) % 1;
-    attract.updatePrey(dt * 0.6);
-    attract.world.ensure(attract.player.x, attract.player.y, 400, 300, 2);
+    stepAttract(dt);
     renderer.draw(attract, dt, false);
   } else if (state === 'playing') {
     if (inp.pause) pause();

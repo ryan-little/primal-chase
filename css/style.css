@@ -29,7 +29,17 @@ html, body {
   background: radial-gradient(ellipse at center, rgba(26, 17, 12, 0.25), rgba(26, 17, 12, 0.72));
   animation: fade 0.35s ease;
 }
-#title { background: linear-gradient(180deg, rgba(26,17,12,0) 0%, rgba(26,17,12,0.15) 45%, rgba(26,17,12,0.8) 100%); align-items: flex-end; padding-bottom: 7vh; }
+#title { background: linear-gradient(180deg, rgba(26,17,12,0.55) 0%, rgba(26,17,12,0) 30%, rgba(26,17,12,0) 55%, rgba(26,17,12,0.82) 100%); align-items: stretch; padding: 0; }
+#title .title-panel { display: flex; flex-direction: column; justify-content: space-between; align-items: center; height: 100%; max-width: none; width: 100%;
+  padding: max(3vh, 14px) 16px max(3vh, 14px); overflow: hidden; }
+#title .title-top { display: flex; flex-direction: column; align-items: center; }
+#title .title-bottom { display: flex; flex-direction: column; align-items: center; gap: 4px; }
+#title .menu { display: grid; grid-template-columns: repeat(3, auto); gap: 8px; }
+#title .menu .btn { min-width: 0; padding: 10px 20px; font-size: 15px; }
+#title .menu .btn.primary { grid-column: 1 / -1; font-size: 18px; padding: 13px 26px; }
+#title .demo-tag { position: absolute; left: 16px; bottom: 12px; font-size: 11px; letter-spacing: .25em; text-transform: uppercase; color: rgba(243,227,195,.45); }
+@media (max-width: 640px) { #title .menu { grid-template-columns: repeat(2, auto); } }
+@media (max-height: 560px) { #logo { width: min(420px, 60vw); } #title .tag { margin: 2px 0 6px; } }
 @keyframes fade { from { opacity: 0; } to { opacity: 1; } }
 .panel {
   background: rgba(26, 17, 12, 0.86); border: 2px solid #5a3b24; box-shadow: 0 0 0 2px var(--ink), 0 18px 60px rgba(0,0,0,.55);
@@ -38,7 +48,7 @@ html, body {
 }
 .panel.wide { max-width: 760px; }
 .title-panel { background: none; border: none; box-shadow: none; max-width: 640px; }
-#logo { width: min(620px, 90vw); height: auto; image-rendering: pixelated; filter: drop-shadow(0 4px 0 var(--ink)) drop-shadow(0 10px 24px rgba(0,0,0,0.6)); }
+#logo { width: min(680px, 92vw); max-height: 30vh; object-fit: contain; height: auto; image-rendering: pixelated; filter: drop-shadow(0 4px 0 var(--ink)) drop-shadow(0 10px 24px rgba(0,0,0,0.6)); }
 .tag { font-family: var(--serif); font-style: italic; font-size: clamp(15px, 2.2vw, 20px); color: var(--paper); margin: 6px 0 22px; text-shadow: 0 2px 6px rgba(0,0,0,0.9); }
 h2 { font-family: var(--serif); font-weight: normal; font-size: 30px; margin: 0 0 14px; color: var(--gold); letter-spacing: .02em; }
 h3 { font-family: var(--serif); font-weight: normal; font-size: 19px; margin: 0 0 4px; color: var(--sand); }
