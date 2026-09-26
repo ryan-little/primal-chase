@@ -1,0 +1,25 @@
+<!doctype html><html><body><script type="module">
+import { buildArt } from '../js/art.js';
+import { World, G } from '../js/world.js';
+const art = buildArt();
+window.stats = (seeds) => {
+  const out = [];
+  for (const seed of seeds) {
+    const W = new World(seed, art);
+    const counts = new Array(9).fill(0); let n = 0;
+    for (let y = -4000; y < 4000; y += 40) for (let x = -4000; x < 4000; x += 40) { counts[W.ground(x, y)]++; n++; }
+    // nearest water distance from random points
+    const ds = [];
+    for (let k = 0; k < 60; k++) {
+      const px = (Math.random() - 0.5) * 6000, py = (Math.random() - 0.5) * 6000;
+      let best = 1e9;
+      for (let r = 0; r < 2000 && best === 1e9; r += 32) for (let a = 0; a < 32; a++) { const ang = a / 32 * Math.PI * 2; if (W.isWater(W.ground(px + Math.cos(ang) * r, py + Math.sin(ang) * r))) { best = r; break; } }
+      ds.push(best);
+    }
+    ds.sort((a, b) => a - b);
+    out.push({ seed, pct: counts.map(c => (100 * c / n).toFixed(1)).join(' '), medWater: ds[30], p90: ds[54], max: ds[59] });
+  }
+  return out;
+};
+window.ready = true;
+</script></body></html>

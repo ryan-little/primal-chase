@@ -1,0 +1,11 @@
+import { chromium } from '../../Primal-Chase-Fable/node_modules/playwright/index.mjs';
+const [,, n='6', skill='1', maxMin='25'] = process.argv;
+const b = await chromium.launch({ channel: 'msedge' });
+const p = await b.newPage();
+p.on('pageerror', e => console.log('ERR', e.stack));
+await p.goto('http://127.0.0.1:8791/tools/sim.html'); await p.waitForFunction(() => window.ready);
+const r = await p.evaluate(([n, s, m]) => window.runSims(n, s, m), [+n, +skill, +maxMin]);
+for (const x of r) console.log(`t${x.t} d${x.day} sc${x.score} near${x.near}% chase${x.chase}% sight${x.sightings} prey${x.prey} br${x.breaks} dg${x.dodges} ${JSON.stringify(x.causes)} ${x.cause}`);
+const avg = (k) => (r.reduce((s, x) => s + x[k], 0) / r.length).toFixed(1);
+console.log('AVG near%', avg('near'), 'chase%', avg('chase'), 't', avg('t'), 'day', avg('day'), 'score', avg('score'), 'prey', avg('prey'), 'breaks', avg('breaks'), 'dodges', avg('dodges'));
+await b.close();

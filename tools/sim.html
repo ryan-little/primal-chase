@@ -1,0 +1,29 @@
+<!doctype html><html><body><script type="module">
+import { buildArt } from '../js/art.js';
+import { Game } from '../js/game.js';
+import { makeBot } from './bot.js';
+const art = buildArt();
+const audio = { play(){}, sting(){} };
+window.runSims = (n, skill, maxMin = 25) => {
+  const res = [];
+  for (let i = 0; i < n; i++) {
+    const g = new Game(1000 + i * 17, art, audio);
+    const bot = makeBot(skill);
+    const dt = 1 / 30;
+    let t = 0, sightings = 0, hurts = 0, maxInt = 0, near = 0, chaseT = 0;
+    const causes = {};
+    while (!g.over && t < maxMin * 60) {
+      const inp = bot(g);
+      g.update(dt, inp);
+      for (const e of g.events) { if (e.type === 'sighted') sightings++; if (e.type === 'hurt') { hurts++; causes[e.kind] = (causes[e.kind]||0)+1; } }
+      g.events.length = 0;
+      t += dt;
+      if (g.hunterDist() < 320) near += dt;
+      if (g.band.mode === 'chase') chaseT += dt;
+    }
+    res.push({ near: Math.round(100*near/t), chase: Math.round(100*chaseT/t), t: Math.round(t), day: g.day, clock: +g.clock.toFixed(2), score: g.score, cause: g.cause, sightings, hurts, causes, ...g.stats, bestClose: Math.round(g.stats.bestClose) });
+  }
+  return res;
+};
+window.ready = true;
+</script></body></html>

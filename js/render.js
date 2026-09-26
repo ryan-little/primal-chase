@@ -1,0 +1,508 @@
+// Draws the world at a low internal resolution (crisp pixels, scaled up by CSS),
+// then grades it with a light map: warm dawns, white noon, blue nights lit by torches.
+
+import { CHUNK, G } from './world.js';
+import { drawText } from './font.js';
+import { P } from './palette.js';
+import { clamp, lerp, TAU, dist, hash2 } from './util.js';
+import { canvas } from './art.js';
+
+const SKY = [
+  // clock, r, g, b
+  [0.0, 64, 74, 132],
+  [0.025, 150, 110, 150],
+  [0.05, 255, 176, 140],
+  [0.1, 255, 236, 214],
+  [0.3, 255, 255, 246],
+  [0.55, 255, 240, 214],
+  [0.625, 255, 186, 128],
+  [0.665, 214, 120, 120],
+  [0.7, 86, 90, 150],
+  [0.75, 58, 68, 128],
+  [0.95, 56, 66, 124],
+  [1.0, 64, 74, 132],
+];
+
+function skyAt(c) {
+  for (let i = 0; i < SKY.length - 1; i++) {
+    const a = SKY[i], b = SKY[i + 1];
+    if (c >= a[0] && c <= b[0]) {
+      const t = (c - a[0]) / (b[0] - a[0]);
+      return [lerp(a[1], b[1], t), lerp(a[2], b[2], t), lerp(a[3], b[3], t)];
+    }
+  }
+  return [255, 255, 255];
+}
+
+export class Renderer {
+  constructor(el, art) {
+    this.el = el;
+    this.art = art;
+    this.cv = el;
+    this.ctx = el.getContext('2d');
+    this.light = canvas(10, 10);
+    this.lctx = this.light.getContext('2d');
+    this.cam = { x: 0, y: 0, shake: 0, zoomT: 0 };
+    this.parts = [];
+    this.pops = [];
+    this.rainDrops = [];
+    this.flashT = 0;
+    this.hurtT = 0;
+    this.reducedMotion = false;
+    this.resize();
+  }
+
+  resize() {
+    const W = window.innerWidth, H = window.innerHeight;
+    const portrait = H > W;
+    const target = portrait ? 300 : 270;
+    this.scale = Math.max(2, Math.round(Math.min(H / target, W / (portrait ? 190 : 400))));
+    this.w = Math.ceil(W / this.scale);
+    this.h = Math.ceil(H / this.scale);
+    this.cv.width = this.w;
+    this.cv.height = this.h;
+    this.cv.style.width = this.w * this.scale + 'px';
+    this.cv.style.height = this.h * this.scale + 'px';
+    this.light.width = this.w;
+    this.light.height = this.h;
+    this.ctx.imageSmoothingEnabled = false;
+  }
+
+  shake(a) {
+    if (!this.reducedMotion) this.cam.shake = Math.max(this.cam.shake, a);
+  }
+
+  pop(text, x, y, color = '#fff') {
+    this.pops.push({ text, x, y, t: 0, color });
+  }
+
+  burst(kind, x, y, n = 8, extra = {}) {
+    for (let i = 0; i < n; i++) {
+      const a = Math.random() * TAU;
+      const s = Math.random();
+      let p;
+      if (kind === 'dust') p = { x, y, z: 1, vx: Math.cos(a) * 12 * s + (extra.vx || 0), vy: Math.sin(a) * 5 * s, vz: 8 + s * 10, life: 0.5 + s * 0.4, col: extra.col || P.sand3, size: 2, grav: -2, drag: 3 };
+      else if (kind === 'splash') p = { x, y, z: 1, vx: Math.cos(a) * 30 * s, vy: Math.sin(a) * 14 * s, vz: 40 + s * 40, life: 0.6, col: s < 0.5 ? P.foam : P.water2, size: 1, grav: 160, drag: 1 };
+      else if (kind === 'blood') p = { x, y, z: 6, vx: Math.cos(a) * 40 * s, vy: Math.sin(a) * 20 * s, vz: 30 + s * 40, life: 0.7, col: s < 0.5 ? P.blood : P.blood1, size: 1, grav: 150, drag: 2, stain: true };
+      else if (kind === 'ember') p = { x: x + (Math.random() - 0.5) * 3, y, z: extra.z || 38, vx: (Math.random() - 0.5) * 8, vy: 0, vz: 14 + s * 16, life: 0.4 + s * 0.4, col: s < 0.4 ? P.fire2 : s < 0.8 ? P.fire1 : P.fire0, size: 1, grav: -10, drag: 1 };
+      else if (kind === 'spark') p = { x, y, z: 4, vx: Math.cos(a) * 70 * s, vy: Math.sin(a) * 35 * s, vz: 20 + s * 30, life: 0.35, col: extra.col || P.hint, size: 1, grav: 60, drag: 3 };
+      else if (kind === 'sweat') p = { x: x + (Math.random() - 0.5) * 8, y, z: 18, vx: (Math.random() - 0.5) * 10, vy: 0, vz: 10 + s * 10, life: 0.5, col: P.cool, size: 1, grav: 60, drag: 1 };
+      else if (kind === 'feather') p = { x, y, z: 30, vx: Math.cos(a) * 20 * s, vy: 0, vz: 10 * s, life: 1.5, col: P.inkSoft, size: 1, grav: 12, drag: 1 };
+      this.parts.push(p);
+    }
+  }
+
+  // ------------------------------------------------------------------
+  draw(game, dt, ui) {
+    const ctx = this.ctx, A = this.art, W = game.world;
+    const p = game.player;
+    const w = this.w, h = this.h;
+    const t = game.time;
+
+    // camera
+    const lookX = p.vx * 0.45, lookY = p.vy * 0.35;
+    const tx = p.x + lookX, ty = p.y - 8 + lookY;
+    if (!this.camInit) { this.cam.x = tx; this.cam.y = ty; this.camInit = true; }
+    this.cam.x = lerp(this.cam.x, tx, Math.min(1, dt * 3.2));
+    this.cam.y = lerp(this.cam.y, ty, Math.min(1, dt * 3.2));
+    this.cam.shake = Math.max(0, this.cam.shake - dt * 18);
+    const sx = (Math.random() - 0.5) * this.cam.shake, sy = (Math.random() - 0.5) * this.cam.shake;
+    const cx = Math.round(this.cam.x - w / 2 + sx), cy = Math.round(this.cam.y - h / 2 + sy);
+    this.cx = cx; this.cy = cy;
+
+    // ground
+    const x0 = Math.floor(cx / CHUNK), x1 = Math.floor((cx + w) / CHUNK);
+    const y0 = Math.floor(cy / CHUNK), y1 = Math.floor((cy + h) / CHUNK);
+    for (let gy = y0; gy <= y1; gy++) {
+      for (let gx = x0; gx <= x1; gx++) {
+        const c = W.get(gx, gy);
+        ctx.drawImage(c.img, gx * CHUNK - cx, gy * CHUNK - cy);
+      }
+    }
+
+    // water glints
+    ctx.fillStyle = P.foam;
+    for (let gy = y0; gy <= y1; gy++) for (let gx = x0; gx <= x1; gx++) {
+      const c = W.peek(gx, gy);
+      if (!c) continue;
+      const wp = c.waterPts;
+      for (let i = 0; i < wp.length; i += 2) {
+        const hsh = hash2(wp[i], wp[i + 1], 3);
+        const ph = (t * 0.6 + hsh * 10) % 3;
+        if (ph > 1) continue;
+        const gx2 = wp[i] + Math.sin(hsh * 40) * 6 - cx, gy2 = wp[i + 1] + Math.cos(hsh * 30) * 5 - cy;
+        if (W.typeAt(wp[i] + Math.sin(hsh * 40) * 6, wp[i + 1] + Math.cos(hsh * 30) * 5) < G.SHALLOW) continue;
+        const len = Math.round(Math.sin(ph * Math.PI) * 3);
+        ctx.globalAlpha = 0.7;
+        ctx.fillRect(Math.round(gx2), Math.round(gy2), len, 1);
+      }
+    }
+    ctx.globalAlpha = 1;
+
+    // your trail: the thing they follow
+    const tr = game.trail;
+    const start = Math.max(0, tr.length - 900);
+    for (let i = start; i < tr.length; i++) {
+      const q = tr[i];
+      if (q.s < 0.08 || q.water) continue;
+      const qx = Math.round(q.x - cx), qy = Math.round(q.y - cy);
+      if (qx < -4 || qy < -4 || qx > w + 4 || qy > h + 4) continue;
+      const age = tr.length - i;
+      const fade = clamp(1 - age / 900, 0.2, 1);
+      ctx.globalAlpha = q.s * 0.5 * fade;
+      ctx.fillStyle = q.g === G.MUD ? '#2a1c10' : q.g === G.SAND || q.g === G.CLAY ? '#6e4424' : '#4e3d18';
+      const side = (i & 1) ? 2 : -2;
+      ctx.fillRect(qx, qy + side * 0.5, 2, 1);
+      ctx.fillRect(qx + 1, qy + side * 0.5 - 1, 1, 1);
+    }
+    ctx.globalAlpha = 1;
+
+    // blood stains etc. already baked as particles with stain
+    // shadows
+    ctx.fillStyle = 'rgba(30,18,10,0.28)';
+    const props = [];
+    for (const pr of W.propsNear(cx + w / 2, cy + h / 2, Math.max(w, h) / 2 + 80)) {
+      const img = pr.def.img;
+      if (pr.x - pr.def.ox > cx + w + 4 || pr.x + img.width - pr.def.ox < cx - 4) continue;
+      if (pr.y - pr.def.oy > cy + h + 4 || pr.y + 10 < cy) continue;
+      props.push(pr);
+      const s = pr.def.shadow;
+      if (s) {
+        ctx.beginPath();
+        ctx.ellipse(Math.round(pr.x - cx), Math.round(pr.y - cy + s.dy), s.rx, s.ry, 0, 0, TAU);
+        ctx.fill();
+      }
+    }
+    const shadow = (x, y, rx, ry = rx * 0.4, a = 0.28) => {
+      ctx.fillStyle = `rgba(30,18,10,${a})`;
+      ctx.beginPath();
+      ctx.ellipse(Math.round(x - cx), Math.round(y - cy), rx, ry, 0, 0, TAU);
+      ctx.fill();
+    };
+
+    // spear telegraphs on the ground
+    for (const hu of game.scout ? [...game.hunters, game.scout] : game.hunters) {
+      if (hu.windup > 0) {
+        const k = 1 - hu.windup / 0.8;
+        ctx.strokeStyle = `rgba(255,74,46,${0.35 + k * 0.5})`;
+        ctx.lineWidth = 1;
+        ctx.setLineDash([3, 3]);
+        ctx.lineDashOffset = -t * 30;
+        ctx.beginPath();
+        ctx.moveTo(Math.round(hu.x - cx) + 0.5, Math.round(hu.y - cy) + 0.5);
+        ctx.lineTo(Math.round(hu.tx - cx) + 0.5, Math.round(hu.ty - cy) + 0.5);
+        ctx.stroke();
+        ctx.setLineDash([]);
+        const rr = 10 - k * 4;
+        ctx.beginPath();
+        ctx.ellipse(Math.round(hu.tx - cx) + 0.5, Math.round(hu.ty - cy) + 0.5, rr, rr * 0.55, 0, 0, TAU);
+        ctx.stroke();
+      }
+    }
+    // band search ring
+    if (game.band.mode === 'search') {
+      const b = game.band;
+      ctx.strokeStyle = 'rgba(127,214,224,0.25)';
+      ctx.setLineDash([2, 4]);
+      ctx.beginPath();
+      ctx.ellipse(Math.round(b.searchX - cx), Math.round(b.searchY - cy), b.searchR, b.searchR * 0.6, 0, 0, TAU);
+      ctx.stroke();
+      ctx.setLineDash([]);
+    }
+
+    // ---------- y-sorted sprites ----------
+    const list = [];
+    for (const pr of props) list.push({ y: pr.y, k: 0, o: pr });
+    for (const c of game.carcasses) list.push({ y: c.y - 2, k: 1, o: c });
+    for (const s of game.stuck) list.push({ y: s.y, k: 2, o: s });
+    for (const q of game.prey) list.push({ y: q.y, k: 3, o: q });
+    for (const d of game.dogs) list.push({ y: d.y, k: 4, o: d });
+    for (const hu of game.hunters) list.push({ y: hu.y, k: 5, o: hu });
+    if (game.scout) list.push({ y: game.scout.y, k: 5, o: game.scout });
+    list.push({ y: p.y, k: 6, o: p });
+    list.sort((a, b) => a.y - b.y);
+
+    const night = game.isNight || game.clock > 0.64;
+    const spr = (img, x, y, ox, oy, flip, alpha = 1) => {
+      const X = Math.round(x - cx), Y = Math.round(y - cy);
+      if (X < -img.width - 10 || X > w + img.width + 10 || Y < -10 || Y > h + img.height + 10) return;
+      if (alpha < 1) ctx.globalAlpha = alpha;
+      if (flip) {
+        ctx.save();
+        ctx.translate(X, 0);
+        ctx.scale(-1, 1);
+        ctx.drawImage(img, -(img.width - ox) , Y - oy);
+        ctx.restore();
+      } else ctx.drawImage(img, X - ox, Y - oy);
+      if (alpha < 1) ctx.globalAlpha = 1;
+    };
+
+    for (const it of list) {
+      const o = it.o;
+      if (it.k === 0) {
+        let alpha = 1;
+        if ((o.kind === 'acacia' || o.kind === 'baobab' || o.kind === 'kopje') && p.y < o.y && p.y > o.y - o.def.oy - 4 && Math.abs(p.x - o.x) < o.def.img.width / 2) alpha = 0.5;
+        spr(o.def.img, o.x, o.y, o.def.ox, o.def.oy, o.flip, alpha);
+      } else if (it.k === 1) {
+        shadow(o.x, o.y, 9, 3);
+        spr(o.meat > 0 ? A.carcass : A.carcassBones, o.x, o.y, 15, 11, o.face < 0);
+      } else if (it.k === 2) {
+        const a = o.t > 20 ? 1 - (o.t - 20) / 5 : 1;
+        spr(A.spearStuck, o.x, o.y, 4, 17, o.face < 0, a);
+      } else if (it.k === 3) {
+        const S = o.kind === 'hare' ? A.hare : A.gazelle;
+        const spd = Math.hypot(o.vx, o.vy);
+        let fr;
+        if (o.kind === 'hare') fr = spd > 20 ? S.run[Math.floor(o.anim * 6) % 6] : S.idle[0];
+        else fr = spd > 60 ? S.run[Math.floor(o.anim * 8) % 8] : spd > 5 ? S.walk[Math.floor(o.anim * 8) % 8] : S.idle[Math.floor(o.anim * 4) % 4];
+        shadow(o.x, o.y, o.kind === 'hare' ? 4 : 8, o.kind === 'hare' ? 1.5 : 2.5);
+        spr(fr, o.x, o.y, S.ox, S.oy, o.face < 0);
+      } else if (it.k === 4) {
+        const S = A.dog;
+        const spd = Math.hypot(o.vx, o.vy);
+        const fr = spd > 70 ? S.run[Math.floor(o.anim * 8) % 8] : spd > 5 ? S.walk[Math.floor(o.anim * 8) % 8] : S.idle[0];
+        shadow(o.x, o.y, 7, 2.5);
+        spr(fr, o.x, o.y, S.ox, S.oy, o.face < 0, o.dead ? 0.8 : 1);
+      } else if (it.k === 5) {
+        const set = A.hunter[o.variant][night ? 'n' : 'd'];
+        let fr;
+        const st = o.state;
+        if (st === 'down') fr = set.down[0];
+        else if (st === 'windup') fr = set.windup[0];
+        else if (st === 'throw') fr = set.throw[0];
+        else if (st === 'search') fr = set.search[Math.floor(o.anim * 4) % 4];
+        else if (st === 'run') fr = set.run[Math.floor(o.anim * 8) % 8];
+        else fr = set.walk[Math.floor(o.anim * 8) % 8];
+        shadow(o.x, o.y, 6, 2);
+        spr(fr, o.x, o.y, 13, 38, o.face < 0);
+        if (night && st !== 'down' && st !== 'windup') {
+          const fx = o.x - o.face * 4, fy = o.y - 39;
+          if (Math.random() < dt * 30) this.burst('ember', fx, o.y, 1, { z: 38 });
+          ctx.fillStyle = P.fire1;
+          ctx.fillRect(Math.round(fx - cx) - 1, Math.round(fy - cy) - 1 - (Math.random() < 0.5 ? 1 : 0), 3, 3);
+          ctx.fillStyle = P.fire2;
+          ctx.fillRect(Math.round(fx - cx), Math.round(fy - cy), 1, 1);
+        }
+        if (o.mark > 0) {
+          const bounce = Math.abs(Math.sin(o.mark * 8)) * 3;
+          drawText(ctx, o.markType, o.x - cx - 2, o.y - cy - 52 - bounce, { color: o.markType === '!' ? P.danger : P.cool });
+        }
+      } else if (it.k === 6) {
+        const S = A.cat;
+        let arr = S[p.state] || S.idle;
+        if (game.over) arr = S.dead;
+        const fr = arr[Math.floor(p.anim * arr.length) % arr.length];
+        shadow(p.x, p.y, 10, 3);
+        if (p.state === 'pounce') {
+          ctx.globalAlpha = 0.3;
+          spr(fr, p.x - p.vx * 0.04, p.y - p.vy * 0.04, S.ox, S.oy, p.face < 0);
+          ctx.globalAlpha = 1;
+        }
+        const blink = p.iframes > 0 && p.hurt > 0 && Math.floor(t * 20) % 2 === 0;
+        if (!blink) spr(fr, p.x, p.y, S.ox, S.oy, p.face < 0);
+      }
+    }
+
+    // spears in flight
+    for (const s of game.spears) {
+      shadow(s.gx, s.gy, 3, 1, 0.3);
+      const hx = s.gx - cx, hy = s.gy - s.h - cy;
+      const ca = Math.cos(s.ang), sa = Math.sin(s.ang);
+      ctx.strokeStyle = P.bark2;
+      ctx.lineWidth = 1;
+      ctx.beginPath();
+      ctx.moveTo(Math.round(hx - ca * 12) + 0.5, Math.round(hy - sa * 12) + 0.5);
+      ctx.lineTo(Math.round(hx) + 0.5, Math.round(hy) + 0.5);
+      ctx.stroke();
+      ctx.fillStyle = P.rock4;
+      ctx.fillRect(Math.round(hx + ca * 1), Math.round(hy + sa * 1), 2, 1);
+    }
+
+    // vultures over carcasses
+    for (const c of game.carcasses) {
+      if (c.t < 6) continue;
+      const nv = Math.min(3, Math.floor((c.t - 6) / 5) + 1);
+      for (let i = 0; i < nv; i++) {
+        const a = t * 0.8 + i * 2.1 + c.id;
+        const vx = c.x + Math.cos(a) * (26 + i * 6), vy = c.y + Math.sin(a) * 12 - 46 - i * 4;
+        shadow(c.x + Math.cos(a) * (26 + i * 6), c.y + Math.sin(a) * 12, 4, 1.2, 0.15);
+        const fr = A.vulture[Math.floor(t * 6 + i) % 4];
+        ctx.drawImage(fr, Math.round(vx - cx - 11), Math.round(vy - cy - 6));
+      }
+    }
+
+    // particles
+    for (const q of this.parts) {
+      q.life -= dt;
+      q.vz -= q.grav * dt;
+      q.z += q.vz * dt;
+      q.x += q.vx * dt; q.y += q.vy * dt;
+      const dr = Math.max(0, 1 - q.drag * dt);
+      q.vx *= dr; q.vy *= dr;
+      if (q.z < 0) {
+        q.z = 0; q.vz = 0; q.vx = 0; q.vy = 0;
+        if (q.stain) { q.life = Math.max(q.life, 6); q.stain = false; q.grav = 0; }
+      }
+      ctx.globalAlpha = clamp(q.life * 2, 0, 1);
+      ctx.fillStyle = q.col;
+      ctx.fillRect(Math.round(q.x - cx), Math.round(q.y - q.z - cy), q.size, q.size);
+    }
+    ctx.globalAlpha = 1;
+    this.parts = this.parts.filter((q) => q.life > 0);
+    if (this.parts.length > 900) this.parts.splice(0, this.parts.length - 900);
+
+    // ---------- lighting ----------
+    const L = this.lctx;
+    let [r, g, b] = skyAt(game.clock);
+    const rain = game.weather.rain;
+    r = lerp(r, r * 0.7, rain); g = lerp(g, g * 0.75, rain); b = lerp(b, b * 0.85, rain);
+    L.globalCompositeOperation = 'source-over';
+    L.fillStyle = `rgb(${r | 0},${g | 0},${b | 0})`;
+    L.fillRect(0, 0, w, h);
+    const darkness = 1 - (r + g + b) / (3 * 255);
+    if (darkness > 0.12) {
+      L.globalCompositeOperation = 'lighter';
+      const glow = (x, y, rad, cr, cg, cb, a) => {
+        const gr = L.createRadialGradient(x, y, 0, x, y, rad);
+        gr.addColorStop(0, `rgba(${cr},${cg},${cb},${a})`);
+        gr.addColorStop(1, `rgba(${cr},${cg},${cb},0)`);
+        L.fillStyle = gr;
+        L.fillRect(x - rad, y - rad, rad * 2, rad * 2);
+      };
+      const k = clamp((darkness - 0.12) * 2.2, 0, 1);
+      glow(p.x - cx, p.y - cy - 6, 70, 110, 110, 150, 0.55 * k);
+      for (const hu of game.scout ? [...game.hunters, game.scout] : game.hunters) {
+        if (hu.state === 'down') continue;
+        const fl = 0.85 + Math.sin(t * 17 + hu.id) * 0.08 + Math.random() * 0.07;
+        glow(hu.x - hu.face * 4 - cx, hu.y - 36 - cy, 78 * fl, 255, 150, 70, 0.8 * k);
+      }
+      L.globalCompositeOperation = 'source-over';
+    }
+    if (game.weather.flash > 0) {
+      L.fillStyle = `rgba(255,255,255,${game.weather.flash * 0.8})`;
+      L.fillRect(0, 0, w, h);
+    }
+    ctx.globalCompositeOperation = 'multiply';
+    ctx.drawImage(this.light, 0, 0);
+    ctx.globalCompositeOperation = 'source-over';
+
+    // rain
+    if (rain > 0.03) {
+      const n = Math.floor(rain * 220);
+      while (this.rainDrops.length < n) this.rainDrops.push({ x: Math.random() * w, y: Math.random() * h, s: 0.6 + Math.random() * 0.6 });
+      this.rainDrops.length = n;
+      ctx.strokeStyle = 'rgba(190,210,230,0.5)';
+      ctx.beginPath();
+      for (const d of this.rainDrops) {
+        d.y += 260 * d.s * dt; d.x -= 60 * d.s * dt;
+        if (d.y > h) { d.y -= h + 5; d.x = Math.random() * (w + 40); }
+        if (d.x < 0) d.x += w;
+        ctx.moveTo(Math.round(d.x) + 0.5, Math.round(d.y));
+        ctx.lineTo(Math.round(d.x - 2) + 0.5, Math.round(d.y + 6));
+      }
+      ctx.stroke();
+    }
+
+    // vignettes: heat (red), hurt, night edges
+    this.vignette(game, dt);
+
+    // instinct arrows at screen edge
+    if (ui) this.instincts(game);
+
+    // floating score text
+    for (const q of this.pops) {
+      q.t += dt;
+      const a = q.t < 1.1 ? 1 : 1 - (q.t - 1.1) / 0.4;
+      ctx.globalAlpha = clamp(a, 0, 1);
+      drawText(ctx, q.text, q.x - cx, q.y - cy - q.t * 16, { color: q.color, align: 'center' });
+    }
+    ctx.globalAlpha = 1;
+    this.pops = this.pops.filter((q) => q.t < 1.5);
+
+    // stamina ring near the cat when it matters
+    if (ui && !game.over && (p.stamina < 99 || p.sprinting)) {
+      const X = p.x - cx + 13 * (p.face < 0 ? -1 : 1), Y = p.y - cy - 24;
+      const frac = p.stamina / 100;
+      ctx.strokeStyle = 'rgba(26,17,12,0.7)';
+      ctx.lineWidth = 3;
+      ctx.beginPath(); ctx.arc(X, Y, 4, 0, TAU); ctx.stroke();
+      ctx.strokeStyle = p.exhausted ? P.danger : frac < 0.3 ? P.fire1 : P.hint;
+      ctx.lineWidth = 2;
+      ctx.beginPath(); ctx.arc(X, Y, 4, -Math.PI / 2, -Math.PI / 2 + frac * TAU); ctx.stroke();
+    }
+  }
+
+  vignette(game, dt) {
+    const ctx = this.ctx, w = this.w, h = this.h, p = game.player;
+    const heat = clamp((p.heat - 62) / 38, 0, 1);
+    const pulse = p.overheated ? 0.2 + Math.sin(game.time * 8) * 0.1 : 0;
+    const hurt = p.hurt > 0 ? p.hurt / 0.4 : 0;
+    const low = p.health < 30 ? (1 - p.health / 30) * (0.5 + Math.sin(game.time * 5) * 0.3) : 0;
+    const a = Math.max(heat * 0.5 + pulse, hurt * 0.55, low * 0.45);
+    if (a > 0.01) {
+      const g = ctx.createRadialGradient(w / 2, h / 2, Math.min(w, h) * 0.3, w / 2, h / 2, Math.max(w, h) * 0.72);
+      const col = hurt > 0.3 || low > 0.2 ? '150,20,15' : '230,90,30';
+      g.addColorStop(0, `rgba(${col},0)`);
+      g.addColorStop(1, `rgba(${col},${a})`);
+      ctx.fillStyle = g;
+      ctx.fillRect(0, 0, w, h);
+    }
+    // always-on subtle frame
+    const g2 = ctx.createRadialGradient(w / 2, h / 2, Math.min(w, h) * 0.45, w / 2, h / 2, Math.max(w, h) * 0.75);
+    g2.addColorStop(0, 'rgba(10,6,4,0)');
+    g2.addColorStop(1, `rgba(10,6,4,${game.isNight ? 0.55 : 0.28})`);
+    ctx.fillStyle = g2;
+    ctx.fillRect(0, 0, w, h);
+  }
+
+  instincts(game) {
+    const ctx = this.ctx, w = this.w, h = this.h, p = game.player;
+    const cx = this.cx, cy = this.cy;
+    const arrow = (tx, ty, color, label, pulse = 0) => {
+      const sx = tx - cx, sy = ty - cy;
+      if (sx > 6 && sy > 6 && sx < w - 6 && sy < h - 6) return false;
+      const mx = w / 2, my = h / 2;
+      const a = Math.atan2(sy - my, sx - mx);
+      const m = 12;
+      const k = Math.min(Math.abs((mx - m) / Math.cos(a)), Math.abs((my - m) / Math.sin(a)));
+      const ax = mx + Math.cos(a) * k, ay = my + Math.sin(a) * k;
+      const s = 5 + pulse;
+      ctx.fillStyle = 'rgba(26,17,12,0.75)';
+      ctx.beginPath();
+      ctx.moveTo(ax + Math.cos(a) * (s + 2), ay + Math.sin(a) * (s + 2));
+      ctx.lineTo(ax + Math.cos(a + 2.4) * (s + 2), ay + Math.sin(a + 2.4) * (s + 2));
+      ctx.lineTo(ax + Math.cos(a - 2.4) * (s + 2), ay + Math.sin(a - 2.4) * (s + 2));
+      ctx.fill();
+      ctx.fillStyle = color;
+      ctx.beginPath();
+      ctx.moveTo(ax + Math.cos(a) * s, ay + Math.sin(a) * s);
+      ctx.lineTo(ax + Math.cos(a + 2.4) * s, ay + Math.sin(a + 2.4) * s);
+      ctx.lineTo(ax + Math.cos(a - 2.4) * s, ay + Math.sin(a - 2.4) * s);
+      ctx.fill();
+      if (label) {
+        const lx = ax - Math.cos(a) * 14, ly = ay - Math.sin(a) * 12 - 4;
+        drawText(ctx, label, lx, ly, { color, align: 'center' });
+      }
+      return true;
+    };
+    if (game.over) return;
+    // hunters: always sensed
+    let nh = null, nd = 1e9;
+    for (const hu of game.hunters) { const d = dist(hu.x, hu.y, p.x, p.y); if (d < nd) { nd = d; nh = hu; } }
+    if (nh) arrow(nh.x, nh.y - 10, P.danger, Math.round(nd / 10) + 'M', nd < 300 ? Math.sin(game.time * 10) * 1.5 + 1 : 0);
+    for (const d of game.dogs) if (!d.dead && dist(d.x, d.y, p.x, p.y) < 500) arrow(d.x, d.y, P.fire1, null);
+    if (game.scout && !game.scout.leaving) arrow(game.scout.x, game.scout.y - 10, P.danger, null, Math.sin(game.time * 12) * 1.5 + 1);
+    // water when thirsty
+    if (p.water < 50) {
+      const wpt = game.world.nearestWater(p.x, p.y, 900);
+      if (wpt) arrow(wpt[0], wpt[1], P.cool, p.water < 25 ? 'WATER' : null);
+    }
+    // food when hungry
+    if (p.food < 45) {
+      let best = null, bd = 1e9;
+      for (const c of game.carcasses) if (c.meat > 0) { const d = dist(c.x, c.y, p.x, p.y); if (d < bd) { bd = d; best = c; } }
+      if (!best) for (const q of game.prey) { const d = dist(q.x, q.y, p.x, p.y); if (d < bd) { bd = d; best = q; } }
+      if (best) arrow(best.x, best.y, P.sand3, p.food < 25 ? 'PREY' : null);
+    }
+  }
+}

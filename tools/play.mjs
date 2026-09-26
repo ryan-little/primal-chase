@@ -1,0 +1,25 @@
+import { chromium } from '../../Primal-Chase-Fable/node_modules/playwright/index.mjs';
+const out = process.argv[2] || 'tools/shots';
+const W = +(process.argv[3]||1280), H = +(process.argv[4]||720);
+const b = await chromium.launch({ channel: 'msedge', args:['--autoplay-policy=no-user-gesture-required'] });
+const p = await b.newPage({ viewport: { width: W, height: H } });
+const errs = []; p.on('pageerror', e => errs.push('PAGEERR ' + e.stack)); p.on('console', m => { if (m.type()==='error') errs.push(m.text()); });
+await p.goto('http://127.0.0.1:8791/index.html'); await p.waitForTimeout(1500);
+await p.screenshot({ path: `${out}/01-title.png` });
+await p.click('#btn-start'); await p.waitForTimeout(1200);
+await p.screenshot({ path: `${out}/02-start.png` });
+await p.keyboard.down('KeyD'); await p.keyboard.down('KeyW'); await p.waitForTimeout(3000);
+await p.keyboard.down('ShiftLeft'); await p.waitForTimeout(1500);
+await p.screenshot({ path: `${out}/03-sprint.png` });
+await p.keyboard.up('ShiftLeft'); await p.keyboard.up('KeyW'); await p.keyboard.up('KeyD');
+// teleport hunters close to test chase visuals
+await p.evaluate(() => { const g = window.__pc.game; const pl = g.player; g.hunters.forEach((h,i)=>{h.x = pl.x - 120 + i*20; h.y = pl.y + 40 - i*25;}); g.band.x = pl.x-110; g.band.y = pl.y; });
+await p.waitForTimeout(1600);
+await p.screenshot({ path: `${out}/04-chase.png` });
+await p.evaluate(() => { const g = window.__pc.game; g.clock = 0.8; });
+await p.waitForTimeout(800);
+await p.screenshot({ path: `${out}/05-night.png` });
+const st = await p.evaluate(() => { const g = window.__pc.game; return { state: window.__pc.state, score: g.score, p: {x:g.player.x|0,y:g.player.y|0,h:g.player.health|0,heat:g.player.heat|0}, band: g.band.mode, chunks: g.world.chunks.size }; });
+console.log(JSON.stringify(st));
+console.log(errs.join('\n') || 'no errors');
+await b.close();
