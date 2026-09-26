@@ -1,0 +1,10 @@
+import { chromium } from '../../Primal-Chase-Fable/node_modules/playwright/index.mjs';
+const b = await chromium.launch({ channel: 'msedge' });
+const p = await b.newPage({ viewport: { width: 1280, height: 720 } });
+p.on('pageerror', e => console.log('PAGEERR ' + e.stack));
+await p.goto('http://127.0.0.1:8791/index.html'); await p.waitForTimeout(1000);
+await p.click('#btn-start'); await p.waitForTimeout(600);
+console.log(await p.evaluate(() => { const g = window.__pc.game; const q = g.player; const out = []; for (let i = 0; i < 6; i++) out.push([g.world.typeAt(q.x + 60 + i * 8, q.y), g.ignite(q.x + 60 + i * 8, q.y)]); return JSON.stringify({ out, fire: g.fire.size, st: window.__pc.state }); }));
+await p.waitForTimeout(4000); await p.screenshot({ path: 'tools/shots/w-fire.png' }); await p.evaluate(() => { window.__pc.game.clock = 0.8; }); await p.waitForTimeout(3000); await p.screenshot({ path: 'tools/shots/w-firenight.png' });
+console.log(await p.evaluate(() => { const g = window.__pc.game; return JSON.stringify({ fire: g.fire.size, burnt: g.burnt.size, t: g.time }); }));
+await b.close();

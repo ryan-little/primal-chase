@@ -48,6 +48,7 @@ export class Renderer {
     this.parts = [];
     this.pops = [];
     this.rainDrops = [];
+    this.dustMotes = [];
     this.flashT = 0;
     this.hurtT = 0;
     this.reducedMotion = false;
@@ -95,6 +96,7 @@ export class Renderer {
       else if (kind === 'spark') p = { x, y, z: 4, vx: Math.cos(a) * 70 * s, vy: Math.sin(a) * 35 * s, vz: 20 + s * 30, life: 0.35, col: extra.col || P.hint, size: 1, grav: 60, drag: 3 };
       else if (kind === 'sweat') p = { x: x + (Math.random() - 0.5) * 8, y, z: 18, vx: (Math.random() - 0.5) * 10, vy: 0, vz: 10 + s * 10, life: 0.5, col: P.cool, size: 1, grav: 60, drag: 1 };
       else if (kind === 'steam') p = { x: x + (Math.random() - 0.5) * 6, y, z: 2, vx: (Math.random() - 0.5) * 4, vy: 0, vz: 10 + s * 8, life: 1.6, col: '#d8d4cc', size: 2, grav: -3, drag: 1 };
+      else if (kind === 'smoke') p = { x: x + (Math.random() - 0.5) * 6, y, z: 8, vx: (Math.random() - 0.5) * 6 + 8, vy: 0, vz: 12 + s * 10, life: 1.8, col: s < 0.5 ? '#5a524b' : '#6e665d', size: 3, grav: -2, drag: 0.5 };
       else if (kind === 'feather') p = { x, y, z: 30, vx: Math.cos(a) * 20 * s, vy: 0, vz: 10 * s, life: 1.5, col: P.inkSoft, size: 1, grav: 12, drag: 1 };
       this.parts.push(p);
     }
@@ -172,7 +174,28 @@ export class Renderer {
     }
     ctx.globalAlpha = 1;
 
-    // blood stains etc. already baked as particles with stain
+    // scorched ground
+    if (game.burnt.size) {
+      for (const b of game.burnt.values()) {
+        const X = b.x - 4 - cx, Y = b.y - 4 - cy;
+        if (X < -8 || Y < -8 || X > w || Y > h) continue;
+        ctx.fillStyle = 'rgba(38,32,28,0.82)';
+        ctx.fillRect(Q(X), Q(Y), 8, 8);
+        if (((b.x * 7 + b.y * 3) & 15) === 0) { ctx.fillStyle = P.ash3; ctx.fillRect(Q(X + 3), Q(Y + 2), 1, 1); }
+      }
+    }
+    // lightning about to land here
+    for (const st of game.weather.strikes) {
+      if (st.done) continue;
+      const k = 1 - st.t / 0.9;
+      ctx.strokeStyle = `rgba(255,250,210,${0.3 + k * 0.6})`;
+      ctx.lineWidth = 1;
+      ctx.beginPath();
+      ctx.ellipse(Q(st.x - cx), Q(st.y - cy), 22 - k * 16, (22 - k * 16) * 0.55, 0, 0, TAU);
+      ctx.stroke();
+      ctx.fillStyle = `rgba(255,250,210,${k * 0.25})`;
+      ctx.fill();
+    }
     // shadows
     ctx.fillStyle = 'rgba(30,18,10,0.28)';
     const props = [];
@@ -391,6 +414,49 @@ export class Renderer {
       }
     }
 
+    // fire
+    if (game.fire.size) {
+      for (const f of game.fire.values()) {
+        const X = f.x - cx, Y = f.y - cy;
+        if (X < -10 || Y < -20 || X > w + 10 || Y > h + 10) continue;
+        const life = Math.min(1, (f.max - f.t) / 0.5, f.t / 1.2);
+        const hs = ((f.x * 13 + f.y * 7) >>> 0) % 97;
+        ctx.fillStyle = `rgba(255,110,30,${0.3 * life})`;
+        ctx.beginPath(); ctx.ellipse(Q(X), Q(Y), 7, 3.5, 0, 0, TAU); ctx.fill();
+        for (let k = 0; k < 2; k++) {
+          const ox = ((hs >> (k * 2)) % 7) - 3;
+          const fl = Math.sin(t * (11 + k * 4) + hs + k * 2);
+          const hgt = (5 + ((hs >> k) % 5) + fl * 2) * life;
+          if (hgt < 1.5) continue;
+          const bx = X + ox, lean = Math.cos(game.weather.windA) * 1.5 + fl * 0.6;
+          ctx.fillStyle = P.fire0;
+          ctx.beginPath(); ctx.moveTo(Q(bx - 2.5), Q(Y)); ctx.lineTo(Q(bx + lean), Q(Y - hgt)); ctx.lineTo(Q(bx + 2.5), Q(Y)); ctx.fill();
+          ctx.fillStyle = P.fire1;
+          ctx.beginPath(); ctx.moveTo(Q(bx - 1.5), Q(Y)); ctx.lineTo(Q(bx + lean * 0.7), Q(Y - hgt * 0.7)); ctx.lineTo(Q(bx + 1.5), Q(Y)); ctx.fill();
+          ctx.fillStyle = P.fire2;
+          ctx.fillRect(Q(bx - 0.5), Q(Y - hgt * 0.35), 1, Math.max(1, hgt * 0.3));
+        }
+        if (Math.random() < dt * 0.8) this.burst('smoke', f.x, f.y - 6, 1);
+        if (Math.random() < dt * 1.2) this.burst('ember', f.x, f.y, 1, { z: 6 });
+      }
+    }
+    for (const st of game.weather.strikes) {
+      if (!st.done || st.t < -0.25) continue;
+      for (const [lw, col] of [[6, 'rgba(200,220,255,0.35)'], [2, '#fffbe0']]) {
+      ctx.strokeStyle = col;
+      ctx.lineWidth = lw;
+      ctx.beginPath();
+      let bx = st.x - cx, by = -10;
+      ctx.moveTo(Q(bx), by);
+      const segs = 9;
+      for (let i = 1; i <= segs; i++) {
+        const yy = -10 + ((st.y - cy + 10) * i) / segs;
+        const xx = st.x - cx + (i < segs ? Math.sin(st.x + i * 7.3) * 9 : 0);
+        ctx.lineTo(Q(xx), Q(yy));
+      }
+      ctx.stroke();
+      }
+    }
     // spears in flight
     for (const s of game.spears) {
       shadow(s.gx, s.gy, 3, 1, 0.3);
@@ -459,6 +525,13 @@ export class Renderer {
       };
       const k = clamp((darkness - 0.12) * 2.2, 0, 1);
       glow(p.x - cx, p.y - cy - 6, 100, 120, 118, 150, 0.6 * k);
+      let fi = 0;
+      for (const f of game.fire.values()) {
+        if ((fi++ & 3) !== 0) continue;
+        const X = f.x - cx, Y = f.y - cy;
+        if (X < -60 || Y < -60 || X > w + 60 || Y > h + 60) continue;
+        glow(X, Y - 4, 46, 255, 140, 60, 0.55 * k);
+      }
       for (const hu of [...game.hunters, ...game.runners]) {
         if (hu.state === 'down') continue;
         const fl = 0.85 + Math.sin(t * 17 + hu.id) * 0.08 + Math.random() * 0.07;
@@ -475,6 +548,46 @@ export class Renderer {
     ctx.drawImage(this.light, 0, 0);
     ctx.imageSmoothingEnabled = false;
     ctx.globalCompositeOperation = 'source-over';
+
+    // fog, dust, heat haze
+    const wx = game.weather;
+    if (wx.fog > 0.03) {
+      const px = p.x - cx, py = p.y - cy;
+      const gr = ctx.createRadialGradient(px, py, 30, px, py, Math.max(w, h) * 0.55);
+      gr.addColorStop(0, `rgba(222,226,228,${wx.fog * 0.18})`);
+      gr.addColorStop(1, `rgba(222,226,228,${wx.fog * 0.72})`);
+      ctx.fillStyle = gr;
+      ctx.fillRect(0, 0, w, h);
+      for (let i = 0; i < 7; i++) {
+        const fx = ((i * 97 + t * 6 - cx * 0.6) % (w + 160) + w + 160) % (w + 160) - 80, fy = ((i * 53 - cy * 0.6) % (h + 120) + h + 120) % (h + 120) - 60;
+        const g2 = ctx.createRadialGradient(fx, fy, 0, fx, fy, 70);
+        g2.addColorStop(0, `rgba(235,238,240,${wx.fog * 0.3})`);
+        g2.addColorStop(1, 'rgba(235,238,240,0)');
+        ctx.fillStyle = g2;
+        ctx.fillRect(fx - 70, fy - 70, 140, 140);
+      }
+    }
+    if (wx.dust > 0.03) {
+      ctx.fillStyle = `rgba(186,118,58,${wx.dust * 0.42})`;
+      ctx.fillRect(0, 0, w, h);
+      const n = Math.floor(wx.dust * 160);
+      const ca = Math.cos(wx.windA), sa = Math.sin(wx.windA);
+      while (this.dustMotes.length < n) this.dustMotes.push({ x: Math.random() * w, y: Math.random() * h, s: 0.5 + Math.random() });
+      this.dustMotes.length = n;
+      ctx.fillStyle = 'rgba(232,190,130,0.6)';
+      for (const d of this.dustMotes) {
+        d.x += ca * 160 * d.s * dt; d.y += sa * 160 * d.s * dt;
+        if (d.x < 0) d.x += w; if (d.x > w) d.x -= w; if (d.y < 0) d.y += h; if (d.y > h) d.y -= h;
+        ctx.fillRect(d.x, d.y, 3 * d.s, 1);
+      }
+    }
+    if (wx.heat > 0.05 && game.sun > 0.2) {
+      const a = wx.heat * game.sun;
+      ctx.fillStyle = `rgba(255,190,110,${a * 0.13})`;
+      ctx.fillRect(0, 0, w, h);
+      ctx.fillStyle = `rgba(255,240,210,${a * 0.08})`;
+      for (let yy = (t * 14) % 9; yy < h; yy += 9) ctx.fillRect(0, yy + Math.sin(yy * 0.3 + t * 3) * 1.5, w, 1);
+    }
 
     // rain
     if (rain > 0.03) {

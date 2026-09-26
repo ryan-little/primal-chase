@@ -46,6 +46,8 @@ export class World {
     this.props = new Map(); // props + water samples, per chunk, built lazily on the main thread
     this.pending = new Set();
     this.lmCache = new Map();
+    this.fire = new Map();
+    this.burnt = new Map();
     this.useWorker = false;
     if (worker && typeof Worker !== 'undefined') {
       try {
@@ -271,7 +273,10 @@ export class World {
   }
 
   // ---------------- queries ----------------
+  fkey(x, y) { return Math.floor(x / 8) * 100003 + Math.floor(y / 8); }
+
   typeAt(x, y) {
+    if (this.burnt.size && this.burnt.has(this.fkey(x, y))) return G.ASH;
     const cx = Math.floor(x / CHUNK), cy = Math.floor(y / CHUNK);
     const c = this.chunks.get(this.key(cx, cy));
     if (!c) return this.T.ground(x, y);
@@ -312,8 +317,9 @@ export class World {
   }
 
   // Move an entity, sliding along walls. Returns 'drop' if it went over a ledge.
-  move(e, dx, dy, { drop = true } = {}) {
+  move(e, dx, dy, { drop = true, fire = false } = {}) {
     if (!dx && !dy) return null;
+    if (!fire && this.fire.size && this.fire.has(this.fkey(e.x + dx, e.y + dy))) return 'blocked';
     const r = this.stepRule(e.x, e.y, e.x + dx, e.y + dy);
     if (r === 0 || (r === 2 && drop)) { e.x += dx; e.y += dy; return r === 2 ? 'drop' : null; }
     if (r === 2 && !drop) return 'ledge';

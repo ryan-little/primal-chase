@@ -8,6 +8,7 @@ import { PERKS, PERK_BY_ID } from './perks.js';
 import { SECRETS } from './secrets.js';
 import { SPECIES, pickSpecies } from './fauna.js';
 import { B } from './terrain.js';
+import { installWeather } from './weather.js';
 
 export const DAY_LEN = 170; // seconds per full day/night cycle
 export const T = {
@@ -51,7 +52,6 @@ export class Game {
     this.slowmo = 0;
     this.over = false;
     this.deathTime = 0;
-    this.weather = { rain: 0, target: 0, until: 0, next: this.r.range(40, 80), flash: 0 };
 
     const [sx, sy] = this.world.findStart();
     this.world.prepare(sx, sy, 700, 9999);
@@ -91,6 +91,7 @@ export class Game {
     this.vultures = [];
     this.spawnT = 0;
     this.bit = null;
+    this.initWeather();
     this.runners = [];
     this.lions = [];
     this.perks = {};
@@ -205,24 +206,9 @@ export class Game {
       if ([3, 5, 7, 9].includes(this.day)) this.addHunters(1);
       const dogsWanted = this.day >= 2 ? Math.min(4, Math.floor(this.day / 2)) : 0;
       while (this.dogs.filter((d) => !d.dead).length < dogsWanted) this.addDog();
-      this.weather.next = this.r.range(15, 60);
+      this.planDay();
     }
-    // weather
-    const w = this.weather;
-    w.next -= dt;
-    if (w.next <= 0 && w.target === 0 && !this.isNight && this.r() < 0.5) {
-      w.target = 1;
-      w.until = this.r.range(22, 38);
-      this.emit('rain');
-    }
-    if (w.next <= 0 && w.target === 0) w.next = this.r.range(30, 70);
-    if (w.target === 1) {
-      w.until -= dt;
-      if (w.until <= 0) { w.target = 0; w.next = this.r.range(60, 130); }
-      if (this.r() < dt * 0.08) { w.flash = 1; this.emit('thunder'); }
-    }
-    w.rain = lerp(w.rain, w.target, dt * 0.35);
-    w.flash = Math.max(0, w.flash - dt * 3);
+    this.updateWeather(dt);
   }
 
   // ---------------- player ----------------
@@ -280,7 +266,7 @@ export class Game {
     }
     const sp = Math.hypot(p.vx, p.vy);
     const ox = p.x, oy = p.y;
-    const res = W.move(p, p.vx * dt, p.vy * dt);
+    const res = W.move(p, p.vx * dt, p.vy * dt, { fire: true });
     if (res === 'drop' && !(p.hop > 0)) {
       p.hop = 0.34;
       p.dropMark = true;
@@ -516,6 +502,7 @@ export class Game {
     this.cause = kind === 'spear' ? 'A spear found you.' : kind === 'stab' ? 'They closed the distance.' :
       kind === 'dog' ? 'The dogs pulled you down.' : kind === 'croc' ? 'The river had teeth.' :
       kind === 'hyena' ? 'The hyenas would not share.' : kind === 'stampede' ? 'Lost beneath the herd.' :
+      kind === 'fire' ? 'The grass fire caught you.' : kind === 'lightning' ? 'The sky itself struck you down.' :
       kind === 'lion' ? 'The pride would not share the plain.' : kind === 'warthog' ? 'The warthog had tusks.' : kind === 'zebra' ? 'A zebra kicked like thunder.' : p.water <= 0 ? 'Thirst took you.' :
       p.food <= 0 ? 'Hunger took you.' : p.overheated ? 'Your heart gave out in the heat.' : 'The chase ended.';
     this.emit('death', { x: p.x, y: p.y });
@@ -1362,11 +1349,6 @@ export class Game {
     }
     this.time += dt;
     this.updateClock(dt);
-    // rain washes old prints
-    if (this.weather.rain > 0.2) {
-      const k = this.weather.rain * 0.22 * dt;
-      for (let i = Math.max(0, this.band.idx); i < this.trail.length; i++) this.trail[i].s = Math.max(0, this.trail[i].s - k);
-    }
     this.updatePlayer(dt, inp);
     this.throwGate = (this.throwGate || 0) - dt;
     this.updateBand(dt);
@@ -1410,3 +1392,5 @@ export class Game {
     return { d, dogD, mode: this.band.mode };
   }
 }
+
+installWeather(Game);

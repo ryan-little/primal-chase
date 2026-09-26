@@ -297,6 +297,7 @@ const HINTS = {
   mult: 'Danger survived raises your <b>multiplier</b> (top right). Getting hurt halves it.',
   golden: 'A <b style="color:#fff09a">golden gazelle</b> is near. Catch it for a fortune.',
   pride: 'Lions ahead, resting on a kill. Stay clear, or lead the band into them.',
+  fire: '<b style="color:#ff9a4a">Grass fire!</b> It spreads with the wind. Hunters cannot pass it, and it burns your trail away. Rock, water and bare ground stop it.',
   scout: () => `A runner is cutting you off! Dodge his spears, or ${input.usingTouch ? 'POUNCE' : '<kbd>Space</kbd>'} to knock him flat.`,
   pounce: () => `A pounce is a dodge. ${input.usingTouch ? 'POUNCE' : '<kbd>Space</kbd>'} a hunter to knock him flat.`,
 };
@@ -526,6 +527,13 @@ function handleEvents(g) {
       case 'golden': hint('golden', true); break;
       case 'pride': hint('pride', true); audio.play('roar', { vol: near(e, 700) * 0.6 }); break;
       case 'roar': audio.play('roar', { vol: near(e, 600) }); renderer.shake(2); break;
+      case 'weather': {
+        const msg = { dust: '<b>Dust storm.</b> Nobody can see far, and the wind is erasing your tracks.', storm: '<b>Thunderstorm.</b> Rain hides your trail. Watch for the glow where lightning will land.', heat: '<b>Heatwave.</b> The sun is brutal today. Stay near water and shade.', rain: null }[e.kind];
+        if (msg) toast(msg, 4.5);
+        break;
+      }
+      case 'strike': audio.play('thunder', { vol: 1 }); audio.play('snap', { vol: 0.6 }); renderer.shake(5); renderer.burst('spark', e.x, e.y, 16, { col: '#fffbe0' }); break;
+      case 'wildfire': hint('fire', true); break;
       case 'mult': multBumpT = 0.25; audio.play('ui', { pitch: 84 + Math.min(12, Math.round(e.v * 3)) }); hint('mult'); break;
       case 'multloss': break;
       case 'linewarn': toast('They are reading your line. <b>Change direction</b> or they will run ahead to meet you.', 4.5); audio.play('shout', { vol: 0.5 }); break;
@@ -547,7 +555,8 @@ function updateHUD(g, dt) {
   hudT = 0.05;
   const p = g.player;
   $('day-label').textContent = `Day ${g.day}`;
-  $('phase-label').textContent = g.phaseName;
+  const wk = g.weather.fog > 0.4 ? 'Fog' : g.weather.dust > 0.4 ? 'Dust storm' : g.weather.kind === 'storm' ? 'Storm' : g.weather.rain > 0.4 ? 'Rain' : g.weather.heat > 0.4 ? 'Heatwave' : '';
+  $('phase-label').textContent = g.phaseName + (wk ? ' \u00b7 ' + wk : '');
   $('clock-icon').className = g.isNight ? 'moon' : '';
   $('score').textContent = g.score.toLocaleString();
   const mEl = $('mult');
