@@ -392,8 +392,8 @@ function handleEvents(g) {
     switch (e.type) {
       case 'pop': renderer.pop(e.text, e.x, e.y, e.color); audio.play('score', { pitch: e.text.includes('DAY') ? 7 : 0 }); break;
       case 'step':
-        audio.play('step', { water: e.g >= G.SHALLOW, vol: e.sprint ? 0.9 : 0.5 });
-        if (e.g >= G.SHALLOW) renderer.burst('splash', e.x, e.y, e.sprint ? 4 : 2);
+        audio.play('step', { water: e.water, g: e.g, vol: e.sprint ? 0.9 : 0.5 });
+        if (e.water) renderer.burst('splash', e.x, e.y, e.sprint ? 4 : 2);
         else if (e.sprint) renderer.burst('dust', e.x - p.face * 6, e.y, 2, { col: e.g === G.ROCK ? P.rock3 : e.g === G.LUSH ? P.lush2 : P.sand3, vx: -p.vx * 0.2 });
         break;
       case 'pounce': audio.play('pounce'); renderer.burst('dust', e.x, e.y, 6); renderer.shake(1.5); hint('pounce'); break;
@@ -490,7 +490,10 @@ function updateHUD(g, dt) {
   else if (p.drinking) s = '<span class="cool">Drinking</span>';
   else if (p.eating) s = 'Eating';
   else if (p.exhausted) s = '<span class="hot">Winded</span>';
-  else if (p.ground >= G.SHALLOW) s = `<span class="cool">${gname} · no tracks · cooling</span>`;
+  else if (p.ground === G.SHALLOW || p.ground === G.DEEP) s = `<span class="cool">${gname} · no tracks · cooling</span>`;
+  else if (p.ground === G.DUNE || p.ground === G.SALT) s = `<span class="hot">${gname} · scorching</span>`;
+  else if (p.ground === G.LEAF) s = '<span class="cool">Woodland shade · faint tracks</span>';
+  else if (p.ground === G.BASALT) s = '<span class="cool">Basalt · no tracks</span>';
   else if (p.lying && p.inShade) s = '<span class="cool">Resting in shade</span>';
   else if (p.lying) s = 'Resting';
   else if (p.inShade && p.still > 0.2) s = '<span class="cool">Shade · cooling</span>';

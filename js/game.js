@@ -33,7 +33,7 @@ export class Game {
     this.r = rng(seed * 31 + 7);
     this.art = art;
     this.audio = audio;
-    this.world = new World(seed, art);
+    this.world = new World(seed, art, { worker: !opts.headless });
     this.events = []; // {type, ...} consumed by main for fx + hints
     this.time = 0;
     this.clock = opts.startClock ?? 0.07; // 0..1 through the day, starts at dawn
@@ -50,7 +50,7 @@ export class Game {
     this.weather = { rain: 0, target: 0, until: 0, next: this.r.range(40, 80), flash: 0 };
 
     const [sx, sy] = this.world.findStart();
-    this.world.ensure(sx, sy, 400, 300, 999);
+    this.world.prepare(sx, sy, 700, 9999);
     const p = (this.player = {
       x: sx, y: sy, vx: 0, vy: 0, face: 1, dir: 0,
       health: 100, heat: 18, stamina: 100, water: 82, food: 70,
@@ -241,8 +241,13 @@ export class Game {
     }
     const sp = Math.hypot(p.vx, p.vy);
     const ox = p.x, oy = p.y;
-    p.x += p.vx * dt;
-    p.y += p.vy * dt;
+    const res = W.move(p, p.vx * dt, p.vy * dt);
+    if (res === 'drop' && !(p.hop > 0)) {
+      p.hop = 0.34;
+      p.dropMark = true;
+      this.emit('drop', { x: p.x, y: p.y });
+    }
+    if (p.hop > 0) p.hop -= dt;
     W.collide(p, 4);
     const moved = Math.hypot(p.x - ox, p.y - oy);
     p.odom += moved;
@@ -252,8 +257,9 @@ export class Game {
     // tracks
     if (p.odom - p.lastPrint > 9) {
       p.lastPrint = p.odom;
-      let s = gi.prints;
+      let s = gi.prints * (this.perk ? this.perk('softpaws', 0.7, 1) : 1);
       if (rain > 0.3) s *= 1 - rain * 0.75;
+      if (p.dropMark) { s = 0; p.dropMark = false; }
       this.trail.push({ x: p.x, y: p.y, s, water, id: UID++, face: p.face, t: this.time, g });
       if (this.trail.length > 4000) this.trail.splice(0, 1000), this.band.idx = Math.max(0, this.band.idx - 1000), this.dogs.forEach((d) => (d.idx = Math.max(0, d.idx - 1000)));
     }
@@ -287,7 +293,7 @@ export class Game {
     else if (p.sprinting) dh += 7.0 + sun * 2.2;
     else if (sp > 10) dh += 1.1 + sun * 1.5;
     else dh -= 2.2 - sun * 1.1;
-    dh += gi.heat * (g >= G.SHALLOW ? 1 : sun);
+    dh += gi.heat * (water ? 1 : sun);
     if (p.inShade) dh -= sp > 10 ? 1.5 : 5.5;
     if (p.lying) dh -= 2.5;
     if (this.isNight) dh -= 2.5;
@@ -517,13 +523,23 @@ export class Game {
         for (const h of lead) { h.mark = 1.6; h.markType = '?'; }
         this.emit('trailcold', { x: b.x, y: b.y });
       } else {
-        const a = Math.atan2(tp.y - b.y, tp.x - b.x);
-        const gi = GROUND_INFO[this.world.typeAt(b.x, b.y)];
-        const sp = walk * Math.max(0.6, gi.speed);
-        const dd = dist(tp.x, tp.y, b.x, b.y);
-        const mv = Math.min(dd, sp * dt);
-        b.x += Math.cos(a) * mv;
-        b.y += Math.sin(a) * mv;
+        if (b.climb > 0) {
+          b.climb -= dt; // finding a way down the ledge you leapt from
+        } else {
+          const a = Math.atan2(tp.y - b.y, tp.x - b.x);
+          const gi = GROUND_INFO[this.world.typeAt(b.x, b.y)];
+          const sp = walk * Math.max(0.6, gi.speed);
+          const dd = dist(tp.x, tp.y, b.x, b.y);
+          const mv = Math.min(dd, sp * dt);
+          const L0 = this.world.levelAt(b.x, b.y);
+          const nx = b.x + Math.cos(a) * mv, ny = b.y + Math.sin(a) * mv;
+          const L1 = this.world.levelAt(nx, ny);
+          if (L1 < L0 && !this.world.rampAt(nx, ny) && !this.world.rampAt(b.x, b.y)) {
+            b.climb = Math.max(2, 4.5 - this.day * 0.3);
+            this.emit('bandclimb', { x: b.x, y: b.y });
+          }
+          b.x = nx; b.y = ny;
+        }
       }
     } else if (b.mode === 'search') {
       b.searchT += dt;
@@ -561,7 +577,7 @@ export class Game {
       h.mark = Math.max(0, h.mark - dt);
       if (h.down > 0) {
         h.down -= dt;
-        h.x += h.vx * dt; h.y += h.vy * dt;
+        this.world.move(h, h.vx * dt, h.vy * dt, { drop: false });
         h.vx *= 0.9; h.vy *= 0.9;
         h.state = 'down';
         continue;
@@ -598,9 +614,16 @@ export class Game {
       const mv = Math.min(dd, sp * dt);
       h.vx = lerp(h.vx, (Math.cos(a) * mv) / dt, Math.min(1, dt * 8));
       h.vy = lerp(h.vy, (Math.sin(a) * mv) / dt, Math.min(1, dt * 8));
-      h.x += h.vx * dt;
-      h.y += h.vy * dt;
+      const bx0 = h.x, by0 = h.y;
+      this.world.move(h, h.vx * dt, h.vy * dt);
       this.world.collide(h, 4);
+      const want = Math.hypot(h.vx, h.vy) * dt;
+      if (want > 0.4 && Math.hypot(h.x - bx0, h.y - by0) < want * 0.3) h.stuck = (h.stuck || 0) + dt;
+      else h.stuck = Math.max(0, (h.stuck || 0) - dt);
+      // stranded behind a cliff while out of sight: take the long way round (skip ahead)
+      if (h.stuck > 2.5 && dist(h.x, h.y, p.x, p.y) > 300) {
+        h.x = b.x + (Math.random() - 0.5) * 20; h.y = b.y + (Math.random() - 0.5) * 20; h.stuck = 0;
+      }
       if (Math.abs(h.vx) > 3) h.face = Math.sign(h.vx);
       h.anim = (h.anim + dt * (h.state === 'run' ? 1.9 : 1.1)) % 1;
 
@@ -712,7 +735,7 @@ export class Game {
       const a = Math.atan2(ty - h.y, tx - h.x);
       const mv = Math.min(dist(h.x, h.y, tx, ty), sp * dt);
       h.vx = (Math.cos(a) * mv) / dt; h.vy = (Math.sin(a) * mv) / dt;
-      h.x += h.vx * dt; h.y += h.vy * dt;
+      W.move(h, h.vx * dt, h.vy * dt);
       W.collide(h, 3);
       if (Math.abs(h.vx) > 3) h.face = Math.sign(h.vx);
       else h.face = Math.sign(k.x - h.x) || h.face;
@@ -741,7 +764,7 @@ export class Game {
     for (const g of this.gnus) {
       g.life += dt;
       if (this.stampedeWarn > 1.2) continue; // the rumble comes before the herd
-      g.x += Math.cos(g.a) * g.sp * dt; g.y += Math.sin(g.a) * g.sp * dt;
+      if (W.move(g, Math.cos(g.a) * g.sp * dt, Math.sin(g.a) * g.sp * dt) === 'blocked') g.a += 0.8 * dt * 3;
       g.anim = (g.anim + dt * 2.3) % 1;
       g.hitCd -= dt;
       // trample the trail
@@ -798,7 +821,7 @@ export class Game {
     const pd = dist(sc.x, sc.y, p.x, p.y);
     if (sc.down > 0) {
       sc.down -= dt;
-      sc.x += sc.vx * dt; sc.y += sc.vy * dt; sc.vx *= 0.9; sc.vy *= 0.9;
+      this.world.move(sc, sc.vx * dt, sc.vy * dt, { drop: false }); sc.vx *= 0.9; sc.vy *= 0.9;
       sc.state = 'down';
       if (sc.down <= 0) sc.leaving = true;
       return;
@@ -833,7 +856,7 @@ export class Game {
     const gi = GROUND_INFO[this.world.typeAt(sc.x, sc.y)];
     const mv = Math.min(dist(sc.x, sc.y, tx, ty), sp * Math.max(0.6, gi.speed) * (sc.windup > 0 ? 0.1 : 1) * dt);
     sc.vx = (Math.cos(a) * mv) / dt; sc.vy = (Math.sin(a) * mv) / dt;
-    sc.x += sc.vx * dt; sc.y += sc.vy * dt;
+    this.world.move(sc, sc.vx * dt, sc.vy * dt);
     this.world.collide(sc, 4);
     if (Math.abs(sc.vx) > 3) sc.face = Math.sign(sc.vx);
     sc.state = sc.windup > 0 ? 'windup' : Math.hypot(sc.vx, sc.vy) > 60 ? 'run' : 'walk';
@@ -908,7 +931,7 @@ export class Game {
         d.deadT += dt;
         // a driven-off dog runs back to the band and rejoins much later
         const a = Math.atan2(this.band.y - d.y, this.band.x - d.x);
-        d.x += Math.cos(a) * 120 * dt; d.y += Math.sin(a) * 120 * dt;
+        this.world.move(d, Math.cos(a) * 120 * dt, Math.sin(a) * 120 * dt);
         d.face = Math.sign(Math.cos(a)) || 1;
         d.anim = (d.anim + dt * 2.4) % 1;
         if (d.deadT > 40) { d.dead = false; d.idx = this.band.idx; d.state = 'track'; }
@@ -965,7 +988,7 @@ export class Game {
       const gi = GROUND_INFO[this.world.typeAt(d.x, d.y)];
       const mv = Math.min(dist(d.x, d.y, tx, ty), sp * Math.max(0.55, gi.speed) * dt);
       d.vx = Math.cos(a) * mv / dt; d.vy = Math.sin(a) * mv / dt;
-      d.x += d.vx * dt; d.y += d.vy * dt;
+      this.world.move(d, d.vx * dt, d.vy * dt);
       this.world.collide(d, 3);
       if (Math.abs(d.vx) > 3) d.face = Math.sign(d.vx);
       d.anim = (d.anim + dt * (mv / dt > 80 ? 2.6 : 1.6)) % 1;
@@ -1025,7 +1048,7 @@ export class Game {
           q.vx = Math.cos(a) * s; q.vy = Math.sin(a) * s * 0.6;
         }
       }
-      q.x += q.vx * dt; q.y += q.vy * dt;
+      if (this.world.move(q, q.vx * dt, q.vy * dt) === 'blocked') q.zig = 0;
       this.world.collide(q, 3);
       if (Math.abs(q.vx) > 2) q.face = Math.sign(q.vx);
       const spd = Math.hypot(q.vx, q.vy);
@@ -1093,7 +1116,7 @@ export class Game {
     this.updateHazards(dt);
     this.updateSpears(dt);
     this.updatePrey(dt);
-    this.world.ensure(this.player.x, this.player.y, 420, 300, 2);
+    this.world.prepare(this.player.x, this.player.y, 900, 3);
     this.world.evict(this.player.x, this.player.y, 1600);
 
     // score: distance

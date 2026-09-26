@@ -59,7 +59,7 @@ export function makeBot(skill = 1) {
       if (!w) { inp.x = ax; inp.y = ay; return inp; }
       if (p.drinking) return inp;
       const l = go(w[0], w[1]);
-      if (l < 14 || p.ground >= 7) { inp.x = 0; inp.y = 0; }
+      if (l < 14 || (p.ground === 7 || p.ground === 8)) { inp.x = 0; inp.y = 0; }
       return inp;
     }
     if (s.mode === 'eat') {
@@ -72,7 +72,7 @@ export function makeBot(skill = 1) {
       inp.x = ax; inp.y = ay; return inp;
     }
     if (s.mode === 'cool') {
-      if (p.inShade || p.ground >= 7) return inp;
+      if (p.inShade || p.ground === 7 || p.ground === 8) return inp;
       let best = null, bd = 380;
       for (const pr of W.propsNear(p.x, p.y, 380)) {
         if (!pr.shade) continue;

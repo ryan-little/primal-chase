@@ -7,7 +7,7 @@ const audio = { play(){}, sting(){} };
 window.runSims = (n, skill, maxMin = 25) => {
   const res = [];
   for (let i = 0; i < n; i++) {
-    const g = new Game(1000 + i * 17, art, audio);
+    const g = new Game(1000 + i * 17, art, audio, { headless: true });
     const bot = makeBot(skill);
     const dt = 1 / 30;
     let t = 0, sightings = 0, hurts = 0, maxInt = 0, near = 0, chaseT = 0;

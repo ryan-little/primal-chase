@@ -33,6 +33,19 @@ export const P = {
   hare0: '#6e5a44', hare1: '#948066', hare2: '#b8a48a',
   bone: '#e8e0cc', bone0: '#b9ae96',
 
+  // biomes
+  ash0: '#34302d', ash1: '#46403b', ash2: '#5a524b', ash3: '#6e665d',
+  dune0: '#a95a2a', dune1: '#c47236', dune2: '#da8e52', dune3: '#ebad74',
+  salt0: '#c4bba8', salt1: '#d6cebd', salt2: '#e6e0d2', salt3: '#f5f1e6',
+  beach0: '#cfb27c', beach1: '#e0c792', beach2: '#ecd8a8', beach3: '#f6e8c6',
+  sea0: '#0b2a40', sea1: '#10374f', sea2: '#174861', sea3: '#205b76',
+  litter0: '#36331a', litter1: '#474222', litter2: '#5a532b', litter3: '#6f6836',
+  basalt0: '#1c1a1b', basalt1: '#292728', basalt2: '#383536', basalt3: '#4a4647',
+  palm0: '#2e5a2a', palm1: '#3f7a34', palm2: '#5b9a44', fever0: '#9aa843', fever1: '#c4c95e',
+  zeb0: '#1e1b1a', zeb1: '#ece6d6', wart0: '#5a4638', wart1: '#7a6250', ost0: '#231d1a', ost1: '#e9e2d4', ost2: '#d8a58a',
+  fowl0: '#2c3440', fowl1: '#5d6b7c', fowl2: '#c3ccd6', lion0: '#9c6a2c', lion1: '#c89648', lion2: '#e2b872', mane: '#6a3f1c',
+  gold0: '#b88a1a', gold1: '#e8c040', gold2: '#fff09a', flam0: '#d8707a', flam1: '#f2a2a4',
+
   // fx
   blood: '#8e1f1a', blood1: '#b5322a', fire0: '#ff6a1a', fire1: '#ffb13b', fire2: '#fff0a0',
   danger: '#ff4a2e', hint: '#ffe08a', cool: '#7fd6e0',

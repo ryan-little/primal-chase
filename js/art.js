@@ -5,6 +5,7 @@
 
 import { P, hexToRgb } from './palette.js';
 import { rng, TAU } from './util.js';
+import { buildBiomeProps } from './art-props.js';
 
 const PAL_RGB = Object.values(P).map(hexToRgb);
 const INK = hexToRgb(P.ink);
@@ -763,6 +764,7 @@ export function buildArt() {
     termite: [71, 72].map(termite),
     bones: [81, 82].map(bones),
     reeds: [91, 92, 93].map(reeds),
+    ...buildBiomeProps(),
   };
   A.icons = makeIcons();
   return A;

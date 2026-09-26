@@ -57,14 +57,18 @@ export class Renderer {
     const portrait = H > W;
     const target = portrait ? 300 : 270;
     this.scale = Math.max(2, Math.round(Math.min(H / target, W / (portrait ? 190 : 400))));
-    this.w = Math.ceil(W / this.scale);
-    this.h = Math.ceil(H / this.scale);
-    this.cv.width = this.w;
-    this.cv.height = this.h;
-    this.cv.style.width = this.w * this.scale + 'px';
-    this.cv.style.height = this.h * this.scale + 'px';
-    this.light.width = this.w;
-    this.light.height = this.h;
+    let dpr = Math.min(window.devicePixelRatio || 1, 2);
+    if (W * H * dpr * dpr > 3.8e6) dpr = Math.sqrt(3.8e6 / (W * H));
+    this.dpr = dpr;
+    this.S = this.scale * dpr; // device pixels per art pixel
+    this.w = W / this.scale;
+    this.h = H / this.scale;
+    this.cv.width = Math.round(W * dpr);
+    this.cv.height = Math.round(H * dpr);
+    this.cv.style.width = W + 'px';
+    this.cv.style.height = H + 'px';
+    this.light.width = Math.ceil(this.w) + 2;
+    this.light.height = Math.ceil(this.h) + 2;
     this.ctx.imageSmoothingEnabled = false;
   }
 
@@ -88,6 +92,7 @@ export class Renderer {
       else if (kind === 'ember') p = { x: x + (Math.random() - 0.5) * 3, y, z: extra.z || 38, vx: (Math.random() - 0.5) * 8, vy: 0, vz: 14 + s * 16, life: 0.4 + s * 0.4, col: s < 0.4 ? P.fire2 : s < 0.8 ? P.fire1 : P.fire0, size: 1, grav: -10, drag: 1 };
       else if (kind === 'spark') p = { x, y, z: 4, vx: Math.cos(a) * 70 * s, vy: Math.sin(a) * 35 * s, vz: 20 + s * 30, life: 0.35, col: extra.col || P.hint, size: 1, grav: 60, drag: 3 };
       else if (kind === 'sweat') p = { x: x + (Math.random() - 0.5) * 8, y, z: 18, vx: (Math.random() - 0.5) * 10, vy: 0, vz: 10 + s * 10, life: 0.5, col: P.cool, size: 1, grav: 60, drag: 1 };
+      else if (kind === 'steam') p = { x: x + (Math.random() - 0.5) * 6, y, z: 2, vx: (Math.random() - 0.5) * 4, vy: 0, vz: 10 + s * 8, life: 1.6, col: '#d8d4cc', size: 2, grav: -3, drag: 1 };
       else if (kind === 'feather') p = { x, y, z: 30, vx: Math.cos(a) * 20 * s, vy: 0, vz: 10 * s, life: 1.5, col: P.inkSoft, size: 1, grav: 12, drag: 1 };
       this.parts.push(p);
     }
@@ -99,6 +104,11 @@ export class Renderer {
     const p = game.player;
     const w = this.w, h = this.h;
     const t = game.time;
+    const S = this.S;
+    const Q = (v) => Math.round(v * S) / S;
+    this.Q = Q;
+    ctx.setTransform(S, 0, 0, S, 0, 0);
+    ctx.imageSmoothingEnabled = false;
 
     // camera
     const lookX = p.vx * 0.45, lookY = p.vy * 0.35;
@@ -108,7 +118,7 @@ export class Renderer {
     this.cam.y = lerp(this.cam.y, ty, Math.min(1, dt * 3.2));
     this.cam.shake = Math.max(0, this.cam.shake - dt * 18);
     const sx = (Math.random() - 0.5) * this.cam.shake, sy = (Math.random() - 0.5) * this.cam.shake;
-    const cx = Math.round(this.cam.x - w / 2 + sx), cy = Math.round(this.cam.y - h / 2 + sy);
+    const cx = Q(this.cam.x - w / 2 + sx), cy = Q(this.cam.y - h / 2 + sy);
     this.cx = cx; this.cy = cy;
 
     // ground
@@ -117,14 +127,16 @@ export class Renderer {
     for (let gy = y0; gy <= y1; gy++) {
       for (let gx = x0; gx <= x1; gx++) {
         const c = W.get(gx, gy);
-        ctx.drawImage(c.img, gx * CHUNK - cx, gy * CHUNK - cy);
+        const X0 = Q(gx * CHUNK - cx), Y0 = Q(gy * CHUNK - cy), X1 = Q((gx + 1) * CHUNK - cx), Y1 = Q((gy + 1) * CHUNK - cy);
+        if (c) ctx.drawImage(c.img, X0, Y0, X1 - X0, Y1 - Y0);
+        else { ctx.fillStyle = P.grass1; ctx.fillRect(X0, Y0, X1 - X0, Y1 - Y0); }
       }
     }
 
     // water glints
     ctx.fillStyle = P.foam;
     for (let gy = y0; gy <= y1; gy++) for (let gx = x0; gx <= x1; gx++) {
-      const c = W.peek(gx, gy);
+      const c = W.props.get(W.key(gx, gy));
       if (!c) continue;
       const wp = c.waterPts;
       for (let i = 0; i < wp.length; i += 2) {
@@ -132,10 +144,10 @@ export class Renderer {
         const ph = (t * 0.6 + hsh * 10) % 3;
         if (ph > 1) continue;
         const gx2 = wp[i] + Math.sin(hsh * 40) * 6 - cx, gy2 = wp[i + 1] + Math.cos(hsh * 30) * 5 - cy;
-        if (W.typeAt(wp[i] + Math.sin(hsh * 40) * 6, wp[i + 1] + Math.cos(hsh * 30) * 5) < G.SHALLOW) continue;
+        { const gg = W.typeAt(wp[i] + Math.sin(hsh * 40) * 6, wp[i + 1] + Math.cos(hsh * 30) * 5); if (gg !== G.SHALLOW && gg !== G.DEEP) continue; }
         const len = Math.round(Math.sin(ph * Math.PI) * 3);
         ctx.globalAlpha = 0.7;
-        ctx.fillRect(Math.round(gx2), Math.round(gy2), len, 1);
+        ctx.fillRect(Q(gx2), Q(gy2), len, 1);
       }
     }
     ctx.globalAlpha = 1;
@@ -146,7 +158,7 @@ export class Renderer {
     for (let i = start; i < tr.length; i++) {
       const q = tr[i];
       if (q.s < 0.08 || q.water) continue;
-      const qx = Math.round(q.x - cx), qy = Math.round(q.y - cy);
+      const qx = Q(q.x - cx), qy = Q(q.y - cy);
       if (qx < -4 || qy < -4 || qx > w + 4 || qy > h + 4) continue;
       const age = tr.length - i;
       const fade = clamp(1 - age / 900, 0.2, 1);
@@ -166,18 +178,23 @@ export class Renderer {
       const img = pr.def.img;
       if (pr.x - pr.def.ox > cx + w + 4 || pr.x + img.width - pr.def.ox < cx - 4) continue;
       if (pr.y - pr.def.oy > cy + h + 4 || pr.y + 10 < cy) continue;
+      if (pr.flat) {
+        ctx.drawImage(img, Q(pr.x - pr.def.ox - cx), Q(pr.y - pr.def.oy - cy));
+        if (pr.def.vent && Math.random() < dt * 3) this.burst('steam', pr.x, pr.y, 1);
+        continue;
+      }
       props.push(pr);
       const s = pr.def.shadow;
       if (s) {
         ctx.beginPath();
-        ctx.ellipse(Math.round(pr.x - cx), Math.round(pr.y - cy + s.dy), s.rx, s.ry, 0, 0, TAU);
+        ctx.ellipse(Q(pr.x - cx), Q(pr.y - cy + s.dy), s.rx, s.ry, 0, 0, TAU);
         ctx.fill();
       }
     }
     const shadow = (x, y, rx, ry = rx * 0.4, a = 0.28) => {
       ctx.fillStyle = `rgba(30,18,10,${a})`;
       ctx.beginPath();
-      ctx.ellipse(Math.round(x - cx), Math.round(y - cy), rx, ry, 0, 0, TAU);
+      ctx.ellipse(Q(x - cx), Q(y - cy), rx, ry, 0, 0, TAU);
       ctx.fill();
     };
 
@@ -187,20 +204,20 @@ export class Renderer {
         const k = clamp(1 - hu.windup / 0.8, 0, 1);
         ctx.fillStyle = `rgba(255,74,46,${0.12 + k * 0.25})`;
         ctx.beginPath();
-        ctx.ellipse(Math.round(hu.tx - cx), Math.round(hu.ty - cy), 11, 6, 0, 0, TAU);
+        ctx.ellipse(Q(hu.tx - cx), Q(hu.ty - cy), 11, 6, 0, 0, TAU);
         ctx.fill();
         ctx.strokeStyle = `rgba(255,74,46,${0.55 + k * 0.45})`;
         ctx.lineWidth = 1;
         ctx.setLineDash([3, 3]);
         ctx.lineDashOffset = -t * 30;
         ctx.beginPath();
-        ctx.moveTo(Math.round(hu.x - cx) + 0.5, Math.round(hu.y - cy) + 0.5);
-        ctx.lineTo(Math.round(hu.tx - cx) + 0.5, Math.round(hu.ty - cy) + 0.5);
+        ctx.moveTo(Q(hu.x - cx), Q(hu.y - cy));
+        ctx.lineTo(Q(hu.tx - cx), Q(hu.ty - cy));
         ctx.stroke();
         ctx.setLineDash([]);
         const rr = 10 - k * 4;
         ctx.beginPath();
-        ctx.ellipse(Math.round(hu.tx - cx) + 0.5, Math.round(hu.ty - cy) + 0.5, rr, rr * 0.55, 0, 0, TAU);
+        ctx.ellipse(Q(hu.tx - cx), Q(hu.ty - cy), rr, rr * 0.55, 0, 0, TAU);
         ctx.stroke();
       }
     }
@@ -210,7 +227,7 @@ export class Renderer {
       ctx.strokeStyle = 'rgba(127,214,224,0.25)';
       ctx.setLineDash([2, 4]);
       ctx.beginPath();
-      ctx.ellipse(Math.round(b.searchX - cx), Math.round(b.searchY - cy), b.searchR, b.searchR * 0.6, 0, 0, TAU);
+      ctx.ellipse(Q(b.searchX - cx), Q(b.searchY - cy), b.searchR, b.searchR * 0.6, 0, 0, TAU);
       ctx.stroke();
       ctx.setLineDash([]);
     }
@@ -232,7 +249,7 @@ export class Renderer {
 
     const night = game.isNight || game.clock > 0.64;
     const spr = (img, x, y, ox, oy, flip, alpha = 1, sub = 0) => {
-      const X = Math.round(x - cx), Y = Math.round(y - cy);
+      const X = Q(x - cx), Y = Q(y - cy);
       if (X < -img.width - 10 || X > w + img.width + 10 || Y < -10 || Y > h + img.height + 10) return;
       if (alpha < 1) ctx.globalAlpha = alpha;
       const sh = sub ? Math.max(1, oy - sub + 1) : img.height;
@@ -306,13 +323,13 @@ export class Renderer {
           const fx = o.x - o.face * 4, fy = o.y - 39;
           if (Math.random() < dt * 30) this.burst('ember', fx, o.y, 1, { z: 38 });
           ctx.fillStyle = P.fire1;
-          ctx.fillRect(Math.round(fx - cx) - 1, Math.round(fy - cy) - 1 - (Math.random() < 0.5 ? 1 : 0), 3, 3);
+          ctx.fillRect(Q(fx - cx) - 1, Q(fy - cy) - 1 - (Math.random() < 0.5 ? 1 : 0), 3, 3);
           ctx.fillStyle = P.fire2;
-          ctx.fillRect(Math.round(fx - cx), Math.round(fy - cy), 1, 1);
+          ctx.fillRect(Q(fx - cx), Q(fy - cy), 1, 1);
         }
         if (o.mark > 0) {
           const bounce = Math.abs(Math.sin(o.mark * 8)) * 3;
-          drawText(ctx, o.markType, o.x - cx - 2, o.y - cy - 52 - bounce, { color: o.markType === '!' ? P.danger : P.cool });
+          drawText(ctx, o.markType, o.x - cx - 2, o.y - cy - 52 - bounce, { color: o.markType === '!' ? P.danger : P.cool, snap: S });
         }
       } else if (it.k === 7) {
         const S = A.hyena;
@@ -328,7 +345,7 @@ export class Renderer {
         if (Math.random() < dt * 14) this.burst('dust', o.x - Math.cos(o.a) * 10, o.y, 2, { col: P.sand2 });
       } else if (it.k === 9) {
         const img = A.croc[o.state === 'snap' ? 1 : 0];
-        const X = Math.round(o.x - cx), Y = Math.round(o.y - cy);
+        const X = Q(o.x - cx), Y = Q(o.y - cy);
         if (o.state === 'sink') ctx.globalAlpha = Math.max(0, 1 - o.t);
         // wake
         ctx.fillStyle = P.foam;
@@ -352,7 +369,8 @@ export class Renderer {
           ctx.globalAlpha = 1;
         }
         const blink = p.iframes > 0 && p.hurt > 0 && Math.floor(t * 20) % 2 === 0;
-        if (!blink) spr(fr, p.x, p.y, S.ox, S.oy, p.face < 0, 1, sb);
+        const hopY = p.hop > 0 ? Math.sin((1 - p.hop / 0.34) * Math.PI) * 7 : 0;
+        if (!blink) spr(fr, p.x, p.y - hopY, S.ox, S.oy, p.face < 0, 1, sb);
       }
     }
 
@@ -364,11 +382,11 @@ export class Renderer {
       ctx.strokeStyle = P.bark2;
       ctx.lineWidth = 1;
       ctx.beginPath();
-      ctx.moveTo(Math.round(hx - ca * 12) + 0.5, Math.round(hy - sa * 12) + 0.5);
-      ctx.lineTo(Math.round(hx) + 0.5, Math.round(hy) + 0.5);
+      ctx.moveTo(Q(hx - ca * 12), Q(hy - sa * 12));
+      ctx.lineTo(Q(hx), Q(hy));
       ctx.stroke();
       ctx.fillStyle = P.rock4;
-      ctx.fillRect(Math.round(hx + ca * 1), Math.round(hy + sa * 1), 2, 1);
+      ctx.fillRect(Q(hx + ca * 1), Q(hy + sa * 1), 2, 1);
     }
 
     // vultures over carcasses
@@ -380,7 +398,7 @@ export class Renderer {
         const vx = c.x + Math.cos(a) * (26 + i * 6), vy = c.y + Math.sin(a) * 12 - 46 - i * 4;
         shadow(c.x + Math.cos(a) * (26 + i * 6), c.y + Math.sin(a) * 12, 4, 1.2, 0.15);
         const fr = A.vulture[Math.floor(t * 6 + i) % 4];
-        ctx.drawImage(fr, Math.round(vx - cx - 11), Math.round(vy - cy - 6));
+        ctx.drawImage(fr, Q(vx - cx - 11), Q(vy - cy - 6));
       }
     }
 
@@ -398,7 +416,7 @@ export class Renderer {
       }
       ctx.globalAlpha = clamp(q.life * 2, 0, 1);
       ctx.fillStyle = q.col;
-      ctx.fillRect(Math.round(q.x - cx), Math.round(q.y - q.z - cy), q.size, q.size);
+      ctx.fillRect(Q(q.x - cx), Q(q.y - q.z - cy), q.size, q.size);
     }
     ctx.globalAlpha = 1;
     this.parts = this.parts.filter((q) => q.life > 0);
@@ -436,7 +454,9 @@ export class Renderer {
       L.fillRect(0, 0, w, h);
     }
     ctx.globalCompositeOperation = 'multiply';
+    ctx.imageSmoothingEnabled = true;
     ctx.drawImage(this.light, 0, 0);
+    ctx.imageSmoothingEnabled = false;
     ctx.globalCompositeOperation = 'source-over';
 
     // rain
@@ -467,7 +487,7 @@ export class Renderer {
       q.t += dt;
       const a = q.t < 1.1 ? 1 : 1 - (q.t - 1.1) / 0.4;
       ctx.globalAlpha = clamp(a, 0, 1);
-      drawText(ctx, q.text, q.x - cx, q.y - cy - q.t * 16, { color: q.color, align: 'center' });
+      drawText(ctx, q.text, q.x - cx, q.y - cy - q.t * 16, { color: q.color, align: 'center', snap: S });
     }
     ctx.globalAlpha = 1;
     this.pops = this.pops.filter((q) => q.t < 1.5);

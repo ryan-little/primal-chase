@@ -1,177 +1,143 @@
-// The savannah: an endless, seeded world streamed in 128px chunks.
-// ground() is the single source of truth — the renderer paints it and gameplay reads it,
-// so what you see (sand holds prints, rock doesn't, water cools you) is what you get.
+// The world as the game sees it: painted chunks (from the worker), props, and the
+// movement rules for cliffs, water and the sea. Terrain math lives in terrain.js.
 
-import { makeNoise, hash2, rng, clamp } from './util.js';
-import { P, hexToRgb } from './palette.js';
+import { hash2, rng } from './util.js';
+import { P } from './palette.js';
 import { canvas } from './art.js';
+import { Terrain, G, B, GROUND_INFO, CHUNK, isWaterType, BIOME_NAMES } from './terrain.js';
 
-export const G = { GRASS: 0, LUSH: 1, TALL: 2, SAND: 3, CLAY: 4, MUD: 5, ROCK: 6, SHALLOW: 7, DEEP: 8 };
-export const GROUND_INFO = [
-  // speed multiplier, print strength (how well your trail reads), heat per sec modifier, name
-  { speed: 1.0, prints: 0.8, heat: 0, name: 'grass' },
-  { speed: 1.0, prints: 0.9, heat: -0.5, name: 'green grass' },
-  { speed: 0.88, prints: 0.6, heat: 0.2, name: 'tall grass' },
-  { speed: 0.92, prints: 1.0, heat: 1.2, name: 'sand' },
-  { speed: 1.0, prints: 1.0, heat: 1.6, name: 'clay pan' },
-  { speed: 0.7, prints: 1.0, heat: -1.0, name: 'mud' },
-  { speed: 0.9, prints: 0.0, heat: 0.6, name: 'rock' },
-  { speed: 0.62, prints: 0.0, heat: -9, name: 'shallows' },
-  { speed: 0.45, prints: 0.0, heat: -16, name: 'deep water' },
+export { G, B, GROUND_INFO, CHUNK, BIOME_NAMES };
+
+// Which props grow where: [ground, biome or -1 for any, [[threshold, kind], ...]] (first match wins)
+const FLORA = [
+  [G.GRASS, B.HIGHLAND, [[0.02, 'acacia'], [0.05, 'aloe'], [0.07, 'boulder']]],
+  [G.GRASS, B.COAST, [[0.03, 'palm'], [0.05, 'bush']]],
+  [G.GRASS, -1, [[0.028, 'acacia'], [0.05, 'bush'], [0.056, 'termite'], [0.059, 'bones'], [0.0615, 'baobab']]],
+  [G.LUSH, B.WOODLAND, [[0.09, 'mopane'], [0.13, 'bush'], [0.15, 'fever']]],
+  [G.LUSH, B.DESERT, [[0.22, 'palm'], [0.3, 'bush']]],
+  [G.LUSH, B.WETLAND, [[0.05, 'fever'], [0.1, 'papyrus']]],
+  [G.LUSH, -1, [[0.075, 'acacia'], [0.13, 'bush'], [0.135, 'baobab']]],
+  [G.LEAF, -1, [[0.1, 'mopane'], [0.15, 'fever'], [0.17, 'log'], [0.24, 'bush']]],
+  [G.TALL, B.WOODLAND, [[0.05, 'fever'], [0.07, 'mopane']]],
+  [G.TALL, B.WETLAND, [[0.08, 'papyrus'], [0.1, 'deadtree']]],
+  [G.TALL, -1, [[0.018, 'acacia'], [0.03, 'bush']]],
+  [G.SAND, B.DESERT, [[0.012, 'deadtree'], [0.03, 'euphorbia'], [0.036, 'bones'], [0.045, 'boulder']]],
+  [G.SAND, -1, [[0.06, 'thorn'], [0.07, 'bones'], [0.074, 'baobab']]],
+  [G.DUNE, -1, [[0.008, 'deadtree'], [0.018, 'euphorbia'], [0.022, 'bones']]],
+  [G.SALT, -1, [[0.008, 'bones']]],
+  [G.CLAY, -1, [[0.02, 'bones'], [0.045, 'termite'], [0.06, 'thorn']]],
+  [G.ROCK, B.HIGHLAND, [[0.08, 'boulder'], [0.13, 'kopje'], [0.17, 'aloe'], [0.18, 'acacia']]],
+  [G.ROCK, -1, [[0.1, 'boulder'], [0.15, 'kopje'], [0.16, 'acacia']]],
+  [G.MUD, B.WETLAND, [[0.3, 'papyrus'], [0.4, 'reeds']]],
+  [G.MUD, -1, [[0.3, 'reeds']]],
+  [G.SHALLOW, B.WETLAND, [[0.09, 'lily']]],
+  [G.ASH, -1, [[0.03, 'deadtree'], [0.05, 'basalt'], [0.058, 'vent']]],
+  [G.BASALT, -1, [[0.06, 'basalt'], [0.075, 'vent']]],
+  [G.BEACH, -1, [[0.035, 'palm'], [0.06, 'driftwood']]],
 ];
 
-export const CHUNK = 128;
-
-const RGB = {};
-for (const k in P) RGB[k] = hexToRgb(P[k]);
-const BAYER = [0, 8, 2, 10, 12, 4, 14, 6, 3, 11, 1, 9, 15, 7, 13, 5].map((v) => (v + 0.5) / 16);
-
 export class World {
-  constructor(seed, art) {
+  constructor(seed, art, { worker = true } = {}) {
     this.seed = seed;
     this.art = art;
-    this.nE = makeNoise(seed + 1);
-    this.nM = makeNoise(seed + 2);
-    this.nR = makeNoise(seed + 3);
-    this.nW = makeNoise(seed + 4);
-    this.nP = makeNoise(seed + 5);
-    this.nD = makeNoise(seed + 6);
-    this.chunks = new Map();
-    this.queue = [];
+    this.T = new Terrain(seed);
+    this.chunks = new Map(); // painted chunks
+    this.props = new Map(); // props + water samples, per chunk, built lazily on the main thread
+    this.pending = new Set();
+    this.useWorker = false;
+    if (worker && typeof Worker !== 'undefined') {
+      try {
+        this.worker = new Worker(new URL('./terrain-worker.js', import.meta.url), { type: 'module' });
+        this.worker.onmessage = (e) => this.receive(e.data);
+        this.worker.onerror = () => { this.useWorker = false; };
+        this.useWorker = true;
+      } catch { this.useWorker = false; }
+    }
   }
 
-  // ---- fields ----
-  fields(x, y) {
-    const e = this.nE.fbm(x / 900, y / 900, 3);
-    const m = this.nM.fbm(x / 1300, y / 1300, 3) + 0.08;
-    const wx = x + this.nW(x / 700, y / 700) * 260, wy = y + this.nW(x / 700 + 40, y / 700) * 260;
-    const rv = Math.abs(this.nR.fbm(wx / 1700, wy / 1700, 2));
-    const pond = this.nP.fbm(x / 240, y / 240, 2) + m * 0.35;
-    return { e, m, rv, pond };
+  destroy() {
+    if (this.worker) this.worker.terminate();
+    this.worker = null;
   }
 
-  ground(x, y) {
-    // keep the start area safe and readable
-    const f = this.fields(x, y);
-    return this.classify(f, x, y);
-  }
-
-  classify(f, x, y) {
-    const { e, m, rv, pond } = f;
-    const rw = 0.03 + clamp(m, 0, 0.4) * 0.03;
-    if (rv < rw * 0.45) return G.DEEP;
-    if (rv < rw) return G.SHALLOW;
-    if (pond > 0.6) return pond > 0.7 ? G.DEEP : G.SHALLOW;
-    if (rv < rw + 0.012 || pond > 0.555) return G.MUD;
-    const d = this.nD(x / 60, y / 60);
-    if (e > 0.34 + d * 0.08) return G.ROCK;
-    if (rv < rw + 0.06 || pond > 0.42) return G.LUSH;
-    if (m < -0.34 + d * 0.06) return G.CLAY;
-    if (m < -0.16 + d * 0.06) return G.SAND;
-    if (m > 0.02 && this.nD(x / 150 + 50, y / 150) > 0.12) return G.TALL;
-    return G.GRASS;
-  }
-
-  isWater(g) { return g === G.SHALLOW || g === G.DEEP; }
-
-  // ---- chunks ----
   key(cx, cy) { return (cx + 100000) * 262144 + (cy + 100000); }
 
-  get(cx, cy) {
+  // ---------------- painted chunks ----------------
+  receive(d) {
+    if (d.seed !== this.seed) return;
+    const k = this.key(d.cx, d.cy);
+    this.pending.delete(k);
+    this.chunks.set(k, this.finish(d.cx, d.cy, d));
+  }
+
+  finish(cx, cy, d) {
+    const S = CHUNK;
+    const c = canvas(S, S);
+    const ctx = c.getContext('2d');
+    ctx.putImageData(new ImageData(d.rgba, S, S), 0, 0);
+    this.decals(ctx, cx, cy, d.types);
+    return { cx, cy, img: c, types: d.types, lv: d.lv, biomes: d.biomes, used: performance.now() };
+  }
+
+  buildSync(cx, cy) {
     const k = this.key(cx, cy);
-    let c = this.chunks.get(k);
-    if (!c) {
-      c = this.build(cx, cy);
-      this.chunks.set(k, c);
-    }
-    c.used = performance.now();
+    const c = this.finish(cx, cy, this.T.chunkPixels(cx, cy));
+    this.chunks.set(k, c);
+    this.pending.delete(k);
     return c;
+  }
+
+  request(cx, cy) {
+    const k = this.key(cx, cy);
+    if (this.chunks.has(k) || this.pending.has(k)) return;
+    if (!this.useWorker) { this.buildSync(cx, cy); return; }
+    this.pending.add(k);
+    this.worker.postMessage({ seed: this.seed, cx, cy });
+  }
+
+  get(cx, cy) {
+    const c = this.chunks.get(this.key(cx, cy));
+    if (c) { c.used = performance.now(); return c; }
+    this.request(cx, cy);
+    return null;
   }
 
   peek(cx, cy) { return this.chunks.get(this.key(cx, cy)); }
 
-  // Make sure chunks around a point exist; builds at most `budget` per call.
-  ensure(x, y, rx, ry, budget = 3) {
+  // Queue painting around a point, nearest first; keep the worker a little busy, never flooded.
+  ensure(x, y, rx, ry, sync = false) {
     const x0 = Math.floor((x - rx) / CHUNK), x1 = Math.floor((x + rx) / CHUNK);
     const y0 = Math.floor((y - ry) / CHUNK), y1 = Math.floor((y + ry) / CHUNK);
-    let built = 0;
-    for (let cy = y0; cy <= y1; cy++) {
-      for (let cx = x0; cx <= x1; cx++) {
-        const k = this.key(cx, cy);
-        if (!this.chunks.has(k)) {
-          if (built >= budget) continue;
-          this.chunks.set(k, this.build(cx, cy));
-          built++;
-        }
-      }
+    const want = [];
+    for (let cy = y0; cy <= y1; cy++) for (let cx = x0; cx <= x1; cx++) {
+      const k = this.key(cx, cy);
+      if (!this.chunks.has(k) && !this.pending.has(k)) want.push([cx, cy, (cx * CHUNK + 64 - x) ** 2 + (cy * CHUNK + 64 - y) ** 2]);
     }
-    return built;
+    want.sort((a, b) => a[2] - b[2]);
+    for (const [cx, cy] of want) {
+      if (sync) { this.buildSync(cx, cy); continue; }
+      if (this.pending.size >= 6) break;
+      this.request(cx, cy);
+    }
   }
 
   evict(x, y, keep) {
-    if (this.chunks.size < 140) return;
-    for (const [k, c] of this.chunks) {
-      if (Math.abs(c.cx * CHUNK + CHUNK / 2 - x) > keep || Math.abs(c.cy * CHUNK + CHUNK / 2 - y) > keep) this.chunks.delete(k);
+    if (this.chunks.size > 160) {
+      for (const [k, c] of this.chunks) {
+        if (Math.abs(c.cx * CHUNK + 64 - x) > keep || Math.abs(c.cy * CHUNK + 64 - y) > keep) this.chunks.delete(k);
+      }
+    }
+    if (this.props.size > 900) {
+      for (const [k, c] of this.props) {
+        if (Math.abs(c.cx * CHUNK + 64 - x) > keep * 1.5 || Math.abs(c.cy * CHUNK + 64 - y) > keep * 1.5) this.props.delete(k);
+      }
     }
   }
 
-  build(cx, cy) {
-    const ox = cx * CHUNK, oy = cy * CHUNK;
+  decals(ctx, cx, cy, types) {
     const S = CHUNK;
-    // ground types sampled per pixel at 2px resolution then refined on edges
-    const types = new Uint8Array(S * S);
-    const shade = new Float32Array(S * S);
-    for (let y = 0; y < S; y++) {
-      for (let x = 0; x < S; x++) {
-        const wx = ox + x, wy = oy + y;
-        const f = this.fields(wx, wy);
-        const g = this.classify(f, wx, wy);
-        types[y * S + x] = g;
-        shade[y * S + x] = this.nD(wx / 22, wy / 22) * 0.6 + this.nD(wx / 7 + 9, wy / 7) * 0.4 + (f.e * 0.4);
-      }
-    }
-    const c = canvas(S, S);
-    const ctx = c.getContext('2d');
-    const img = ctx.createImageData(S, S);
-    const d = img.data;
-    const ramps = [
-      ['grass0', 'grass1', 'grass2', 'grass3'],
-      ['lush0', 'lush1', 'lush2', 'grass2'],
-      ['tall0', 'tall1', 'tall2', 'tall3'],
-      ['sand0', 'sand1', 'sand2', 'sand3'],
-      ['clay0', 'clay1', 'clay2', 'sand1'],
-      ['mud0', 'mud1', 'mud2', 'mud2'],
-      ['rock0', 'rock1', 'rock2', 'rock3'],
-      ['water0', 'water1', 'water1', 'water2'],
-      ['deep0', 'deep1', 'deep1', 'water0'],
-    ];
-    for (let y = 0; y < S; y++) {
-      for (let x = 0; x < S; x++) {
-        const i = y * S + x;
-        const g = types[i];
-        let v = shade[i] * 0.5 + 0.5; // 0..1
-        const b = BAYER[(y & 3) * 4 + (x & 3)];
-        // lighting cue: north edges of water get a dark bank, south edges foam
-        const up = y > 0 ? types[i - S] : g;
-        const dn = y < S - 1 ? types[i + S] : g;
-        let col;
-        const water = g === G.SHALLOW || g === G.DEEP;
-        if (water && !(up === G.SHALLOW || up === G.DEEP)) col = RGB.mud0;
-        else if (water && (y + 1 < S && !(dn === G.SHALLOW || dn === G.DEEP))) col = RGB.foam;
-        else {
-          const r = ramps[g];
-          let lv = v * 3 + (b - 0.5) * 0.9;
-          if (g === G.TALL) lv += ((x * 7 + y * 3) % 5 === 0 ? 0.8 : 0) - ((x + y * 5) % 7 === 0 ? 0.9 : 0);
-          col = RGB[r[clamp(Math.floor(lv), 0, 3)]];
-        }
-        d[i * 4] = col[0]; d[i * 4 + 1] = col[1]; d[i * 4 + 2] = col[2]; d[i * 4 + 3] = 255;
-      }
-    }
-    ctx.putImageData(img, 0, 0);
-
-    // decals
     const r = rng((cx * 928371 + cy * 12377 + this.seed) | 0);
-    for (let n = 0; n < 150; n++) {
+    for (let n = 0; n < 170; n++) {
       const x = r.int(1, S - 3), y = r.int(2, S - 2);
       const g = types[y * S + x];
       if (g === G.GRASS || g === G.LUSH || g === G.TALL) {
@@ -180,83 +146,148 @@ export class World {
         ctx.fillRect(x + 2, y - 2, 1, 3);
         ctx.fillStyle = g === G.LUSH ? P.lush0 : P.grass0;
         ctx.fillRect(x + 1, y, 1, 1);
-      } else if (g === G.CLAY && n < 60) {
-        ctx.fillStyle = P.clay0;
+      } else if (g === G.LEAF) {
+        ctx.fillStyle = r() < 0.5 ? P.ochre : P.fever0;
+        ctx.fillRect(x, y, 2, 1);
+        ctx.fillStyle = P.litter0;
+        ctx.fillRect(x + 1, y + 1, 1, 1);
+      } else if ((g === G.CLAY || g === G.SALT || g === G.ASH) && n < 70) {
+        ctx.fillStyle = g === G.CLAY ? P.clay0 : g === G.SALT ? P.salt0 : P.ash0;
         let px = x, py = y;
-        for (let k = 0; k < 6; k++) {
+        for (let k = 0; k < 7; k++) {
           ctx.fillRect(px, py, 1, 1);
-          px += r.int(-1, 1); py += r() < 0.5 ? 1 : 0; px += 1;
+          px += r.int(-1, 1) + 1; py += r() < 0.5 ? 1 : 0;
         }
-      } else if ((g === G.ROCK || g === G.SAND) && n < 70) {
-        ctx.fillStyle = g === G.ROCK ? P.rock4 : P.sand3;
-        ctx.fillRect(x, y, 1, 1);
-        ctx.fillStyle = g === G.ROCK ? P.rock0 : P.sand0;
-        ctx.fillRect(x, y + 1, 1, 1);
+      } else if ((g === G.ROCK || g === G.SAND || g === G.BEACH || g === G.BASALT) && n < 80) {
+        const hi = { [G.ROCK]: P.rock4, [G.SAND]: P.sand3, [G.BEACH]: P.bone, [G.BASALT]: P.basalt3 }[g];
+        const lo = { [G.ROCK]: P.rock0, [G.SAND]: P.sand0, [G.BEACH]: P.beach0, [G.BASALT]: P.ink }[g];
+        ctx.fillStyle = hi; ctx.fillRect(x, y, 1, 1);
+        ctx.fillStyle = lo; ctx.fillRect(x, y + 1, 1, 1);
       }
     }
+  }
 
-    // props on a jittered grid
-    const props = [];
-    const waterPts = [];
+  // ---------------- props (main thread, cheap, no pixels needed) ----------------
+  propChunk(cx, cy) {
+    const k = this.key(cx, cy);
+    let c = this.props.get(k);
+    if (c) return c;
+    const ox = cx * CHUNK, oy = cy * CHUNK;
+    const props = [], waterPts = [];
     const A = this.art.props;
-    for (let gy = 0; gy < S; gy += 16) {
-      for (let gx = 0; gx < S; gx += 16) {
+    const T = this.T;
+    for (let gy = 0; gy < CHUNK; gy += 16) {
+      for (let gx = 0; gx < CHUNK; gx += 16) {
         const wx = ox + gx, wy = oy + gy;
+        const jx = ox + gx + Math.floor(hash2(wx, wy, this.seed + 9) * 16);
+        const jy = oy + gy + Math.floor(hash2(wx, wy, this.seed + 19) * 16);
+        const g = this.typeAt(jx, jy);
+        if (g === G.SHALLOW || g === G.DEEP) waterPts.push(jx, jy);
+        if (Math.abs(jx) < 60 && Math.abs(jy) < 60) continue;
         const h = hash2(wx, wy, this.seed);
-        const jx = gx + Math.floor(hash2(wx, wy, this.seed + 9) * 16);
-        const jy = gy + Math.floor(hash2(wx, wy, this.seed + 19) * 16);
-        const g = types[jy * S + jx];
-        if (g === G.SHALLOW || g === G.DEEP) waterPts.push(ox + jx, oy + jy);
-        if (Math.abs(ox + jx) < 60 && Math.abs(oy + jy) < 60) continue; // clear spawn
+        if (h > 0.45) continue;
+        const bio = T.biomeAt(jx, jy);
         let kind = null;
-        const pick = (arr) => arr[Math.floor(hash2(wx, wy, this.seed + 29) * arr.length)];
-        if (g === G.GRASS) {
-          if (h < 0.028) kind = 'acacia'; else if (h < 0.05) kind = 'bush'; else if (h < 0.056) kind = 'termite';
-          else if (h < 0.059) kind = 'bones'; else if (h < 0.0615) kind = 'baobab';
-        } else if (g === G.LUSH) {
-          if (h < 0.075) kind = 'acacia'; else if (h < 0.13) kind = 'bush'; else if (h < 0.135) kind = 'baobab';
-        } else if (g === G.TALL) {
-          if (h < 0.018) kind = 'acacia'; else if (h < 0.03) kind = 'bush';
-        } else if (g === G.SAND) {
-          if (h < 0.06) kind = 'thorn'; else if (h < 0.07) kind = 'bones'; else if (h < 0.074) kind = 'baobab';
-        } else if (g === G.CLAY) {
-          if (h < 0.02) kind = 'bones'; else if (h < 0.045) kind = 'termite'; else if (h < 0.06) kind = 'thorn';
-        } else if (g === G.ROCK) {
-          if (h < 0.1) kind = 'boulder'; else if (h < 0.15) kind = 'kopje'; else if (h < 0.16) kind = 'acacia';
-        } else if (g === G.MUD) {
-          if (h < 0.3) kind = 'reeds';
+        for (const [gg, bb, list] of FLORA) {
+          if (gg !== g || (bb !== -1 && bb !== bio)) continue;
+          for (const [th, kd] of list) if (h < th) { kind = kd; break; }
+          break;
         }
-        if (!kind) continue;
-        const def = pick(A[kind]);
+        if (!kind || !A[kind]) continue;
+        const arr = A[kind];
+        const def = arr[Math.floor(hash2(wx, wy, this.seed + 29) * arr.length)];
+        // big props shouldn't sit on a cliff face
+        if (def.solid && this.typeAt(jx, jy + 4) === G.CLIFF) continue;
         props.push({
-          kind, def, x: ox + jx, y: oy + jy,
-          shade: def.shade || 0, solid: def.solid || 0,
+          kind, def, x: jx, y: jy,
+          shade: def.shade || 0, solid: def.solid || 0, flat: !!def.flat,
           flip: hash2(wx, wy, this.seed + 39) < 0.5,
         });
       }
     }
-    return { cx, cy, img: c, types, props, waterPts, used: performance.now() };
+    c = { cx, cy, props, waterPts };
+    this.props.set(k, c);
+    return c;
   }
 
-  // ---- queries ----
-  typeAt(x, y) {
-    const cx = Math.floor(x / CHUNK), cy = Math.floor(y / CHUNK);
-    const c = this.peek(cx, cy);
-    if (!c) return this.ground(x, y);
-    const lx = Math.floor(x - cx * CHUNK), ly = Math.floor(y - cy * CHUNK);
-    return c.types[ly * CHUNK + lx];
+  // Build prop data around a point, a few chunks per frame, nearest first.
+  prepare(x, y, r, budget = 3) {
+    const x0 = Math.floor((x - r) / CHUNK), x1 = Math.floor((x + r) / CHUNK);
+    const y0 = Math.floor((y - r) / CHUNK), y1 = Math.floor((y + r) / CHUNK);
+    const pcx = Math.floor(x / CHUNK), pcy = Math.floor(y / CHUNK);
+    let built = 0;
+    for (let ring = 0; ring <= Math.max(x1 - pcx, pcx - x0, y1 - pcy, pcy - y0); ring++) {
+      for (let cy = pcy - ring; cy <= pcy + ring; cy++) for (let cx = pcx - ring; cx <= pcx + ring; cx++) {
+        if (Math.max(Math.abs(cx - pcx), Math.abs(cy - pcy)) !== ring) continue;
+        if (this.props.has(this.key(cx, cy))) continue;
+        this.propChunk(cx, cy);
+        if (++built >= budget) return;
+      }
+    }
   }
 
   *propsNear(x, y, r) {
     const x0 = Math.floor((x - r) / CHUNK), x1 = Math.floor((x + r) / CHUNK);
     const y0 = Math.floor((y - r) / CHUNK), y1 = Math.floor((y + r) / CHUNK);
     for (let cy = y0; cy <= y1; cy++) for (let cx = x0; cx <= x1; cx++) {
-      const c = this.peek(cx, cy);
+      const c = this.props.get(this.key(cx, cy));
       if (c) for (const p of c.props) yield p;
     }
   }
 
-  // Is this point in the shade of a tree or big rock?
+  // ---------------- queries ----------------
+  typeAt(x, y) {
+    const cx = Math.floor(x / CHUNK), cy = Math.floor(y / CHUNK);
+    const c = this.chunks.get(this.key(cx, cy));
+    if (!c) return this.T.ground(x, y);
+    return c.types[Math.floor(y - cy * CHUNK) * CHUNK + Math.floor(x - cx * CHUNK)];
+  }
+  ground(x, y) { return this.typeAt(x, y); }
+
+  levelAt(x, y) {
+    const cx = Math.floor(x / CHUNK), cy = Math.floor(y / CHUNK);
+    const c = this.chunks.get(this.key(cx, cy));
+    if (!c) return this.T.levelAt(x, y);
+    return c.lv[Math.floor(y - cy * CHUNK) * CHUNK + Math.floor(x - cx * CHUNK)] & 7;
+  }
+  rampAt(x, y) {
+    const cx = Math.floor(x / CHUNK), cy = Math.floor(y / CHUNK);
+    const c = this.chunks.get(this.key(cx, cy));
+    if (!c) return this.T.rampAt(x, y);
+    return (c.lv[Math.floor(y - cy * CHUNK) * CHUNK + Math.floor(x - cx * CHUNK)] & 128) !== 0;
+  }
+  biomeAt(x, y) {
+    const cx = Math.floor(x / CHUNK), cy = Math.floor(y / CHUNK);
+    const c = this.chunks.get(this.key(cx, cy));
+    if (!c) return this.T.biomeAt(x, y);
+    return c.biomes[Math.floor(y - cy * CHUNK) * CHUNK + Math.floor(x - cx * CHUNK)];
+  }
+
+  isWater(g) { return isWaterType(g); }
+
+  // Can something at e step to (nx, ny)? 0 = yes, 1 = blocked, 2 = a drop off a ledge.
+  stepRule(x, y, nx, ny) {
+    const t1 = this.typeAt(nx, ny);
+    if (t1 === G.SEA) return 1;
+    const L0 = this.levelAt(x, y), L1 = this.levelAt(nx, ny);
+    if (t1 === G.CLIFF) return L0 > L1 ? 2 : (this.typeAt(x, y) === G.CLIFF || ny > y + 0.01) ? 0 : 1;
+    if (L1 === L0) return 0;
+    if (this.rampAt(nx, ny) || this.rampAt(x, y)) return 0;
+    return L1 > L0 ? 1 : 2;
+  }
+
+  // Move an entity, sliding along walls. Returns 'drop' if it went over a ledge.
+  move(e, dx, dy, { drop = true } = {}) {
+    if (!dx && !dy) return null;
+    const r = this.stepRule(e.x, e.y, e.x + dx, e.y + dy);
+    if (r === 0 || (r === 2 && drop)) { e.x += dx; e.y += dy; return r === 2 ? 'drop' : null; }
+    if (r === 2 && !drop) return 'ledge';
+    // slide
+    if (dx && this.stepRule(e.x, e.y, e.x + dx, e.y) === 0) { e.x += dx; return 'slide'; }
+    if (dy && this.stepRule(e.x, e.y, e.x, e.y + dy) === 0) { e.y += dy; return 'slide'; }
+    return 'blocked';
+  }
+
   shadeAt(x, y) {
     for (const p of this.propsNear(x, y, 50)) {
       if (!p.shade) continue;
@@ -267,7 +298,6 @@ export class World {
     return null;
   }
 
-  // Push a circle out of solid props (tree trunks, boulders).
   collide(e, r) {
     for (const p of this.propsNear(e.x, e.y, 40)) {
       if (!p.solid) continue;
@@ -277,14 +307,16 @@ export class World {
       if (d2 < rr * rr && d2 > 0.0001) {
         const d = Math.sqrt(d2);
         const push = (rr - d) / d;
+        const ox = e.x, oy = e.y;
         e.x += dx * push;
         e.y += (dy * push) / 1.6;
-        // slide around instead of sticking head-on
         const tx = -dy / d, ty = dx / d;
         let sgn = (e.vx || 0) * tx + (e.vy || 0) * ty;
         sgn = Math.abs(sgn) < 0.5 ? ((e.id || 1) & 1 ? 1 : -1) : Math.sign(sgn);
         e.x += tx * sgn * 0.9;
         e.y += (ty * sgn * 0.9) / 1.6;
+        // never get pushed up a cliff or into the sea
+        if (this.stepRule(ox, oy, e.x, e.y) === 1) { e.x = ox; e.y = oy; }
       }
     }
   }
@@ -294,7 +326,7 @@ export class World {
     const x0 = Math.floor((x - maxR) / CHUNK), x1 = Math.floor((x + maxR) / CHUNK);
     const y0 = Math.floor((y - maxR) / CHUNK), y1 = Math.floor((y + maxR) / CHUNK);
     for (let cy = y0; cy <= y1; cy++) for (let cx = x0; cx <= x1; cx++) {
-      const c = this.peek(cx, cy);
+      const c = this.props.get(this.key(cx, cy));
       if (!c) continue;
       const w = c.waterPts;
       for (let i = 0; i < w.length; i += 2) {
@@ -305,18 +337,16 @@ export class World {
     return best;
   }
 
-  // A good, dry, open starting point near the origin with water in reach.
   findStart() {
     for (let r = 0; r < 4000; r += 40) {
       for (let a = 0; a < 8; a++) {
         const x = Math.cos(a) * r, y = Math.sin(a) * r;
-        const g = this.ground(x, y);
+        const g = this.T.ground(x, y);
         if (g !== G.GRASS && g !== G.LUSH) continue;
-        // want water within ~500px but not immediately adjacent
         let near = false;
         for (let k = 0; k < 24 && !near; k++) {
           const aa = (k / 24) * Math.PI * 2;
-          for (const rr of [200, 320, 450]) if (this.isWater(this.ground(x + Math.cos(aa) * rr, y + Math.sin(aa) * rr))) near = true;
+          for (const rr of [200, 320, 450]) if (isWaterType(this.T.ground(x + Math.cos(aa) * rr, y + Math.sin(aa) * rr))) near = true;
         }
         if (near) return [x, y];
       }

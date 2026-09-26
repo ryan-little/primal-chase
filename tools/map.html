@@ -1,0 +1,18 @@
+<!doctype html><html><body style="margin:0;background:#000"><canvas id="c"></canvas><script type="module">
+import { Terrain, G } from '../js/terrain.js';
+import { P } from '../js/palette.js';
+const seed = +(new URLSearchParams(location.search).get('seed') || 1);
+const T = new Terrain(seed);
+const N = 560, R = 11200, step = (2 * R) / N;
+const c = document.getElementById('c'); c.width = N; c.height = N; const x = c.getContext('2d');
+const col = { 0: P.grass2, 1: P.lush1, 2: P.tall2, 3: P.sand2, 4: P.clay1, 5: P.mud1, 6: P.rock2, 7: P.water1, 8: P.deep1, 9: P.ash2, 10: P.dune2, 11: P.salt2, 12: P.beach2, 13: P.sea1, 14: P.litter2, 15: P.basalt2, 16: '#000' };
+const counts = {};
+for (let j = 0; j < N; j++) for (let i = 0; i < N; i++) {
+  const wx = -R + i * step, wy = -R + j * step;
+  const g = T.ground(wx, wy); counts[g] = (counts[g] || 0) + 1;
+  x.fillStyle = col[g]; x.fillRect(i, j, 1, 1);
+}
+x.fillStyle = '#f00'; x.fillRect(N / 2 - 2, N / 2 - 2, 4, 4);
+const bc = {}; for (let k = 0; k < 4000; k++) { const a = Math.random() * 6.28, r = Math.sqrt(Math.random()) * 8000; const b = T.biomeAt(Math.cos(a) * r, Math.sin(a) * r); bc[b] = (bc[b] || 0) + 1; }
+window.result = { counts, bc };
+</script></body></html>

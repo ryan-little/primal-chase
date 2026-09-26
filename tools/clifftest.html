@@ -1,0 +1,20 @@
+<!doctype html><html><body><script type="module">
+import { buildArt } from '../js/art.js';
+import { Game } from '../js/game.js';
+const art = buildArt();
+const g = new Game(1, art, { play(){}, sting(){} }, { headless: true });
+const W = g.world, T = W.T; let cx, cy;
+outer: for (let rr = 800; rr < 9000; rr += 60) for (let a = 0; a < 80; a++) { const x = Math.cos(a/80*6.28)*rr, y = Math.sin(a/80*6.28)*rr;
+  if (T.ground(x, y) === 16 && T.ground(x, y + 12) !== 16 && T.ground(x, y - 12) !== 16 && !T.rampAt(x, y)) { cx = x; cy = y; break outer; } }
+g.hunters.forEach(h => h.x += 9000); g.band.x += 9000; g.scoutT = 1e9;
+const p = g.player; const res = {};
+p.x = cx; p.y = cy + 20; p.vx = p.vy = 0;
+for (let i = 0; i < 60; i++) g.update(1/30, { x: 0, y: -1 });
+res.up = { start: cy + 20, end: +p.y.toFixed(1), face: cy };
+p.x = cx; p.y = cy - 20; p.vx = p.vy = 0; const L0 = W.levelAt(p.x, p.y); let drops = 0;
+const orig = g.emit.bind(g); g.emit = (t, d) => { if (t === 'drop') drops++; orig(t, d); };
+const tr=[]; for (let i = 0; i < 60; i++) { g.update(1/30, { x: 0, y: 1 }); if (i%4==0) tr.push([p.y.toFixed(1), W.typeAt(p.x,p.y), W.levelAt(p.x,p.y), W.typeAt(p.x,p.y+1), W.levelAt(p.x,p.y+1), W.stepRule(p.x,p.y,p.x,p.y+1)].join(',')); }
+res.trace = tr;
+res.down = { start: cy - 20, end: +p.y.toFixed(1), L0, L1: W.levelAt(p.x, p.y), drops };
+window.result = res;
+</script></body></html>

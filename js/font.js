@@ -57,11 +57,12 @@ export function textWidth(str, scale = 1) {
   return str.length * 6 * scale - scale;
 }
 
-export function drawText(ctx, str, x, y, { color = '#fff', shadow = '#1a110c', scale = 1, align = 'left' } = {}) {
+export function drawText(ctx, str, x, y, { color = '#fff', shadow = '#1a110c', scale = 1, align = 'left', snap = 1 } = {}) {
+  const rnd = (v) => Math.round(v * snap) / snap;
   const s = glyphSheet(color, shadow);
   str = String(str).toUpperCase();
-  let cx = Math.round(align === 'center' ? x - textWidth(str, scale) / 2 : align === 'right' ? x - textWidth(str, scale) : x);
-  const cy = Math.round(y);
+  let cx = rnd(align === 'center' ? x - textWidth(str, scale) / 2 : align === 'right' ? x - textWidth(str, scale) : x);
+  const cy = rnd(y);
   for (const ch of str) {
     const gx = s.map[ch] ?? s.map['?'];
     if (ch !== ' ') ctx.drawImage(s.img, gx, 0, 7, 9, cx, cy, 7 * scale, 9 * scale);
