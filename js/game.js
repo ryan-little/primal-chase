@@ -13,7 +13,7 @@ import { installWeather } from './weather.js';
 export const DAY_LEN = 170; // seconds per full day/night cycle
 export const T = {
   trot: 66, sprint: 132, pounceSpeed: 340, pounceTime: 0.22,
-  hunterWalk: 50, hunterWalkPerDay: 6, hunterRun: 76, hunterRunPerDay: 5,
+  hunterWalk: 47, hunterWalkPerDay: 6.5, hunterRun: 76, hunterRunPerDay: 5,
   dogRun: 136, spearSpeed: 310,
 };
 
@@ -95,12 +95,13 @@ export class Game {
     this.runners = [];
     this.lions = [];
     this.perks = {};
+    this.biomesSeen = new Set();
     this.found = new Set();
     this.intelDay = 0;
     this.reveals = [];
     this.perkChoices = 0;
     this.windUsedDay = 0;
-    this.scoutT = 95;
+    this.scoutT = 110;
     this.hist = [];
     this.lineP = 0;
     this.intercepts = 0;
@@ -530,7 +531,7 @@ export class Game {
     // they read the land faster when far behind: persistence
     if (d > 420) walk *= 1 + Math.min(0.85, (d - 420) / 800);
     if (b.rush > 0) { b.rush -= dt; walk *= 1.35; }
-    if (this.lineP > 14) walk *= 1.25; // a straight trail reads itself
+    if (this.lineP > 14) walk *= 1.12; // a straight trail reads itself
 
     // ---- sighting ----
     let closest = 1e9;
@@ -743,7 +744,7 @@ export class Game {
     const p = this.player, W = this.world;
     // --- crocodiles lurk in deep water: cooling off there is a gamble
     if (p.ground === G.DEEP) this.deepT += dt; else this.deepT = Math.max(0, this.deepT - dt * 2);
-    if (!this.croc && this.deepT > 1.6 && this.r() < dt * (this.day === 1 ? 0.3 : 0.5) * (this.has('river') ? 0.5 : 1) && !this.over) {
+    if (!this.croc && this.day >= 2 && this.deepT > 1.6 && this.r() < dt * 0.5 * (this.has('river') ? 0.5 : 1) && !this.over) {
       for (let k = 0; k < 16; k++) {
         const a = this.r() * TAU, r = this.r.range(60, 90);
         const x = p.x + Math.cos(a) * r, y = p.y + Math.sin(a) * r;
@@ -989,7 +990,7 @@ export class Game {
     if (before < 14 && this.lineP >= 14) this.emit('linewarn', { x: p.x, y: p.y });
     if (this.lineP >= 30 && this.interceptCd <= 0 && !this.over) {
       this.lineP = 0;
-      this.interceptCd = 35;
+      this.interceptCd = 45;
       this.intercepts++;
       const h = this.heading();
       const kind = this.intercepts >= 3 && this.day >= 2 && this.r() < 0.5 ? 'ambush' : 'intercept';
@@ -1355,6 +1356,8 @@ export class Game {
     this.updateDogs(dt);
     this.updateScout(dt);
     this.updatePressure(dt);
+    this.bioT = (this.bioT || 0) - dt;
+    if (this.bioT <= 0) { this.bioT = 1; this.biomesSeen.add(this.world.biomeAt(this.player.x, this.player.y)); }
     this.updateHazards(dt);
     this.updateLions(dt);
     this.updateSpears(dt);

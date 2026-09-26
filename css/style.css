@@ -239,3 +239,8 @@ input[type=checkbox] { width: 18px; height: 18px; accent-color: var(--ochre); }
 @media (max-width: 700px) { #journal-list { grid-template-columns: 1fr; } #minimap { width: 84px; height: 84px; } }
 .touch #minimap { top: auto; bottom: 150px; right: 18px; width: 84px; height: 84px; }
 .touch #map-btn { top: max(112px, env(safe-area-inset-top)); bottom: auto; right: 14px; }
+
+@media (min-width: 1100px) {
+  #how .panel.wide { max-width: 1060px; }
+  #how .how-grid { grid-template-columns: repeat(3, 1fr); }
+}

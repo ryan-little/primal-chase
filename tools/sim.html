@@ -13,6 +13,7 @@ window.runSims = (n, skill, maxMin = 25) => {
     let t = 0, sightings = 0, hurts = 0, maxInt = 0, near = 0, chaseT = 0;
     const causes = {};
     while (!g.over && t < maxMin * 60) {
+      if (g.perkChoices > 0) { const o = g.offerPerks(1); if (o.length) g.takePerk(o[0].id); else g.perkChoices = 0; }
       const inp = bot(g);
       g.update(dt, inp);
       for (const e of g.events) { if (e.type === 'sighted') sightings++; if (e.type === 'hurt') { hurts++; causes[e.kind] = (causes[e.kind]||0)+1; } }

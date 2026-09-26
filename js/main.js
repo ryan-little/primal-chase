@@ -161,6 +161,7 @@ function stepAttract(dt) {
   p.food = Math.max(p.food, 45);
   if (g.perkChoices > 0) { const o = g.offerPerks(1); if (o.length) g.takePerk(o[0].id); else g.perkChoices = 0; }
   g.update(dt, attractBot(g));
+  if (g.clock > 0.6) g.clock = 0.12; // the demo stays in daylight
   for (const e of g.events) {
     if (e.type === 'kill' || e.type === 'hurt') renderer.burst('blood', e.x, e.y, 10);
     else if (e.type === 'step' && e.sprint && !e.water) renderer.burst('dust', e.x, e.y, 1);
@@ -267,6 +268,12 @@ const FEATS = [
   ['wild', '×', 'Wild', 'Reach a x3 multiplier', (g) => g.mult >= 3],
   ['trample', '▲', 'Let the herd do it', 'Get a hunter trampled', (g) => (g.stats.trampled || 0) > 0],
   ['marathon', '∞', 'Marathon', 'Run 5 km in one run', (g) => g.stats.dist >= 5000],
+  ['secret', '?', 'Curious cat', 'Find a secret place', (g) => (g.stats.secrets || 0) > 0],
+  ['secrets3', '\u2736', 'Keeper of old places', 'Find 3 secrets in one run', (g) => (g.stats.secrets || 0) >= 3],
+  ['golden', '\u2605', 'Gold on the plain', 'Catch a golden gazelle', (g) => (g.stats.golden || 0) > 0],
+  ['pride', '\u265b', 'Let the lions do it', 'Lead the band into a pride', (g) => (g.stats.lionTakedowns || 0) > 0],
+  ['instincts', '\u2726', 'Old instincts', 'Hold 5 instincts at once', (g) => Object.values(g.perks).reduce((a, b) => a + b, 0) >= 5],
+  ['explorer', '\u25c9', 'Wide wanderer', 'Visit 5 different lands in one run', (g) => (g.biomesSeen ? g.biomesSeen.size : 0) >= 5],
 ];
 let feats = new Set(store.get('feats', []));
 let runFeats = new Set();

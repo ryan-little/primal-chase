@@ -10,7 +10,7 @@ export function makeBot(skill = 1) {
     let dogD = 1e9; for (const d of g.dogs) if (!d.dead) dogD = Math.min(dogD, dist(d.x, d.y, p.x, p.y));
     let ax = p.x - g.band.x, ay = p.y - g.band.y; const al = Math.hypot(ax, ay) || 1; ax /= al; ay /= al;
     // weave: a good player doesn't run a straight line
-    { const wv = Math.sin(g.time / 9) * 0.9 + (g.lineP > 8 ? 0.8 : 0); const c = Math.cos(wv), sn = Math.sin(wv); const nx = ax * c - ay * sn, ny = ax * sn + ay * c; ax = nx; ay = ny; }
+    { const wv = Math.sin(g.time / 7) * 0.75 + (g.lineP > 8 ? 0.7 : 0); const c = Math.cos(wv), sn = Math.sin(wv); const nx = ax * c - ay * sn, ny = ax * sn + ay * c; ax = nx; ay = ny; }
     const chase = g.band.mode === 'chase';
     const inp = { x: 0, y: 0, sprint: false, pounce: false };
     const go = (tx, ty, sprint = false) => { const dx = tx - p.x, dy = ty - p.y, l = Math.hypot(dx, dy) || 1; inp.x = dx / l; inp.y = dy / l; inp.sprint = sprint; return l; };
@@ -21,6 +21,20 @@ export function makeBot(skill = 1) {
     else if (p.heat > 74 || (s.mode === 'cool' && p.heat > 30)) s.mode = 'cool';
     else s.mode = 'flee';
     if (skill <= 0) s.mode = 'flee';
+    // lions, fire and lightning: just get away
+    for (const L of g.lions || []) {
+      const d = dist(L.x, L.y, p.x, p.y);
+      if ((L.state === 'charge' && L.target === 'player' && d < 260) || d < 170) {
+        let lx = p.x - L.x, ly = p.y - L.y; const ll = Math.hypot(lx, ly) || 1;
+        inp.x = lx / ll; inp.y = ly / ll; inp.sprint = p.heat < 92; return inp;
+      }
+    }
+    if (g.fireAlarm && g.weather) {
+      const w = g.weather; inp.x = -Math.cos(w.windA) + ax * 0.3; inp.y = -Math.sin(w.windA) + ay * 0.3; inp.sprint = g.fireNear(p.x, p.y, 40) && p.heat < 95; return inp;
+    }
+    for (const st of (g.weather && g.weather.strikes) || []) {
+      if (!st.done && dist(st.x, st.y, p.x, p.y) < 34) { let lx = p.x - st.x, ly = p.y - st.y; const ll = Math.hypot(lx, ly) || 1; inp.x = lx / ll; inp.y = ly / ll; inp.sprint = true; return inp; }
+    }
     // dodge: any spear or windup aimed near me -> sidestep perpendicular to its line
     const threats = [];
     for (const h of [...g.hunters, ...g.runners]) if (h.windup > 0) threats.push([h.x, h.y, h.tx, h.ty, h.windup]);
