@@ -189,6 +189,7 @@ const HINTS = {
   night: 'Night. Cooler and darker. Their torches show where they are.',
   rain: 'Rain! Your tracks are washing away.',
   dogs: 'Dogs run faster than you and follow scent over rock. Pounce to drive them off.',
+  mult: 'Danger survived raises your <b>multiplier</b> (top right). Getting hurt halves it.',
   scout: () => `A runner is cutting you off! Dodge his spears, or ${input.usingTouch ? 'POUNCE' : '<kbd>Space</kbd>'} to knock him flat.`,
   pounce: () => `A pounce is a dodge. ${input.usingTouch ? 'POUNCE' : '<kbd>Space</kbd>'} a hunter to knock him flat.`,
 };
@@ -211,7 +212,7 @@ function updateToasts(dt) {
     if (toastT <= 0) $('toast').classList.remove('on');
     return;
   }
-  if (hintQ.length) {
+  if (hintQ.length && cardT <= 0.3) {
     const k = hintQ.shift();
     seenHints.add(k);
     store.set('hints', [...seenHints]);
@@ -259,6 +260,10 @@ function startRun() {
 }
 
 function finishRun() {
+  $('toast').classList.remove('on');
+  $('card').classList.remove('on');
+  toastT = 0;
+  cardT = 0;
   const s = game.stats;
   const best = store.get('best', 0);
   const isBest = game.score > best;
@@ -279,8 +284,10 @@ function finishRun() {
     ['Prey caught', s.prey],
     ['Trails broken', s.breaks],
     ['Spears dodged', s.dodges],
+    ['Escapes', s.escapes || 0],
     ['Takedowns', s.knockdowns + s.dogs],
     ['Time alive', fmtTime(game.time)],
+    ['Top multiplier', 'x' + (s.bestMult || 1).toFixed(1)],
     ['Best', Math.max(best, game.score).toLocaleString()],
   ];
   $('death-stats').innerHTML = stats.map(([k, v, sub]) => `<div class="stat"><b>${v}</b><span>${k}${sub ? ' · ' + sub : ''}</span></div>`).join('');
@@ -361,6 +368,8 @@ function handleEvents(g) {
       case 'thunder': audio.play('thunder'); break;
       case 'death': audio.sting('death'); renderer.shake(8); break;
       case 'scout': audio.play('shout', { vol: 0.5 }); hint('scout'); break;
+      case 'mult': multBumpT = 0.25; audio.play('ui', { pitch: 84 + Math.min(12, Math.round(e.v * 3)) }); hint('mult'); break;
+      case 'multloss': break;
       case 'scoutsee': audio.play('sighted', { vol: 0.9 }); renderer.shake(1.5); break;
     }
   }
@@ -369,8 +378,10 @@ function handleEvents(g) {
 
 // ---------------- HUD ----------------
 let hudT = 0;
+let multBumpT = 0;
 function updateHUD(g, dt) {
   hudT -= dt;
+  multBumpT -= dt;
   if (hudT > 0) return;
   hudT = 0.05;
   const p = g.player;
@@ -378,6 +389,9 @@ function updateHUD(g, dt) {
   $('phase-label').textContent = g.phaseName;
   $('clock-icon').className = g.isNight ? 'moon' : '';
   $('score').textContent = g.score.toLocaleString();
+  const mEl = $('mult');
+  mEl.textContent = 'x' + g.mult.toFixed(1);
+  mEl.className = (g.mult >= 2.5 ? 'hotter' : g.mult >= 1.5 ? 'hot' : '') + (multBumpT > 0 ? ' bump' : '');
   const th = g.threat();
   const d = th.d;
   $('band-dist').textContent = `${Math.round(d / 10)} m`;
@@ -453,7 +467,8 @@ let logoT = 0;
 function frame(now) {
   let dt = clamp((now - last) / 1000, 0, 0.05);
   last = now;
-  const inp = input.read();
+  let inp = input.read();
+  if (window.__pc?.override && game && state === 'playing') inp = Object.assign(inp, window.__pc.override(game));
   if (inp.edges.has('KeyM')) { audio.muted = !audio.muted; audio.applyVolumes(); }
 
   if (state === 'title') {
@@ -472,7 +487,7 @@ function frame(now) {
     if (hitstop > 0) { hitstop -= dt; dt = 0; }
     slow = Math.min(1, slow + (game.over ? 0.12 : 1.4) * dt);
     if (game.over) slow = Math.min(slow, 0.3);
-    const sdt = dt * slow;
+    const sdt = dt * slow * (window.__pc?.timeScale || 1);
     game.update(sdt, inp);
     handleEvents(game);
     contextHints(game);

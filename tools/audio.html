@@ -1,0 +1,18 @@
+<!doctype html><html><body><script type="module">
+import { Audio } from '../js/audio.js';
+window.render = async (intensity, night, secs, sfx) => {
+  const sr = 22050;
+  const off = new OfflineAudioContext(2, sr * secs, sr);
+  const a = new Audio(); a.init(off); a.menu = false; a.intensity = intensity; a.night = night;
+  const spb = 60 / a.tempo / 4;
+  let t = 0.05, step = 0;
+  while (t < secs - 0.5) { a.schedule(step++, t, spb); t += spb; }
+  if (sfx) { const names = ['pounce','kill','hit','dodge','sighted','bark','trail','throw','thunk','overheat','roar','drink','eat','splash']; names.forEach((n, i) => { const orig = off.currentTime; a.ctx = off; /* schedule at offsets */ }); }
+  const buf = await off.startRendering();
+  const d = buf.getChannelData(0);
+  const per = [];
+  for (let s = 0; s < secs; s++) { let pk = 0, sum = 0; for (let i = s * sr; i < (s + 1) * sr; i++) { const v = Math.abs(d[i]); pk = Math.max(pk, v); sum += v * v; } per.push([+pk.toFixed(2), +Math.sqrt(sum / sr).toFixed(3)]); }
+  return per;
+};
+window.ready = true;
+</script></body></html>

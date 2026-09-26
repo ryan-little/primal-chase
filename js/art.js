@@ -351,7 +351,7 @@ function hyenaSpec() {
 // pose: walk | run | windup | throw | search | down ; p phase
 function drawHuman(ctx, pose, p, night, variant) {
   const W = 28, G = 38;
-  const skin = variant % 2 ? P.skin2 : P.skin1, skinD = P.skin0;
+  const skin = variant % 2 ? P.skin3 : P.skin2, skinD = P.skin1;
   const s = Math.sin(p * TAU);
   if (pose === 'down') {
     line(ctx, [4, G - 2, 12, G - 3], 3, skinD);
@@ -375,8 +375,11 @@ function drawHuman(ctx, pose, p, night, variant) {
   const armFar = armB || -armA;
   leg(ctx, shx, shy + 0.5, armFar * 0.8, armFar * 0.8 - 0.6, 4.5, 4.2, 1.8, skinD, null);
   // torso
-  line(ctx, [hx, hy, shx, shy], 4.2, skin);
+  line(ctx, [hx, hy, shx, shy], 4.8, skin);
   line(ctx, [hx - 0.3, hy - 3.5, shx - 0.2, shy + 2.5], 1, P.paint); // body paint stripe
+  // hide cape over the shoulders: makes the silhouette read against grass
+  tri(ctx, [shx - 3.2, shy - 0.5], [shx + 2.4, shy - 0.5], [shx - 2.2 - lean * 0.4, shy + 7], P.ochre);
+  line(ctx, [shx - 3, shy - 0.3, shx + 2.2, shy - 0.3], 1.2, P.clay2);
   ell(ctx, hx + 0.3, hy + 0.5, 3, 2.1, P.hide1);
   line(ctx, [hx + 1.2, hy + 1.5, hx + 2.4, hy + 5], 1.4, P.hide0);
   // near leg

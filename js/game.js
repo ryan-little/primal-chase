@@ -8,7 +8,7 @@ import { World, G, GROUND_INFO } from './world.js';
 export const DAY_LEN = 170; // seconds per full day/night cycle
 export const T = {
   trot: 66, sprint: 132, pounceSpeed: 340, pounceTime: 0.22,
-  hunterWalk: 52, hunterWalkPerDay: 5.5, hunterRun: 76, hunterRunPerDay: 5,
+  hunterWalk: 50, hunterWalkPerDay: 6, hunterRun: 76, hunterRunPerDay: 5,
   dogRun: 136, spearSpeed: 310,
 };
 
@@ -39,6 +39,9 @@ export class Game {
     this.clock = opts.startClock ?? 0.07; // 0..1 through the day, starts at dawn
     this.day = 1;
     this.score = 0;
+    this.mult = 1;
+    this.multHold = 0;
+    this.distF = 0;
     this.stats = { dist: 0, prey: 0, dodges: 0, breaks: 0, knockdowns: 0, dogs: 0, spearsHit: 0, bestClose: 9999 };
     this.meters = 0;
     this.slowmo = 0;
@@ -85,7 +88,7 @@ export class Game {
     this.spawnT = 0;
     this.bit = null;
     this.scout = null;
-    this.scoutT = 70;
+    this.scoutT = 95;
   }
 
   addHunters(n) {
@@ -113,9 +116,19 @@ export class Game {
     this.events.push({ type, ...data });
   }
 
-  addScore(n, label, x, y, color) {
+  addScore(n, label, x, y, color, boost = 0) {
+    n = Math.round(n * this.mult);
     this.score += n;
     if (label) this.emit('pop', { text: `+${n} ${label}`, x, y, color });
+    if (boost) this.bump(boost);
+  }
+
+  // The wild multiplier: danger engaged and survived makes every point worth more.
+  bump(v) {
+    const before = Math.floor(this.mult * 2);
+    this.mult = Math.min(4, this.mult + v);
+    this.multHold = 12;
+    if (Math.floor(this.mult * 2) > before) this.emit('mult', { v: this.mult });
   }
 
   // ---------------- time & weather ----------------
@@ -345,7 +358,7 @@ export class Game {
         this.stats.prey++;
         const meat = q.kind === 'hare' ? 24 : 70;
         this.carcasses.push({ id: UID++, x: q.x, y: q.y, meat, max: meat, kind: q.kind, face: q.face, t: 0 });
-        this.addScore(q.kind === 'hare' ? 60 : 150, q.kind === 'hare' ? 'HARE' : 'GAZELLE', q.x, q.y - 16, '#ffe08a');
+        this.addScore(q.kind === 'hare' ? 60 : 150, q.kind === 'hare' ? 'HARE' : 'GAZELLE', q.x, q.y - 16, '#ffe08a', q.kind === 'hare' ? 0.15 : 0.3);
         this.emit('kill', { x: q.x, y: q.y });
         p.pounce = Math.min(p.pounce, 0.04);
         p.vx *= 0.2; p.vy *= 0.2;
@@ -358,7 +371,7 @@ export class Game {
         h.windup = 0;
         h.vx = p.pdx * 120; h.vy = p.pdy * 120;
         this.stats.knockdowns++;
-        this.addScore(200, 'TAKEDOWN', h.x, h.y - 40, '#ff9a6a');
+        this.addScore(200, 'TAKEDOWN', h.x, h.y - 40, '#ff9a6a', 0.5);
         this.emit('knockdown', { x: h.x, y: h.y });
         p.pounce = 0;
         p.vx = -p.pdx * 60; p.vy = -p.pdy * 60;
@@ -370,7 +383,7 @@ export class Game {
         d.dead = true;
         d.deadT = 0;
         this.stats.dogs++;
-        this.addScore(150, 'DOG DRIVEN OFF', d.x, d.y - 20, '#ff9a6a');
+        this.addScore(150, 'DOG DRIVEN OFF', d.x, d.y - 20, '#ff9a6a', 0.35);
         this.emit('dogdown', { x: d.x, y: d.y });
       }
     }
@@ -381,6 +394,7 @@ export class Game {
     if (p.iframes > 0 || this.over) return false;
     p.health -= dmg;
     p.hurt = 0.4;
+    if (this.mult > 1) { this.mult = 1 + (this.mult - 1) * 0.5; this.emit('multloss'); }
     p.iframes = 0.7;
     const a = Math.atan2(p.y - fromY, p.x - fromX);
     p.vx += Math.cos(a) * 140;
@@ -463,6 +477,8 @@ export class Game {
         }
         b.idx = best;
         for (const h of lead) { h.mark = 1.4; h.markType = '?'; }
+        this.stats.escapes = (this.stats.escapes || 0) + 1;
+        this.addScore(100, 'ESCAPED', p.x, p.y - 30, '#ffe08a', 0.3);
         this.emit('lost', { x: b.x, y: b.y });
       }
     }
@@ -673,7 +689,7 @@ export class Game {
         tx = p.x + p.vx * lead; ty = p.y + p.vy * lead;
         sp = run;
       }
-      if ((sc.throws || 0) >= 3 && sc.throwCd < 0.5) sc.leaving = true;
+      if ((sc.throws || 0) >= (this.day === 1 ? 2 : 3) && sc.throwCd < 0.5) sc.leaving = true;
     }
     const a = Math.atan2(ty - sc.y, tx - sc.x);
     const gi = GROUND_INFO[this.world.typeAt(sc.x, sc.y)];
@@ -694,7 +710,7 @@ export class Game {
     const pts = Math.round(40 + b.searchT * 14);
     this.stats.breaks++;
     this.stats.searchTime = (this.stats.searchTime || 0) + b.searchT;
-    this.addScore(pts, 'TRAIL BROKEN', p.x, p.y - 26, '#7fd6e0');
+    this.addScore(pts, 'TRAIL BROKEN', p.x, p.y - 26, '#7fd6e0', 0.2);
     this.emit('trailbreak', { x: b.x, y: b.y, secs: b.searchT });
   }
 
@@ -734,7 +750,7 @@ export class Game {
           if (pd < 34 && !this.over) {
             this.stats.dodges++;
             const close = pd < 18;
-            this.addScore(close ? 80 : 40, close ? 'WHISKER' : 'DODGE', p.x, p.y - 28, '#ffffff');
+            this.addScore(close ? 80 : 40, close ? 'WHISKER' : 'DODGE', p.x, p.y - 28, '#ffffff', close ? 0.35 : 0.2);
             this.emit('dodge', { x: p.x, y: p.y, close });
           }
         }
@@ -943,7 +959,16 @@ export class Game {
 
     // score: distance
     const m = Math.floor(this.meters);
-    if (m > this.stats.dist) { this.score += m - this.stats.dist; this.stats.dist = m; }
+    if (m > this.stats.dist) {
+      this.distF += (m - this.stats.dist) * this.mult;
+      const whole = Math.floor(this.distF);
+      this.score += whole;
+      this.distF -= whole;
+      this.stats.dist = m;
+    }
+    this.multHold -= dt;
+    if (this.mult > 1) this.mult = Math.max(1, this.mult - dt * (this.multHold > 0 ? 0.015 : 0.1));
+    this.stats.bestMult = Math.max(this.stats.bestMult || 1, this.mult);
     this.stats.bestClose = Math.min(this.stats.bestClose, this.hunterDist());
   }
 

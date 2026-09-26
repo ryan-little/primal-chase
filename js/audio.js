@@ -53,14 +53,14 @@ export class Audio {
     this.menu = true;
   }
 
-  init() {
+  init(offline) {
     if (this.ctx) {
       if (this.ctx.state === 'suspended') this.ctx.resume();
       return;
     }
     const AC = window.AudioContext || window.webkitAudioContext;
-    if (!AC) return;
-    const ctx = (this.ctx = new AC());
+    if (!AC && !offline) return;
+    const ctx = (this.ctx = offline || new AC());
     this.master = ctx.createGain();
     const comp = ctx.createDynamicsCompressor();
     comp.threshold.value = -14;
@@ -95,7 +95,7 @@ export class Audio {
     // bus for music with a gentle master filter (used for "muffled" moments)
     this.mbus = ctx.createBiquadFilter();
     this.mbus.type = 'lowpass';
-    this.mbus.frequency.value = 18000;
+    this.mbus.frequency.value = Math.min(18000, ctx.sampleRate / 2 - 100);
     this.mbus.connect(this.music);
 
     this.startAmbience();
@@ -113,7 +113,7 @@ export class Audio {
 
   setMuffle(on) {
     if (!this.ctx) return;
-    this.mbus.frequency.setTargetAtTime(on ? 700 : 18000, this.ctx.currentTime, 0.15);
+    this.mbus.frequency.setTargetAtTime(on ? 700 : Math.min(18000, this.ctx.sampleRate / 2 - 100), this.ctx.currentTime, 0.15);
   }
 
   // ---------------- ambience ----------------
@@ -363,6 +363,9 @@ export class Audio {
   update(dt) {
     if (!this.ctx || !this.playing) return;
     const ctx = this.ctx;
+    const I = this.menu ? 0 : this.intensity;
+    const want = 88 + (I >= 3 ? 16 : I >= 2 ? 6 : 0);
+    this.tempo += (want - this.tempo) * Math.min(1, dt * 0.8);
     const spb = 60 / this.tempo / 4; // seconds per 16th
     while (this.nextTime < ctx.currentTime + 0.15) {
       this.schedule(this.step, this.nextTime, spb);
@@ -434,7 +437,8 @@ export class Audio {
       if (s16 % 4 === 2) this.noiseHit(t, 7000, 1, 0.05, 0.12, this.mbus, 'highpass');
     }
     if (I >= 3) {
-      if ([3, 12, 14].includes(s16)) this.drum(t, 220, 120, 0.12, 0.5, 0.6);
+      if ([3, 12, 14].includes(s16)) this.drum(t, 220, 120, 0.12, 0.65, 0.6);
+      if (s16 % 4 === 0) this.drum(t, 95, 42, 0.3, 1.0, 0.25);
       if (s16 % 2 === 1) this.noiseHit(t, 8000, 1, 0.03, 0.08, this.mbus, 'highpass');
       if (s16 === 0 && bar % 2 === 0) this.chant(t, spb * 30, 1);
       // urgent riff

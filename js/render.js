@@ -9,18 +9,18 @@ import { canvas } from './art.js';
 
 const SKY = [
   // clock, r, g, b
-  [0.0, 64, 74, 132],
-  [0.025, 150, 110, 150],
-  [0.05, 255, 176, 140],
+  [0.0, 84, 94, 152],
+  [0.025, 160, 130, 165],
+  [0.05, 255, 190, 160],
   [0.1, 255, 236, 214],
   [0.3, 255, 255, 246],
   [0.55, 255, 240, 214],
-  [0.625, 255, 186, 128],
-  [0.665, 214, 120, 120],
-  [0.7, 86, 90, 150],
-  [0.75, 58, 68, 128],
-  [0.95, 56, 66, 124],
-  [1.0, 64, 74, 132],
+  [0.625, 255, 206, 160],
+  [0.665, 210, 150, 160],
+  [0.7, 104, 108, 168],
+  [0.75, 78, 88, 150],
+  [0.95, 76, 86, 146],
+  [1.0, 84, 94, 152],
 ];
 
 function skyAt(c) {
@@ -73,7 +73,8 @@ export class Renderer {
   }
 
   pop(text, x, y, color = '#fff') {
-    this.pops.push({ text, x, y, t: 0, color });
+    const recent = this.pops.filter((q) => q.t < 0.6 && Math.abs(q.x - x) < 60 && Math.abs(q.y - y) < 30).length;
+    this.pops.push({ text, x, y: y - recent * 10, t: 0, color });
   }
 
   burst(kind, x, y, n = 8, extra = {}) {
@@ -183,8 +184,12 @@ export class Renderer {
     // spear telegraphs on the ground
     for (const hu of game.scout ? [...game.hunters, game.scout] : game.hunters) {
       if (hu.windup > 0) {
-        const k = 1 - hu.windup / 0.8;
-        ctx.strokeStyle = `rgba(255,74,46,${0.35 + k * 0.5})`;
+        const k = clamp(1 - hu.windup / 0.8, 0, 1);
+        ctx.fillStyle = `rgba(255,74,46,${0.12 + k * 0.25})`;
+        ctx.beginPath();
+        ctx.ellipse(Math.round(hu.tx - cx), Math.round(hu.ty - cy), 11, 6, 0, 0, TAU);
+        ctx.fill();
+        ctx.strokeStyle = `rgba(255,74,46,${0.55 + k * 0.45})`;
         ctx.lineWidth = 1;
         ctx.setLineDash([3, 3]);
         ctx.lineDashOffset = -t * 30;
@@ -213,7 +218,7 @@ export class Renderer {
     // ---------- y-sorted sprites ----------
     const list = [];
     for (const pr of props) list.push({ y: pr.y, k: 0, o: pr });
-    for (const c of game.carcasses) list.push({ y: c.y - 2, k: 1, o: c });
+    for (const c of game.carcasses) list.push({ y: c.y - 8, k: 1, o: c });
     for (const s of game.stuck) list.push({ y: s.y, k: 2, o: s });
     for (const q of game.prey) list.push({ y: q.y, k: 3, o: q });
     for (const d of game.dogs) list.push({ y: d.y, k: 4, o: d });
@@ -223,18 +228,34 @@ export class Renderer {
     list.sort((a, b) => a.y - b.y);
 
     const night = game.isNight || game.clock > 0.64;
-    const spr = (img, x, y, ox, oy, flip, alpha = 1) => {
+    const spr = (img, x, y, ox, oy, flip, alpha = 1, sub = 0) => {
       const X = Math.round(x - cx), Y = Math.round(y - cy);
       if (X < -img.width - 10 || X > w + img.width + 10 || Y < -10 || Y > h + img.height + 10) return;
       if (alpha < 1) ctx.globalAlpha = alpha;
+      const sh = sub ? Math.max(1, oy - sub + 1) : img.height;
+      const dy = Y - oy + sub;
       if (flip) {
         ctx.save();
         ctx.translate(X, 0);
         ctx.scale(-1, 1);
-        ctx.drawImage(img, -(img.width - ox) , Y - oy);
+        ctx.drawImage(img, 0, 0, img.width, sh, -ox, dy, img.width, sh);
         ctx.restore();
-      } else ctx.drawImage(img, X - ox, Y - oy);
+      } else ctx.drawImage(img, 0, 0, img.width, sh, X - ox, dy, img.width, sh);
       if (alpha < 1) ctx.globalAlpha = 1;
+      if (sub) {
+        // waterline ripple
+        const rw = Math.max(6, Math.round(img.width * 0.28));
+        const wob = Math.sin(t * 6 + x * 0.1) > 0 ? 1 : 0;
+        ctx.fillStyle = P.foam;
+        ctx.fillRect(X - rw, Y + 1, rw * 2 + wob, 1);
+        ctx.fillStyle = P.water2;
+        ctx.fillRect(X - rw - 2, Y + 2, 3, 1);
+        ctx.fillRect(X + rw, Y + 2, 3, 1);
+      }
+    };
+    const depth = (x, y, deep, shallow) => {
+      const g = W.typeAt(x, y);
+      return g === G.DEEP ? deep : g === G.SHALLOW ? shallow : 0;
     };
 
     for (const it of list) {
@@ -255,14 +276,16 @@ export class Renderer {
         let fr;
         if (o.kind === 'hare') fr = spd > 20 ? S.run[Math.floor(o.anim * 6) % 6] : S.idle[0];
         else fr = spd > 60 ? S.run[Math.floor(o.anim * 8) % 8] : spd > 5 ? S.walk[Math.floor(o.anim * 8) % 8] : S.idle[Math.floor(o.anim * 4) % 4];
-        shadow(o.x, o.y, o.kind === 'hare' ? 4 : 8, o.kind === 'hare' ? 1.5 : 2.5);
-        spr(fr, o.x, o.y, S.ox, S.oy, o.face < 0);
+        const sb = depth(o.x, o.y, o.kind === 'hare' ? 6 : 9, o.kind === 'hare' ? 3 : 5);
+        if (!sb) shadow(o.x, o.y, o.kind === 'hare' ? 4 : 8, o.kind === 'hare' ? 1.5 : 2.5);
+        spr(fr, o.x, o.y, S.ox, S.oy, o.face < 0, 1, sb);
       } else if (it.k === 4) {
         const S = A.dog;
         const spd = Math.hypot(o.vx, o.vy);
         const fr = spd > 70 ? S.run[Math.floor(o.anim * 8) % 8] : spd > 5 ? S.walk[Math.floor(o.anim * 8) % 8] : S.idle[0];
-        shadow(o.x, o.y, 7, 2.5);
-        spr(fr, o.x, o.y, S.ox, S.oy, o.face < 0, o.dead ? 0.8 : 1);
+        const sb = depth(o.x, o.y, 7, 4);
+        if (!sb) shadow(o.x, o.y, 7, 2.5);
+        spr(fr, o.x, o.y, S.ox, S.oy, o.face < 0, o.dead ? 0.8 : 1, sb);
       } else if (it.k === 5) {
         const set = A.hunter[o.variant][night ? 'n' : 'd'];
         let fr;
@@ -273,8 +296,9 @@ export class Renderer {
         else if (st === 'search') fr = set.search[Math.floor(o.anim * 4) % 4];
         else if (st === 'run') fr = set.run[Math.floor(o.anim * 8) % 8];
         else fr = set.walk[Math.floor(o.anim * 8) % 8];
-        shadow(o.x, o.y, 6, 2);
-        spr(fr, o.x, o.y, 13, 38, o.face < 0);
+        const sb = st === 'down' ? 0 : depth(o.x, o.y, 12, 6);
+        if (!sb) shadow(o.x, o.y, 6, 2);
+        spr(fr, o.x, o.y, 13, 38, o.face < 0, 1, sb);
         if (night && st !== 'down' && st !== 'windup') {
           const fx = o.x - o.face * 4, fy = o.y - 39;
           if (Math.random() < dt * 30) this.burst('ember', fx, o.y, 1, { z: 38 });
@@ -292,14 +316,15 @@ export class Renderer {
         let arr = S[p.state] || S.idle;
         if (game.over) arr = S.dead;
         const fr = arr[Math.floor(p.anim * arr.length) % arr.length];
-        shadow(p.x, p.y, 10, 3);
+        const sb = p.state === 'pounce' ? 0 : depth(p.x, p.y, 8, 4);
+        if (!sb) shadow(p.x, p.y, 10, 3);
         if (p.state === 'pounce') {
           ctx.globalAlpha = 0.3;
           spr(fr, p.x - p.vx * 0.04, p.y - p.vy * 0.04, S.ox, S.oy, p.face < 0);
           ctx.globalAlpha = 1;
         }
         const blink = p.iframes > 0 && p.hurt > 0 && Math.floor(t * 20) % 2 === 0;
-        if (!blink) spr(fr, p.x, p.y, S.ox, S.oy, p.face < 0);
+        if (!blink) spr(fr, p.x, p.y, S.ox, S.oy, p.face < 0, 1, sb);
       }
     }
 
@@ -370,7 +395,7 @@ export class Renderer {
         L.fillRect(x - rad, y - rad, rad * 2, rad * 2);
       };
       const k = clamp((darkness - 0.12) * 2.2, 0, 1);
-      glow(p.x - cx, p.y - cy - 6, 70, 110, 110, 150, 0.55 * k);
+      glow(p.x - cx, p.y - cy - 6, 100, 120, 118, 150, 0.6 * k);
       for (const hu of game.scout ? [...game.hunters, game.scout] : game.hunters) {
         if (hu.state === 'down') continue;
         const fl = 0.85 + Math.sin(t * 17 + hu.id) * 0.08 + Math.random() * 0.07;
@@ -461,10 +486,11 @@ export class Renderer {
     const arrow = (tx, ty, color, label, pulse = 0) => {
       const sx = tx - cx, sy = ty - cy;
       if (sx > 6 && sy > 6 && sx < w - 6 && sy < h - 6) return false;
-      const mx = w / 2, my = h / 2;
+      // keep arrows inside a frame that clears the HUD strips
+      const top = 30, bot = h - 14, left = 14, right = w - 14;
+      const mx = (left + right) / 2, my = (top + bot) / 2;
       const a = Math.atan2(sy - my, sx - mx);
-      const m = 12;
-      const k = Math.min(Math.abs((mx - m) / Math.cos(a)), Math.abs((my - m) / Math.sin(a)));
+      const k = Math.min(Math.abs((right - mx) / Math.cos(a)), Math.abs((bot - my) / Math.sin(a)));
       const ax = mx + Math.cos(a) * k, ay = my + Math.sin(a) * k;
       const s = 5 + pulse;
       ctx.fillStyle = 'rgba(26,17,12,0.75)';

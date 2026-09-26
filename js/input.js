@@ -7,7 +7,9 @@ export class Input {
     this.touch = { id: null, ox: 0, oy: 0, x: 0, y: 0, active: false };
     this.touchPounce = false;
     this.touchSprint = false;
-    this.usingTouch = false;
+    this.usingTouch = !!(window.matchMedia && matchMedia('(pointer: coarse)').matches);
+    if (this.usingTouch) document.body.classList.add('touch');
+    window.addEventListener('touchstart', () => { this.usingTouch = true; document.body.classList.add('touch'); }, { passive: true });
     this.padPrev = {};
     this.lastDevice = 'keyboard';
 
