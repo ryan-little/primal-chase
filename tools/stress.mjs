@@ -1,0 +1,17 @@
+import { chromium } from '../../Primal-Chase-Fable/node_modules/playwright/index.mjs';
+const b = await chromium.launch({ channel: 'msedge' });
+const p = await b.newPage({ viewport: { width: 1920, height: 1080 } });
+p.on('pageerror', e => console.log('PAGEERR ' + e.stack));
+await p.goto('http://127.0.0.1:8791/index.html'); await p.waitForTimeout(1000);
+await p.click('#btn-start'); await p.waitForTimeout(800);
+await p.evaluate(() => { const g = window.__pc.game; const q = g.player; q.health = 1e9;
+  for (let i = 0; i < 40; i++) g.ignite(q.x + 80 + (i % 8) * 8, q.y - 40 + Math.floor(i / 8) * 8);
+  g.weather.fog = 0.8; g.weather.windA = 0; g.day = 3; g.stampedeT = 0; g.prideT = 0;
+  for (let i = 0; i < 4; i++) g.spawnHerd(); });
+await p.waitForTimeout(6000);
+const r = await p.evaluate(() => new Promise((res) => { const ts = []; let last = performance.now(); const f = (n) => { ts.push(n - last); last = n; if (ts.length < 400) requestAnimationFrame(f); else res(ts); }; requestAnimationFrame(f); }));
+r.sort((a, b) => a - b);
+const g = await p.evaluate(() => { const g = window.__pc.game; return { fire: g.fire.size, burnt: g.burnt.size, prey: g.prey.length, parts: window.__pc.renderer.parts.length }; });
+console.log('median', r[200].toFixed(1), 'p95', r[380].toFixed(1), 'max', r[399].toFixed(1), JSON.stringify(g));
+await p.screenshot({ path: 'tools/shots/stress.png' });
+await b.close();

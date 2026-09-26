@@ -525,7 +525,7 @@ export class Game {
     const day = this.day;
     const night = this.isNight;
     let walk = Math.min(92, T.hunterWalk + T.hunterWalkPerDay * (day - 1)) * (night ? 0.85 : 1);
-    const run = Math.min(118, T.hunterRun + T.hunterRunPerDay * (day - 1)) * (night ? 0.88 : 1);
+    const run = Math.min(118, T.hunterRun + T.hunterRunPerDay * (day - 1)) * (night ? 0.88 : 1) * (day === 1 ? 0.93 : 1);
     const lead = this.hunters.filter((h) => h.down <= 0);
     const d = dist(b.x, b.y, p.x, p.y);
     // they read the land faster when far behind: persistence

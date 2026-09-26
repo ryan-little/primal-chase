@@ -344,6 +344,9 @@ const HINTS = {
   hyenas: 'Hyenas are coming for your kill. Eat fast, or pounce to scatter them.',
   stampede: 'Stampede! Get clear. The herd will trample your trail, and anyone in its way.',
   mult: 'Danger survived raises your <b>multiplier</b> (top right). Getting hurt halves it.',
+  cliff: 'A ledge. You can <b>leap down</b>; the band has to find a way around. You can only climb back up where the slope is gentle.',
+  secretnear: 'A golden <b style="color:#e8c040">?</b> at the edge of the screen means a secret place is near. Go and look.',
+  map: () => `${input.usingTouch ? 'Tap <b>MAP</b>' : '<kbd>Tab</kbd>'} opens a map of everywhere you have been.`,
   golden: 'A <b style="color:#fff09a">golden gazelle</b> is near. Catch it for a fortune.',
   pride: 'Lions ahead, resting on a kill. Stay clear, or lead the band into them.',
   fire: '<b style="color:#ff9a4a">Grass fire!</b> It spreads with the wind. Hunters cannot pass it, and it burns your trail away. Rock, water and bare ground stop it.',
@@ -475,7 +478,6 @@ function finishRun() {
     ['Takedowns', s.knockdowns + s.dogs],
     ['Time alive', fmtTime(game.time)],
     ['Top multiplier', 'x' + (s.bestMult || 1).toFixed(1)],
-    ['Best', Math.max(best, game.score).toLocaleString()],
   ];
   $('death-stats').innerHTML = stats.map(([k, v, sub]) => `<div class="stat"><b>${v}</b><span>${k}${sub ? ' · ' + sub : ''}</span></div>`).join('');
   const top = store.get('runs', []).slice(0, 5);
@@ -657,6 +659,14 @@ function updateHUD(g, dt) {
 // ---------------- context hints ----------------
 function contextHints(g) {
   const p = g.player;
+  g._hintT = (g._hintT || 0) - 1 / 60;
+  if (g._hintT <= 0) {
+    g._hintT = 0.5;
+    const W = g.world;
+    for (let k = 0; k < 8; k++) if (W.typeAt(p.x + Math.cos(k * 0.8) * 50, p.y + Math.sin(k * 0.8) * 50) === G.CLIFF) { hint('cliff'); break; }
+    for (const lm of W.landmarksNear(p.x, p.y, 520)) if (!g.found.has(lm.key)) { hint('secretnear'); break; }
+    if (g.time > 150 || (g.stats.secrets || 0) > 0) hint('map');
+  }
   if (p.heat > 70 && !p.overheated) hint('heat');
   if (p.water < 45) hint('water');
   if (p.food < 50) hint('food');
