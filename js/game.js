@@ -1309,7 +1309,7 @@ export class Game {
       let tx = L.hx, ty = L.hy, sp = 60;
       if (L.state === 'charge') {
         const tgt = L.target === 'player' ? p : L.target;
-        tx = tgt.x; ty = tgt.y; sp = 150;
+        tx = tgt.x; ty = tgt.y; sp = L.target === 'player' ? 112 : 130;
         const d = dist(L.x, L.y, tx, ty);
         if (d < 14 && L.bite <= 0) {
           L.bite = 1.6;
@@ -1323,7 +1323,7 @@ export class Game {
             L.state = 'return';
           }
         }
-        if (L.t > 3.8 || (L.target === 'player' && this.over)) L.state = 'return';
+        if (L.t > 3 || (L.target === 'player' && this.over)) L.state = 'return';
       } else if (L.state === 'return') {
         if (dist(L.x, L.y, L.hx, L.hy) < 8) { L.state = 'rest'; L.t = 0; }
       }

@@ -36,7 +36,7 @@ export const isWaterType = (g) => g === G.SHALLOW || g === G.DEEP || g === G.SEA
 
 export const CHUNK = 128;
 const GRID = 8;
-export const FACE = 9; // cliff face height in pixels
+export const FACE = 12; // cliff face height in pixels
 
 const RAMPS = [
   ['grass0', 'grass1', 'grass2', 'grass3'],
@@ -196,15 +196,16 @@ export class Terrain {
   ground(x, y) {
     x = Math.floor(x); y = Math.floor(y);
     const L = this.large(x, y);
-    const lv = this.levelOf(L);
+    const d = this.nD(x / 60, y / 60);
+    const g = this.classify(x, y, L, this.biomeOf(L, d), d);
+    if (isWaterType(g)) return g; // rivers cut clean through the terraces
+    const lv = this.levelAt(x, y);
     if (!this.rampAt(x, y)) {
       for (let k = 1; k <= FACE; k++) {
         if (this.levelAt(x, y - k) > lv && !this.rampAt(x, y - k)) return G.CLIFF;
       }
     }
-    const L2 = this.large(x, y);
-    const d = this.nD(x / 60, y / 60);
-    return this.classify(x, y, L2, this.biomeOf(L2, d), d);
+    return g;
   }
 
   // Paint one chunk: types, levels (bit 7 = ramp) and RGBA pixels.
@@ -243,18 +244,19 @@ export class Terrain {
             if (lev[j] > myLv && !ramp[j]) { face = k; break; }
           }
         }
-        if (face) g = G.CLIFF;
+        if (face && !isWaterType(g)) g = G.CLIFF;
+        else face = 0;
         types[i] = g;
         biomes[i] = bio;
         lv[i] = myLv | (ramp[li] << 7);
         // shading: fine texture + slope light from the north-west + terrace height
         const sl = (this.large(wx - 5, wy - 5)[3] - this.large(wx + 5, wy + 5)[3]) * 9;
-        let v = (this.nD(wx / 22, wy / 22) * 0.6 + this.nD(wx / 7 + 9, wy / 7) * 0.4 + E * 0.4) * 0.5 + 0.5 + sl + myLv * 0.12;
+        let v = (this.nD(wx / 22, wy / 22) * 0.6 + this.nD(wx / 7 + 9, wy / 7) * 0.4 + E * 0.4) * 0.5 + 0.5 + sl + myLv * 0.16;
         // cast shadow at the foot of a cliff
         if (!face && !ramp[li]) {
-          for (let k = FACE + 1; k <= FACE + 5; k++) {
+          for (let k = FACE + 1; k <= FACE + 7; k++) {
             const j = li - k * S;
-            if (j >= 0 && lev[j] > myLv && !ramp[j]) { v -= 0.4; break; }
+            if (j >= 0 && lev[j] > myLv && !ramp[j]) { v -= 0.55 - (k - FACE) * 0.04; break; }
           }
         }
         shade[i] = face ? face : v;
@@ -269,9 +271,9 @@ export class Terrain {
         if (g === G.CLIFF) {
           const k = shade[i];
           const stria = ((x * 7 + (x >> 2) * 3) % 5 === 0) ? 1 : 0;
-          const idx = k <= 3 ? 2 : k <= 6 ? 1 : 0;
-          col = k <= 1 ? RGB.rock4 : RAMPS[G.ROCK][Math.max(0, idx - stria)];
-          if (k >= FACE - 1 && ((x + y) & 1)) col = RGB.ink;
+          const idx = k <= 3 ? 2 : k <= 7 ? 1 : 0;
+          col = k <= 2 ? RGB.rock4 : RAMPS[G.ROCK][Math.max(0, idx - stria)];
+          if (k >= FACE - 2) col = ((x + y) & 1) ? RGB.ink : RGB.rock0;
         } else {
           const up = y > 0 ? types[i - S] : g;
           const dn = y < S - 1 ? types[i + S] : g;
@@ -286,7 +288,16 @@ export class Terrain {
             col = RAMPS[g][clamp(Math.floor(l), 0, 3)];
             // lit rim on terrace tops where the ground steps down to the north
             const myLv = lv[i] & 7;
-            if (y > 0 && (lv[i - S] & 7) < myLv && !(lv[i] & 128)) col = RAMPS[G.ROCK][3];
+            // side walls: ground just below a terrace edge to the east or west
+            const lvl = (xx) => (xx >= 0 && xx < S ? lev[(y + FACE) * S + xx] : this.levelAt(ox + xx, oy + y));
+            if (!(lv[i] & 128) && !water) {
+              for (let k = 1; k <= 3; k++) {
+                if (lvl(x - k) > myLv || lvl(x + k) > myLv) { col = k === 1 ? RGB.ink : k === 2 ? RGB.rock0 : RAMPS[G.ROCK][1]; break; }
+              }
+              if (lvl(x - 1) < myLv || lvl(x + 1) < myLv) col = RGB.rock4;
+            }
+            if (y > 1 && ((lv[i - S] & 7) < myLv || (lv[i - 2 * S] & 7) < myLv) && !(lv[i] & 128) && !water) col = (y & 1) ? RGB.rock4 : RAMPS[G.ROCK][3];
+            if (y < S - 1 && types[i + S] === G.CLIFF && !water) col = RGB.rock4;
           }
         }
         const o = i * 4;

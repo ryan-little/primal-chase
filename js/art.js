@@ -8,6 +8,7 @@ import { rng, TAU } from './util.js';
 import { buildBiomeProps } from './art-props.js';
 import { buildLandmarks } from './art-landmarks.js';
 import { buildFauna } from './art-fauna.js';
+import { buildTrees, TALLGRASS } from './art-trees.js';
 
 const PAL_RGB = Object.values(P).map(hexToRgb);
 const INK = hexToRgb(P.ink);
@@ -181,10 +182,10 @@ export function drawQuad(ctx, S, gait, p) {
     if (gait === 'lie') {
       const hx = bx + rx + 2, hy = lby - ry - 1 + Math.sin(p * TAU) * 0.3;
       line(ctx, [bx + rx - 3, lby - 1, hx - 1, hy + 1], S.neckW, C.body);
-      S.head(ctx, hx, hy, 0, p, gait);
+      S.head(ctx, Math.round(hx), Math.round(hy), 0, p, gait);
     } else {
       const hx = bx + rx + 3, hy = g - S.headR;
-      S.head(ctx, hx, hy, 0.2, p, gait);
+      S.head(ctx, Math.round(hx), Math.round(hy), 0.2, p, gait);
     }
     return;
   }
@@ -229,7 +230,7 @@ export function drawQuad(ctx, S, gait, p) {
     hx = bx + rx + S.neckX; hy = by - ry - S.neckY + ha * 1.2;
     line(ctx, [bx + rx - 3, by - ry * 0.3, hx - 1.5, hy + 1], S.neckW, C.body);
   }
-  S.head(ctx, hx, hy, ha * 0.3, p, gait);
+  S.head(ctx, Math.round(hx), Math.round(hy), Math.round(ha * 0.3), p, gait);
 }
 
 // ---------- species ----------
@@ -239,7 +240,7 @@ function catSpec() {
   const r = rng(77);
   for (let i = 0; i < 17; i++) ros.push([r.range(-0.95, 0.85), r.range(-0.6, 0.5), r() < 0.45]);
   return {
-    w: 50, h: 30, ground: 27, body: { x: 22, y: 17.5, rx: 11.5, ry: 4.1 },
+    w: 66, h: 30, ground: 27, body: { x: 30, y: 17.5, rx: 11.5, ry: 4.1 },
     hipF: 8, hipR: 8, l1: 4.4, l2: 4.6, legW: 2.7, neckW: 3.8, tailW: 2, neckX: 3.2, neckY: -0.8, headR: 3.6,
     col: C,
     back: P.fur1,
@@ -718,15 +719,17 @@ export function buildArt() {
   // hunters (two skin variants), day and night (torch) versions
   A.hunter = [];
   for (let v = 0; v < 2; v++) {
-    const set = { ox: 13, oy: 38 };
+    const set = { ox: 19, oy: 38 };
     for (const night of [false, true]) {
       const k = night ? 'n' : 'd';
       set[k] = {};
       for (const [pose, n] of [['walk', 8], ['run', 8], ['search', 4], ['windup', 1], ['throw', 1], ['down', 1]]) {
         set[k][pose] = [];
         for (let i = 0; i < n; i++) {
-          const c = canvas(34, 42);
-          drawHuman(c.getContext('2d'), pose, i / n, night, v);
+          const c = canvas(50, 42);
+          const hx = c.getContext('2d');
+          hx.translate(6, 0);
+          drawHuman(hx, pose, i / n, night, v);
           set[k][pose].push(crisp(c));
         }
       }
@@ -779,7 +782,9 @@ export function buildArt() {
     bones: [81, 82].map(bones),
     reeds: [91, 92, 93].map(reeds),
     ...buildBiomeProps(),
+    ...buildTrees(),
   };
+  A.tallgrass = TALLGRASS();
   A.landmarks = buildLandmarks();
   Object.assign(A, buildFauna());
   A.icons = makeIcons();

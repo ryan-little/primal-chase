@@ -34,7 +34,7 @@ function skyAt(c) {
   return [255, 255, 255];
 }
 
-const TALL_PROPS = new Set(['acacia', 'baobab', 'kopje', 'mopane', 'fever', 'palm', 'deadtree', 'landmark']);
+const TALL_PROPS = new Set(['acacia', 'umbrella', 'baobab', 'kopje', 'mopane', 'marula', 'fig', 'quiver', 'candelabra', 'mangrove', 'fever', 'palm', 'deadtree', 'charred', 'landmark']);
 
 export class Renderer {
   constructor(el, art) {
@@ -269,6 +269,13 @@ export class Renderer {
     for (const d of game.dogs) list.push({ y: d.y, k: 4, o: d });
     for (const hu of game.hunters) list.push({ y: hu.y, k: 5, o: hu });
     for (const r of game.runners) list.push({ y: r.y, k: 5, o: r });
+    for (let gy = y0; gy <= y1 + 1; gy++) for (let gx = x0; gx <= x1; gx++) {
+      const pc = W.props.get(W.key(gx, gy));
+      if (pc && pc.grass) for (const gr of pc.grass) {
+        const X = gr.x - cx, Y = gr.y - cy;
+        if (X > -12 && X < w + 12 && Y > -4 && Y < h + 24) list.push({ y: gr.y, k: 11, o: gr });
+      }
+    }
     for (const hy of game.hyenas) list.push({ y: hy.y, k: 7, o: hy });
     for (const gn of game.gnus) list.push({ y: gn.y, k: 8, o: gn });
     for (const L of game.lions) list.push({ y: L.y, k: 10, o: L });
@@ -355,7 +362,7 @@ export class Renderer {
         else fr = set.walk[Math.floor(o.anim * 8) % 8];
         const sb = st === 'down' ? 0 : depth(o.x, o.y, 12, 6);
         if (!sb) shadow(o.x, o.y, 6, 2);
-        spr(fr, o.x, o.y, 13, 38, o.face < 0, 1, sb);
+        spr(fr, o.x, o.y, set.ox, set.oy, o.face < 0, 1, sb);
         if (night && st !== 'down' && st !== 'windup') {
           const fx = o.x - o.face * 4, fy = o.y - 39;
           if (Math.random() < dt * 30) this.burst('ember', fx, o.y, 1, { z: 38 });
@@ -380,6 +387,10 @@ export class Renderer {
         shadow(o.x, o.y, 9, 3);
         spr(S.run[Math.floor(o.anim * 8) % 8], o.x, o.y, S.ox, S.oy, o.face < 0);
         if (Math.random() < dt * 14) this.burst('dust', o.x - Math.cos(o.a) * 10, o.y, 2, { col: P.sand2 });
+      } else if (it.k === 11) {
+        const wind = Math.sin(t * 1.3 + o.x * 0.02 + o.ph) + Math.sin(t * 2.9 + o.y * 0.03) * 0.4;
+        const fr = o.v[wind > 0.5 ? 2 : wind < -0.5 ? 0 : 1];
+        ctx.drawImage(fr, Q(o.x - 9 - cx), Q(o.y - 21 - cy));
       } else if (it.k === 10) {
         const S = A.lion;
         const pick = (arr) => arr[Math.floor(o.anim * arr.length) % arr.length];
@@ -588,8 +599,6 @@ export class Renderer {
       const a = wx.heat * game.sun;
       ctx.fillStyle = `rgba(255,190,110,${a * 0.13})`;
       ctx.fillRect(0, 0, w, h);
-      ctx.fillStyle = `rgba(255,240,210,${a * 0.08})`;
-      for (let yy = (t * 14) % 9; yy < h; yy += 9) ctx.fillRect(0, yy + Math.sin(yy * 0.3 + t * 3) * 1.5, w, 1);
     }
 
     // rain

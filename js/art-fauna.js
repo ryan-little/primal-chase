@@ -81,7 +81,7 @@ function hyraxSpec() {
 function lionSpec() {
   const C = { body: P.lion1, belly: P.lion2, far: P.lion0 };
   return {
-    w: 54, h: 34, ground: 31, body: { x: 23, y: 19, rx: 12.5, ry: 4.8 },
+    w: 68, h: 34, ground: 31, body: { x: 32, y: 19, rx: 12.5, ry: 4.8 },
     hipF: 8.5, hipR: 8.5, l1: 5, l2: 5.2, legW: 3, neckW: 4.4, tailW: 2, neckX: 3.2, neckY: -0.6, headR: 4.2,
     col: C, back: P.lion0,
     tail(ctx, [x, y], w, p, gait) {

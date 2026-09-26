@@ -11,29 +11,31 @@ export { G, B, GROUND_INFO, CHUNK, BIOME_NAMES };
 
 // Which props grow where: [ground, biome or -1 for any, [[threshold, kind], ...]] (first match wins)
 const FLORA = [
-  [G.GRASS, B.HIGHLAND, [[0.02, 'acacia'], [0.05, 'aloe'], [0.07, 'boulder']]],
+  [G.GRASS, B.HIGHLAND, [[0.015, 'acacia'], [0.04, 'aloe'], [0.05, 'candelabra'], [0.08, 'heath'], [0.09, 'boulder']]],
   [G.GRASS, B.COAST, [[0.03, 'palm'], [0.05, 'bush']]],
-  [G.GRASS, -1, [[0.028, 'acacia'], [0.05, 'bush'], [0.056, 'termite'], [0.059, 'bones'], [0.0615, 'baobab']]],
-  [G.LUSH, B.WOODLAND, [[0.09, 'mopane'], [0.13, 'bush'], [0.15, 'fever']]],
+  [G.GRASS, B.WOODLAND, [[0.04, 'marula'], [0.07, 'mopane'], [0.1, 'bush']]],
+  [G.GRASS, -1, [[0.02, 'acacia'], [0.032, 'umbrella'], [0.05, 'bush'], [0.056, 'termite'], [0.059, 'bones'], [0.0615, 'baobab']]],
+  [G.LUSH, B.WOODLAND, [[0.06, 'mopane'], [0.09, 'marula'], [0.1, 'fig'], [0.15, 'bush'], [0.17, 'fever'], [0.22, 'fern']]],
   [G.LUSH, B.DESERT, [[0.22, 'palm'], [0.3, 'bush']]],
-  [G.LUSH, B.WETLAND, [[0.05, 'fever'], [0.1, 'papyrus']]],
-  [G.LUSH, -1, [[0.075, 'acacia'], [0.13, 'bush'], [0.135, 'baobab']]],
-  [G.LEAF, -1, [[0.1, 'mopane'], [0.15, 'fever'], [0.17, 'log'], [0.24, 'bush']]],
-  [G.TALL, B.WOODLAND, [[0.05, 'fever'], [0.07, 'mopane']]],
-  [G.TALL, B.WETLAND, [[0.08, 'papyrus'], [0.1, 'deadtree']]],
-  [G.TALL, -1, [[0.018, 'acacia'], [0.03, 'bush']]],
-  [G.SAND, B.DESERT, [[0.012, 'deadtree'], [0.03, 'euphorbia'], [0.036, 'bones'], [0.045, 'boulder']]],
-  [G.SAND, -1, [[0.06, 'thorn'], [0.07, 'bones'], [0.074, 'baobab']]],
-  [G.DUNE, -1, [[0.008, 'deadtree'], [0.018, 'euphorbia'], [0.022, 'bones']]],
+  [G.LUSH, B.WETLAND, [[0.05, 'fever'], [0.07, 'fig'], [0.12, 'papyrus']]],
+  [G.LUSH, B.COAST, [[0.05, 'palm'], [0.08, 'mangrove']]],
+  [G.LUSH, -1, [[0.06, 'acacia'], [0.08, 'marula'], [0.13, 'bush'], [0.135, 'baobab']]],
+  [G.LEAF, -1, [[0.08, 'mopane'], [0.11, 'marula'], [0.15, 'fever'], [0.17, 'log'], [0.24, 'fern'], [0.28, 'bush']]],
+  [G.TALL, B.WOODLAND, [[0.04, 'fever'], [0.06, 'marula']]],
+  [G.TALL, B.WETLAND, [[0.06, 'papyrus'], [0.08, 'deadtree']]],
+  [G.TALL, -1, [[0.015, 'acacia'], [0.022, 'umbrella']]],
+  [G.SAND, B.DESERT, [[0.01, 'deadtree'], [0.02, 'quiver'], [0.035, 'euphorbia'], [0.07, 'sage'], [0.075, 'bones'], [0.085, 'boulder']]],
+  [G.SAND, -1, [[0.05, 'thornbush'], [0.065, 'bones'], [0.07, 'baobab'], [0.09, 'sage']]],
+  [G.DUNE, -1, [[0.006, 'deadtree'], [0.02, 'sage'], [0.024, 'bones']]],
   [G.SALT, -1, [[0.008, 'bones']]],
-  [G.CLAY, -1, [[0.02, 'bones'], [0.045, 'termite'], [0.06, 'thorn']]],
-  [G.ROCK, B.HIGHLAND, [[0.08, 'boulder'], [0.13, 'kopje'], [0.17, 'aloe'], [0.18, 'acacia']]],
+  [G.CLAY, -1, [[0.02, 'bones'], [0.045, 'termite'], [0.06, 'thornbush']]],
+  [G.ROCK, B.HIGHLAND, [[0.07, 'boulder'], [0.12, 'kopje'], [0.15, 'aloe'], [0.17, 'quiver'], [0.19, 'candelabra'], [0.23, 'heath']]],
   [G.ROCK, -1, [[0.1, 'boulder'], [0.15, 'kopje'], [0.16, 'acacia']]],
-  [G.MUD, B.WETLAND, [[0.3, 'papyrus'], [0.4, 'reeds']]],
+  [G.MUD, B.WETLAND, [[0.3, 'papyrus'], [0.4, 'reeds'], [0.42, 'mangrove']]],
   [G.MUD, -1, [[0.3, 'reeds']]],
   [G.SHALLOW, B.WETLAND, [[0.09, 'lily']]],
-  [G.ASH, -1, [[0.03, 'deadtree'], [0.05, 'basalt'], [0.058, 'vent']]],
-  [G.BASALT, -1, [[0.06, 'basalt'], [0.075, 'vent']]],
+  [G.ASH, -1, [[0.04, 'charred'], [0.06, 'basalt'], [0.068, 'vent']]],
+  [G.BASALT, -1, [[0.06, 'basalt'], [0.075, 'vent'], [0.09, 'charred']]],
   [G.BEACH, -1, [[0.035, 'palm'], [0.06, 'driftwood']]],
 ];
 
@@ -242,7 +244,18 @@ export class World {
       props.push({ kind: 'landmark', type: lm.type, lm, def: lm.def, x: lm.x, y: lm.y, shade: lm.def.shade || 0, solid: lm.def.solid || 0, flip: false });
       if (lm.def.pool) waterPts.push(lm.x, lm.y - 3);
     }
-    c = { cx, cy, props, waterPts };
+    // tall grass: dense clumps you can actually hide in
+    const grass = [];
+    const TG = this.art.tallgrass;
+    for (let gy = 0; gy < CHUNK; gy += 7) {
+      for (let gx = 0; gx < CHUNK; gx += 7) {
+        const wx = ox + gx, wy = oy + gy;
+        const jx = wx + Math.floor(hash2(wx, wy, this.seed + 71) * 7), jy = wy + Math.floor(hash2(wx, wy, this.seed + 72) * 7);
+        if (this.typeAt(jx, jy) !== G.TALL) continue;
+        grass.push({ x: jx, y: jy, v: TG[Math.floor(hash2(wx, wy, this.seed + 73) * TG.length)], ph: hash2(wx, wy, this.seed + 74) * 6 });
+      }
+    }
+    c = { cx, cy, props, waterPts, grass };
     this.props.set(k, c);
     return c;
   }
@@ -313,6 +326,7 @@ export class World {
     if (t1 === G.CLIFF) return L0 > L1 ? 2 : (this.typeAt(x, y) === G.CLIFF || ny > y + 0.01) ? 0 : 1;
     if (L1 === L0) return 0;
     if (this.rampAt(nx, ny) || this.rampAt(x, y)) return 0;
+    if (isWaterType(t1) || isWaterType(this.typeAt(x, y))) return 0; // wade up or down a river
     return L1 > L0 ? 1 : 2;
   }
 

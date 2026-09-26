@@ -44,7 +44,7 @@ for (const [id, key] of [['v-health', 'health'], ['v-heat', 'heat'], ['v-water',
   const f = canvas(32, 32), x = f.getContext('2d');
   x.imageSmoothingEnabled = false;
   const fr = art.cat.run[1];
-  x.drawImage(fr, 12, 4, 38, 26, -2, 4, 38, 26);
+  x.drawImage(fr, 20, 4, 38, 26, -2, 4, 38, 26);
   $('favicon').href = f.toDataURL();
 }
 const silCache = new Map();
@@ -100,8 +100,8 @@ function drawLogo(t = 0) {
     if (flip) { x.translate(dx + img.width, dy); x.scale(-1, 1); x.drawImage(tmp, 0, 0); } else x.drawImage(tmp, dx, dy);
     x.restore();
   };
-  sil(cat, 196, 78);
-  for (let i = 0; i < 3; i++) sil(art.hunter[i % 2].d.run[Math.floor(t * 8 + i * 3) % 8], 70 + i * 20, 67 + (i % 2));
+  sil(cat, 184, 78);
+  for (let i = 0; i < 3; i++) sil(art.hunter[i % 2].d.run[Math.floor(t * 8 + i * 3) % 8], 62 + i * 20, 67 + (i % 2));
 }
 
 // ---------------- screens ----------------
