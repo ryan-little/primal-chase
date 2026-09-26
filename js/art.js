@@ -7,6 +7,7 @@ import { P, hexToRgb } from './palette.js';
 import { rng, TAU } from './util.js';
 import { buildBiomeProps } from './art-props.js';
 import { buildLandmarks } from './art-landmarks.js';
+import { buildFauna } from './art-fauna.js';
 
 const PAL_RGB = Object.values(P).map(hexToRgb);
 const INK = hexToRgb(P.ink);
@@ -158,7 +159,7 @@ function quadPose(gait, p) {
   return pose;
 }
 
-function drawQuad(ctx, S, gait, p) {
+export function drawQuad(ctx, S, gait, p) {
   const pose = quadPose(gait, p);
   const C = S.col;
   const bx = S.body.x, by = S.body.y + pose.bob;
@@ -277,8 +278,7 @@ function catSpec() {
   };
 }
 
-function gazelleSpec() {
-  const C = { body: P.gaz1, belly: P.gazW, far: P.gaz0 };
+export function gazelleSpec(C = { body: P.gaz1, belly: P.gazW, far: P.gaz0 }) {
   return {
     w: 36, h: 32, ground: 29, body: { x: 16, y: 15, rx: 7.5, ry: 3.4 },
     hipF: 5, hipR: 5.5, l1: 6.4, l2: 6.6, legW: 1.4, knee: 0.45, neckW: 2.2, tailW: 1, neckX: 2, neckY: 4.5, headR: 2.4,
@@ -651,6 +651,19 @@ export function makeIcons() {
 }
 
 // ---------- build everything ----------
+export function quadFrames(spec, gaits) {
+  const o = { w: spec.w, h: spec.h, ox: spec.body.x, oy: spec.ground };
+  for (const [g, n] of gaits) {
+    o[g] = [];
+    for (let i = 0; i < n; i++) {
+      const c = canvas(spec.w, spec.h);
+      drawQuad(c.getContext('2d'), spec, g, i / n);
+      o[g].push(crisp(c));
+    }
+  }
+  return o;
+}
+
 export function buildArt() {
   const A = {};
   const frames = (spec, gait, n) => {
@@ -768,6 +781,7 @@ export function buildArt() {
     ...buildBiomeProps(),
   };
   A.landmarks = buildLandmarks();
+  Object.assign(A, buildFauna());
   A.icons = makeIcons();
   return A;
 }

@@ -1,0 +1,12 @@
+import { chromium } from '../../Primal-Chase-Fable/node_modules/playwright/index.mjs';
+const b = await chromium.launch({ channel: 'msedge' });
+const p = await b.newPage({ viewport: { width: 1280, height: 720 } });
+p.on('pageerror', e => console.log('PAGEERR ' + e.stack));
+await p.goto('http://127.0.0.1:8791/index.html'); await p.waitForTimeout(1000);
+await p.click('#btn-start'); await p.waitForTimeout(800);
+await p.evaluate(() => { const g = window.__pc.game; const q = g.player; g.hunters.forEach(h => { h.x += 9000; }); g.band.x += 9000; g.scoutT = 1e9; g.prey = [];
+  const add = (kind, dx, dy, extra = {}) => g.prey.push({ id: Math.random(), kind, herd: 0, x: q.x + dx, y: q.y + dy, vx: 0, vy: 0, face: 1, anim: Math.random(), state: 'graze', fleeT: 0, z: 0, ...extra });
+  add('zebra', -140, -60); add('zebra', -115, -45); add('warthog', 120, -70); add('ostrich', 150, 40); add('fowl', -60, 70); add('fowl', -50, 78); add('fowl', -70, 82, { z: 16, air: 5 }); add('hyrax', 60, 80); add('golden', -150, 60); add('flamingo', 30, -90);
+  g.day = 2; g.prideT = 0; g.spawnT = 1e9; });
+await p.waitForTimeout(700); await p.screenshot({ path: 'tools/shots/fauna.png' });
+await b.close();

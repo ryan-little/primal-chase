@@ -295,6 +295,8 @@ const HINTS = {
   hyenas: 'Hyenas are coming for your kill. Eat fast, or pounce to scatter them.',
   stampede: 'Stampede! Get clear. The herd will trample your trail, and anyone in its way.',
   mult: 'Danger survived raises your <b>multiplier</b> (top right). Getting hurt halves it.',
+  golden: 'A <b style="color:#fff09a">golden gazelle</b> is near. Catch it for a fortune.',
+  pride: 'Lions ahead, resting on a kill. Stay clear, or lead the band into them.',
   scout: () => `A runner is cutting you off! Dodge his spears, or ${input.usingTouch ? 'POUNCE' : '<kbd>Space</kbd>'} to knock him flat.`,
   pounce: () => `A pounce is a dodge. ${input.usingTouch ? 'POUNCE' : '<kbd>Space</kbd>'} a hunter to knock him flat.`,
 };
@@ -521,6 +523,9 @@ function handleEvents(g) {
         break;
       }
       case 'secondwind': toast('<b>Second wind!</b> Stamina restored.', 2.5); audio.play('roar', { vol: 0.6 }); renderer.burst('spark', e.x, e.y - 8, 10, { col: '#ffe08a' }); break;
+      case 'golden': hint('golden', true); break;
+      case 'pride': hint('pride', true); audio.play('roar', { vol: near(e, 700) * 0.6 }); break;
+      case 'roar': audio.play('roar', { vol: near(e, 600) }); renderer.shake(2); break;
       case 'mult': multBumpT = 0.25; audio.play('ui', { pitch: 84 + Math.min(12, Math.round(e.v * 3)) }); hint('mult'); break;
       case 'multloss': break;
       case 'linewarn': toast('They are reading your line. <b>Change direction</b> or they will run ahead to meet you.', 4.5); audio.play('shout', { vol: 0.5 }); break;

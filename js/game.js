@@ -6,6 +6,8 @@ import { clamp, dist, rng, TAU, wrapAngle, lerp } from './util.js';
 import { World, G, GROUND_INFO } from './world.js';
 import { PERKS, PERK_BY_ID } from './perks.js';
 import { SECRETS } from './secrets.js';
+import { SPECIES, pickSpecies } from './fauna.js';
+import { B } from './terrain.js';
 
 export const DAY_LEN = 170; // seconds per full day/night cycle
 export const T = {
@@ -90,6 +92,7 @@ export class Game {
     this.spawnT = 0;
     this.bit = null;
     this.runners = [];
+    this.lions = [];
     this.perks = {};
     this.found = new Set();
     this.intelDay = 0;
@@ -437,13 +440,17 @@ export class Game {
     const p = this.player;
     for (const q of this.prey) {
       if (q.dead) continue;
-      if (dist(q.x, q.y, p.x, p.y) < (q.kind === 'hare' ? 12 : 15) + 3 * (this.perks.pounce || 0)) {
+      const S = SPECIES[q.kind];
+      if ((q.z || 0) < 6 && dist(q.x, q.y, p.x, p.y) < S.hit + 3 * (this.perks.pounce || 0)) {
         q.dead = true;
         this.stats.prey++;
         if (q.kind === 'gazelle') this.stats.gazelles = (this.stats.gazelles || 0) + 1;
-        const meat = (q.kind === 'hare' ? 24 : 70) * this.perk('scavenger', 1.4);
-        this.carcasses.push({ id: UID++, x: q.x, y: q.y, meat, max: meat, kind: q.kind, face: q.face, t: 0 });
-        this.addScore(q.kind === 'hare' ? 60 : 150, q.kind === 'hare' ? 'HARE' : 'GAZELLE', q.x, q.y - 16, '#ffe08a', q.kind === 'hare' ? 0.15 : 0.3);
+        const meat = S.meat * this.perk('scavenger', 1.4);
+        this.carcasses.push({ id: UID++, x: q.x, y: q.y, meat, max: meat, kind: q.kind, small: !!S.small, face: q.face, t: 0 });
+        this.addScore(S.score, S.label, q.x, q.y - 16, q.kind === 'golden' ? '#fff09a' : '#ffe08a', S.boost);
+        if (q.kind === 'golden') this.stats.golden = (this.stats.golden || 0) + 1;
+        this.stats.kinds = this.stats.kinds || {};
+        this.stats.kinds[q.kind] = (this.stats.kinds[q.kind] || 0) + 1;
         this.emit('kill', { x: q.x, y: q.y });
         p.pounce = Math.min(p.pounce, 0.04);
         p.vx *= 0.2; p.vy *= 0.2;
@@ -508,7 +515,8 @@ export class Game {
     this.deathTime = this.time;
     this.cause = kind === 'spear' ? 'A spear found you.' : kind === 'stab' ? 'They closed the distance.' :
       kind === 'dog' ? 'The dogs pulled you down.' : kind === 'croc' ? 'The river had teeth.' :
-      kind === 'hyena' ? 'The hyenas would not share.' : kind === 'stampede' ? 'Lost beneath the herd.' : p.water <= 0 ? 'Thirst took you.' :
+      kind === 'hyena' ? 'The hyenas would not share.' : kind === 'stampede' ? 'Lost beneath the herd.' :
+      kind === 'lion' ? 'The pride would not share the plain.' : kind === 'warthog' ? 'The warthog had tusks.' : kind === 'zebra' ? 'A zebra kicked like thunder.' : p.water <= 0 ? 'Thirst took you.' :
       p.food <= 0 ? 'Hunger took you.' : p.overheated ? 'Your heart gave out in the heat.' : 'The chase ended.';
     this.emit('death', { x: p.x, y: p.y });
   }
@@ -1147,41 +1155,66 @@ export class Game {
     if (this.spawnT <= 0) {
       this.spawnT = 1.5;
       const alive = this.prey.filter((q) => !q.dead);
-      const herds = new Set(alive.filter((q) => q.kind === 'gazelle').map((q) => q.herd));
+      const herds = new Set(alive.filter((q) => q.kind !== 'hare').map((q) => q.herd));
       const hares = alive.filter((q) => q.kind === 'hare').length;
-      if (herds.size < 2) this.spawnHerd();
-      if (hares < 3) this.spawnHare();
+      if (herds.size < 3) this.spawnHerd();
+      if (hares < 2) this.spawnHare();
     }
     const alertBase = p.sprinting ? 150 : p.state === 'walk' ? 92 : 56;
     for (const q of this.prey) {
       if (q.dead) continue;
+      const S = SPECIES[q.kind];
       const pd = dist(q.x, q.y, p.x, p.y);
-      let alertR = alertBase * (p.ground === G.TALL ? 0.6 : 1) * (q.kind === 'hare' ? 0.7 : 1);
+      let alertR = alertBase * (p.ground === G.TALL ? 0.6 : 1) * S.alert;
       if (this.isNight) alertR *= 0.75;
-      // hunters spook prey too
+      alertR *= this.weatherSight || 1;
       let threatX = p.x, threatY = p.y, threat = pd < alertR;
       for (const h of this.hunters) {
         if (dist(q.x, q.y, h.x, h.y) < 90) { threat = true; threatX = h.x; threatY = h.y; }
       }
-      if (threat && q.state !== 'flee') {
-        q.state = 'flee';
-        q.fleeT = 0;
-        if (q.herd) for (const o of this.prey) if (o.herd === q.herd && o.state !== 'flee') { o.state = 'flee'; o.fleeT = 0; o.tx = threatX; o.ty = threatY; }
+      if (threat && q.state !== 'flee' && q.state !== 'charge') {
+        // warthogs sometimes stand their ground
+        if (S.charge && pd < 70 && this.r() < 0.4 && threatX === p.x) {
+          q.state = 'charge'; q.chargeT = 1.1; q.hitDone = false;
+          this.emit('snarl', { x: q.x, y: q.y });
+        } else {
+          q.state = 'flee';
+          q.fleeT = 0;
+          if (S.fly) q.air = 2.2 + this.r() * 0.8;
+          if (q.herd) for (const o of this.prey) if (o.herd === q.herd && o.state !== 'flee') {
+            o.state = 'flee'; o.fleeT = 0; o.tx = threatX; o.ty = threatY;
+            if (SPECIES[o.kind].fly) o.air = 2 + this.r();
+          }
+        }
       }
       if (threat) { q.tx = threatX; q.ty = threatY; }
-      if (q.state === 'flee') {
+      q.z = Math.max(0, (q.z || 0) + ((q.air > 0 ? 18 : 0) - (q.z || 0)) * Math.min(1, dt * 4));
+      if (q.air > 0) q.air -= dt;
+      if (q.state === 'charge') {
+        q.chargeT -= dt;
+        const a = Math.atan2(p.y - q.y, p.x - q.x);
+        q.vx = Math.cos(a) * 140; q.vy = Math.sin(a) * 140;
+        if (!q.hitDone && pd < 13) { q.hitDone = true; this.hurtPlayer(12, q.x, q.y, 'warthog'); }
+        if (q.chargeT <= 0 || q.hitDone) { q.state = 'flee'; q.fleeT = 0.5; q.tx = p.x; q.ty = p.y; }
+      } else if (q.state === 'flee') {
         q.fleeT += dt;
-        const burst = q.kind === 'hare' ? 1.6 : 2.2;
-        let sp = q.kind === 'hare' ? (q.fleeT < burst ? 150 : 88) : q.fleeT < burst ? 158 : 96;
+        const sp = q.fleeT < S.burstT ? S.burst : S.cruise;
         let a = Math.atan2(q.y - q.ty, q.x - q.tx);
         q.zig = (q.zig || 0) - dt;
-        if (q.zig <= 0) { q.zig = q.kind === 'hare' ? 0.35 : 0.8; q.zo = (Math.random() - 0.5) * (q.kind === 'hare' ? 2.4 : 1.1); }
+        if (q.zig <= 0) { q.zig = S.zigT; q.zo = (Math.random() - 0.5) * S.zig; }
         a += q.zo;
-        // steer around water
-        const nx = q.x + Math.cos(a) * 20, ny = q.y + Math.sin(a) * 20;
-        if (this.world.isWater(this.world.typeAt(nx, ny))) a += 1.6;
+        if (!(q.air > 0)) {
+          const nx = q.x + Math.cos(a) * 20, ny = q.y + Math.sin(a) * 20;
+          if (this.world.isWater(this.world.typeAt(nx, ny)) && !S.wader) a += 1.6;
+        }
         const gi = GROUND_INFO[this.world.typeAt(q.x, q.y)];
-        q.vx = Math.cos(a) * sp * gi.speed; q.vy = Math.sin(a) * sp * gi.speed;
+        const gs = q.air > 0 ? 1 : S.wader ? Math.max(0.8, gi.speed) : gi.speed;
+        q.vx = Math.cos(a) * sp * gs; q.vy = Math.sin(a) * sp * gs;
+        // a zebra's parting gift to anything right behind it
+        if (S.kick && q.fleeT < 0.7 && !q.kicked && pd < 16) {
+          const bx = q.x - Math.cos(a) * 10, by = q.y - Math.sin(a) * 10;
+          if (dist(bx, by, p.x, p.y) < 12) { q.kicked = true; this.hurtPlayer(10, q.x, q.y, 'zebra'); }
+        }
         if (pd > 260 && q.fleeT > 3.5) { q.state = 'graze'; q.fleeT = 0; }
         if (q.fleeT > 6 && pd > alertR * 1.3) q.state = 'graze';
       } else {
@@ -1191,13 +1224,15 @@ export class Game {
           const a = this.r() * TAU;
           const s = this.r() < 0.5 ? 0 : 14;
           q.vx = Math.cos(a) * s; q.vy = Math.sin(a) * s * 0.6;
+          if (S.wader && !this.world.isWater(this.world.typeAt(q.x + q.vx, q.y + q.vy))) { q.vx = -q.vx; q.vy = -q.vy; }
         }
       }
-      if (this.world.move(q, q.vx * dt, q.vy * dt) === 'blocked') q.zig = 0;
-      this.world.collide(q, 3);
+      if (q.air > 0) { q.x += q.vx * dt; q.y += q.vy * dt; }
+      else if (this.world.move(q, q.vx * dt, q.vy * dt) === 'blocked') q.zig = 0;
+      if (!(q.air > 0)) this.world.collide(q, 3);
       if (Math.abs(q.vx) > 2) q.face = Math.sign(q.vx);
       const spd = Math.hypot(q.vx, q.vy);
-      q.anim = (q.anim + dt * (spd > 60 ? spd / 70 : 0.9)) % 1;
+      q.anim = (q.anim + dt * (q.air > 0 ? 3 : spd > 60 ? spd / 70 : 0.9)) % 1;
       if (pd > 1300) q.gone = true;
     }
     this.prey = this.prey.filter((q) => !q.gone && !(q.dead));
@@ -1208,34 +1243,113 @@ export class Game {
   spawnPoint(minR, maxR, ok) {
     const p = this.player;
     for (let tries = 0; tries < 30; tries++) {
-      // bias spawns toward the direction you're heading
       let a = this.r() * TAU;
       if (Math.hypot(p.vx, p.vy) > 10 && this.r() < 0.7) a = Math.atan2(p.vy, p.vx) + this.r.range(-1, 1);
       const r = this.r.range(minR, maxR);
       const x = p.x + Math.cos(a) * r, y = p.y + Math.sin(a) * r;
       const g = this.world.ground(x, y);
-      if (ok(g)) return [x, y];
+      if (ok(g, x, y)) return [x, y];
     }
     return null;
   }
 
   spawnHerd() {
-    const pt = this.spawnPoint(380, 700, (g) => g === G.GRASS || g === G.LUSH || g === G.TALL);
+    const land = (g) => g !== G.SHALLOW && g !== G.DEEP && g !== G.SEA && g !== G.CLIFF;
+    const pt = this.spawnPoint(380, 700, land);
     if (!pt) return;
+    let kind = pickSpecies(this.world.biomeAt(pt[0], pt[1]), this.r);
+    if (this.day >= 2 && kind === 'gazelle' && this.r() < 0.08) kind = 'golden';
+    let at = pt;
+    if (SPECIES[kind].wader) {
+      // flamingos stand in the shallows
+      const w = this.world.nearestWater(pt[0], pt[1], 400);
+      if (!w) kind = 'fowl'; else at = w;
+    }
+    const S = SPECIES[kind];
     const herd = UID++;
-    const n = this.r.int(3, 6);
+    const n = this.r.int(S.herd[0], S.herd[1]);
     for (let i = 0; i < n; i++) {
       this.prey.push({
-        id: UID++, kind: 'gazelle', herd, x: pt[0] + this.r.range(-30, 30), y: pt[1] + this.r.range(-20, 20),
-        vx: 0, vy: 0, face: this.r() < 0.5 ? -1 : 1, anim: this.r(), state: 'graze', fleeT: 0,
+        id: UID++, kind, herd, x: at[0] + this.r.range(-30, 30), y: at[1] + this.r.range(-20, 20),
+        vx: 0, vy: 0, face: this.r() < 0.5 ? -1 : 1, anim: this.r(), state: 'graze', fleeT: 0, z: 0,
       });
     }
+    if (kind === 'golden') this.emit('golden', { x: at[0], y: at[1] });
   }
 
   spawnHare() {
-    const pt = this.spawnPoint(250, 600, (g) => g !== G.SHALLOW && g !== G.DEEP && g !== G.ROCK);
+    const pt = this.spawnPoint(250, 600, (g) => g === G.GRASS || g === G.TALL || g === G.LUSH || g === G.SAND || g === G.LEAF || g === G.CLAY);
     if (!pt) return;
-    this.prey.push({ id: UID++, kind: 'hare', x: pt[0], y: pt[1], vx: 0, vy: 0, face: 1, anim: 0, state: 'graze', fleeT: 0 });
+    this.prey.push({ id: UID++, kind: 'hare', herd: 0, x: pt[0], y: pt[1], vx: 0, vy: 0, face: 1, anim: 0, state: 'graze', fleeT: 0, z: 0 });
+  }
+
+  // ---------------- lions ----------------
+  // A pride on a kill. Walk past and they'll chase you off. Lead the band past, and they'll
+  // do the same to them.
+  updateLions(dt) {
+    const p = this.player;
+    this.prideT = (this.prideT ?? this.r.range(120, 200)) - dt;
+    if (this.prideT <= 0 && !this.lions.length && this.day >= 2 && !this.over) {
+      this.prideT = this.r.range(150, 240);
+      const h = this.heading();
+      const pos = this.groundPoint(h + this.r.range(-0.6, 0.6), 0.2, 300, 380);
+      const bio = pos ? this.world.biomeAt(pos[0], pos[1]) : -1;
+      if (pos && (bio === B.SAVANNA || bio === B.WOODLAND || bio === B.HIGHLAND)) {
+        const n = this.r.int(2, 3);
+        this.carcasses.push({ id: UID++, x: pos[0], y: pos[1], meat: 60, max: 90, kind: 'zebra', face: 1, t: 0, lions: true, hyenas: true });
+        for (let i = 0; i < n; i++) {
+          const a = (i / n) * TAU;
+          this.lions.push({ id: UID++, x: pos[0] + Math.cos(a) * 22, y: pos[1] + Math.sin(a) * 12, hx: pos[0] + Math.cos(a) * 22, hy: pos[1] + Math.sin(a) * 12,
+            vx: 0, vy: 0, face: Math.cos(a) > 0 ? -1 : 1, anim: this.r(), state: 'rest', t: 0, target: null, bite: 0, life: 110 });
+        }
+        this.emit('pride', { x: pos[0], y: pos[1] });
+      }
+    }
+    for (const L of this.lions) {
+      L.life -= dt;
+      L.bite -= dt;
+      L.t += dt;
+      if (L.state === 'rest') {
+        const pd = dist(L.x, L.y, p.x, p.y);
+        const wake = (p.ground === G.TALL ? 70 : 115) * (p.sprinting ? 1.3 : 1);
+        if (pd < wake && !this.over) { L.state = 'charge'; L.target = 'player'; L.t = 0; this.emit('roar', { x: L.x, y: L.y }); }
+        for (const h of this.hunters) {
+          if (h.down <= 0 && dist(L.x, L.y, h.x, h.y) < 100) { L.state = 'charge'; L.target = h; L.t = 0; this.emit('roar', { x: L.x, y: L.y }); break; }
+        }
+        if (L.life <= 0) L.gone = true;
+      }
+      let tx = L.hx, ty = L.hy, sp = 60;
+      if (L.state === 'charge') {
+        const tgt = L.target === 'player' ? p : L.target;
+        tx = tgt.x; ty = tgt.y; sp = 150;
+        const d = dist(L.x, L.y, tx, ty);
+        if (d < 14 && L.bite <= 0) {
+          L.bite = 1.6;
+          if (L.target === 'player') this.hurtPlayer(18, L.x, L.y, 'lion');
+          else if (tgt.down <= 0) {
+            tgt.down = 7; tgt.vx = (tgt.x - L.x) * 3; tgt.vy = (tgt.y - L.y) * 3;
+            const near = dist(p.x, p.y, L.x, L.y) < 600;
+            if (near) this.addScore(250, 'LIONS TOOK HIM', tgt.x, tgt.y - 40, '#ff9a6a', 0.5);
+            this.stats.lionTakedowns = (this.stats.lionTakedowns || 0) + 1;
+            this.emit('knockdown', { x: tgt.x, y: tgt.y });
+            L.state = 'return';
+          }
+        }
+        if (L.t > 3.8 || (L.target === 'player' && this.over)) L.state = 'return';
+      } else if (L.state === 'return') {
+        if (dist(L.x, L.y, L.hx, L.hy) < 8) { L.state = 'rest'; L.t = 0; }
+      }
+      if (L.state === 'rest') { L.vx = 0; L.vy = 0; }
+      else {
+        const a = Math.atan2(ty - L.y, tx - L.x);
+        const mv = Math.min(dist(L.x, L.y, tx, ty), sp * dt);
+        L.vx = (Math.cos(a) * mv) / dt; L.vy = (Math.sin(a) * mv) / dt;
+        this.world.move(L, L.vx * dt, L.vy * dt);
+      }
+      if (Math.abs(L.vx) > 3) L.face = Math.sign(L.vx);
+      L.anim = (L.anim + dt * (L.state === 'charge' ? 2.4 : L.state === 'rest' ? 0.3 : 1.3)) % 1;
+    }
+    this.lions = this.lions.filter((L) => !L.gone);
   }
 
   // ---------------- main ----------------
@@ -1260,6 +1374,7 @@ export class Game {
     this.updateScout(dt);
     this.updatePressure(dt);
     this.updateHazards(dt);
+    this.updateLions(dt);
     this.updateSpears(dt);
     this.updatePrey(dt);
     this.world.prepare(this.player.x, this.player.y, 900, 3);

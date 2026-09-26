@@ -69,7 +69,7 @@ export function makeBot(skill = 1) {
       for (const k of g.carcasses) if (k.meat > 0) { const d = dist(k.x, k.y, p.x, p.y); if (d < cd) { cd = d; c = k; } }
       if (c) { if (cd < 8) return inp; go(c.x, c.y); return inp; }
       let q = null, qd = 700;
-      for (const k of g.prey) { const d = dist(k.x, k.y, p.x, p.y); if (d < qd) { qd = d; q = k; } }
+      for (const k of g.prey) { if ((k.z || 0) > 3) continue; const d = dist(k.x, k.y, p.x, p.y); if (d < qd) { qd = d; q = k; } }
       if (q) { go(q.x + q.vx * 0.2, q.y + q.vy * 0.2, qd < 110 && p.heat < 88); if (qd < 34 && p.stamina > 25) inp.pounce = true; return inp; }
       inp.x = ax; inp.y = ay; return inp;
     }

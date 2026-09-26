@@ -245,6 +245,7 @@ export class Renderer {
     for (const r of game.runners) list.push({ y: r.y, k: 5, o: r });
     for (const hy of game.hyenas) list.push({ y: hy.y, k: 7, o: hy });
     for (const gn of game.gnus) list.push({ y: gn.y, k: 8, o: gn });
+    for (const L of game.lions) list.push({ y: L.y, k: 10, o: L });
     if (game.croc) list.push({ y: game.croc.y - 4, k: 9, o: game.croc });
     list.push({ y: p.y, k: 6, o: p });
     list.sort((a, b) => a.y - b.y);
@@ -289,19 +290,26 @@ export class Renderer {
         spr(o.def.img, o.x, o.y, o.def.ox, o.def.oy, o.flip, alpha);
       } else if (it.k === 1) {
         shadow(o.x, o.y, 9, 3);
-        spr(o.meat > 0 ? A.carcass : A.carcassBones, o.x, o.y, 15, 11, o.face < 0);
+        if (o.small) spr(o.meat > 0 ? A.smallCarcass : A.carcassBones, o.x, o.y, 8, 7, o.face < 0);
+        else spr(o.meat > 0 ? A.carcass : A.carcassBones, o.x, o.y, 15, 11, o.face < 0);
       } else if (it.k === 2) {
         const a = o.t > 20 ? 1 - (o.t - 20) / 5 : 1;
         spr(A.spearStuck, o.x, o.y, 4, 17, o.face < 0, a);
       } else if (it.k === 3) {
-        const S = o.kind === 'hare' ? A.hare : A.gazelle;
+        const S = A[o.kind] || A.gazelle;
         const spd = Math.hypot(o.vx, o.vy);
+        const pick = (arr) => arr[Math.floor(o.anim * arr.length) % arr.length];
         let fr;
-        if (o.kind === 'hare') fr = spd > 20 ? S.run[Math.floor(o.anim * 6) % 6] : S.idle[0];
-        else fr = spd > 60 ? S.run[Math.floor(o.anim * 8) % 8] : spd > 5 ? S.walk[Math.floor(o.anim * 8) % 8] : S.idle[Math.floor(o.anim * 4) % 4];
-        const sb = depth(o.x, o.y, o.kind === 'hare' ? 6 : 9, o.kind === 'hare' ? 3 : 5);
-        if (!sb) shadow(o.x, o.y, o.kind === 'hare' ? 4 : 8, o.kind === 'hare' ? 1.5 : 2.5);
-        spr(fr, o.x, o.y, S.ox, S.oy, o.face < 0, 1, sb);
+        const z = o.z || 0;
+        if (z > 2 && S.fly) fr = pick(S.fly);
+        else if (spd > 60 && S.run) fr = pick(S.run);
+        else if (spd > 5 && (S.walk || S.run)) fr = pick(S.walk || S.run);
+        else fr = pick(S.idle);
+        const small = o.kind === 'hare' || o.kind === 'fowl' || o.kind === 'hyrax';
+        const sb = z > 2 ? 0 : depth(o.x, o.y, small ? 6 : 9, small ? 3 : 5);
+        if (!sb) shadow(o.x, o.y, small ? 4 : 8, small ? 1.5 : 2.5, z > 2 ? 0.15 : 0.28);
+        spr(fr, o.x, o.y - z, S.ox, S.oy, o.face < 0, 1, sb);
+        if (o.kind === 'golden' && Math.random() < dt * 8) this.burst('spark', o.x, o.y - 12, 1, { col: '#fff09a' });
       } else if (it.k === 4) {
         const S = A.dog;
         const spd = Math.hypot(o.vx, o.vy);
@@ -346,6 +354,12 @@ export class Renderer {
         shadow(o.x, o.y, 9, 3);
         spr(S.run[Math.floor(o.anim * 8) % 8], o.x, o.y, S.ox, S.oy, o.face < 0);
         if (Math.random() < dt * 14) this.burst('dust', o.x - Math.cos(o.a) * 10, o.y, 2, { col: P.sand2 });
+      } else if (it.k === 10) {
+        const S = A.lion;
+        const pick = (arr) => arr[Math.floor(o.anim * arr.length) % arr.length];
+        const fr = o.state === 'rest' ? pick(S.lie) : o.state === 'charge' ? pick(S.run) : pick(S.walk);
+        shadow(o.x, o.y, 11, 3);
+        spr(fr, o.x, o.y, S.ox, S.oy, o.face < 0);
       } else if (it.k === 9) {
         const img = A.croc[o.state === 'snap' ? 1 : 0];
         const X = Q(o.x - cx), Y = Q(o.y - cy);
