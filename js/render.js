@@ -373,7 +373,7 @@ export class Renderer {
         else fr = set.walk[Math.floor(o.anim * 8) % 8];
         const sb = st === 'down' ? 0 : depth(o.x, o.y, 12, 6);
         if (!sb) shadow(o.x, o.y, 6, 2);
-        spr(fr, o.x, o.y, set.ox, set.oy, o.face < 0, 1, sb);
+        spr(fr, o.x, o.y, A.hunter[o.variant].ox, A.hunter[o.variant].oy, o.face < 0, 1, sb);
         if (night && st !== 'down' && st !== 'windup') {
           const fx = o.x - o.face * 4, fy = o.y - 39;
           if (Math.random() < dt * 30) this.burst('ember', fx, o.y, 1, { z: 38 });
