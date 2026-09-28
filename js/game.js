@@ -831,18 +831,23 @@ export class Game {
     this.stampedeT -= dt;
     if (this.stampedeT <= 0 && this.day >= 2 && !this.gnus.length && !this.over) {
       this.stampedeT = this.r.range(110, 170);
-      const a = this.r() * TAU; // travel direction
+      // the herd comes over land and runs on past you over land, never out of the sea
+      let a = 0, sx = 0, sy = 0, ok = false;
+      for (let k = 0; k < 12 && !ok; k++) {
+        a = this.r() * TAU; // travel direction
+        const perp = a + Math.PI / 2, off = this.r.range(-30, 30);
+        sx = p.x - Math.cos(a) * 360 + Math.cos(perp) * off; sy = p.y - Math.sin(a) * 360 + Math.sin(perp) * off;
+        ok = this.overLand(sx - Math.cos(a) * 150, sy - Math.sin(a) * 150, p.x + Math.cos(a) * 200, p.y + Math.sin(a) * 200);
+      }
       const perp = a + Math.PI / 2;
-      const off = this.r.range(-30, 30);
-      const sx = p.x - Math.cos(a) * 360 + Math.cos(perp) * off, sy = p.y - Math.sin(a) * 360 + Math.sin(perp) * off;
-      const n = this.r.int(11, 16);
+      const n = ok ? this.r.int(11, 16) : 0;
+      if (!ok) this.stampedeT = 20;
       for (let i = 0; i < n; i++) {
         const lat = this.r.range(-38, 38), back = this.r.range(0, 150);
         this.gnus.push({ id: UID++, x: sx + Math.cos(perp) * lat - Math.cos(a) * back, y: sy + Math.sin(perp) * lat - Math.sin(a) * back,
           a, sp: this.r.range(150, 175), anim: this.r(), face: Math.sign(Math.cos(a)) || 1, life: 0, hitCd: 0 });
       }
-      this.stampedeWarn = 2.5;
-      this.emit('stampede', { x: sx, y: sy, a });
+      if (ok) { this.stampedeWarn = 2.5; this.emit('stampede', { x: sx, y: sy, a }); }
     }
     if (this.stampedeWarn > 0) this.stampedeWarn -= dt;
     for (const g of this.gnus) {
@@ -887,14 +892,30 @@ export class Game {
   // A spot on open ground around the player, in a fan around `heading`.
   groundPoint(heading, spread, r0, r1) {
     const p = this.player;
-    for (let k = 0; k < 16; k++) {
-      const a = heading + this.r.range(-spread, spread);
-      const r = this.r.range(r0, r1);
-      const x = p.x + Math.cos(a) * r, y = p.y + Math.sin(a) * r;
-      const g = this.world.ground(x, y);
-      if (!this.world.isWater(g) && g !== G.CLIFF) return [x, y];
+    for (let pass = 0; pass < 2; pass++) {
+      for (let k = 0; k < 16; k++) {
+        // second pass: nothing inland ahead (you're running at the sea), so come from anywhere on land
+        const a = pass ? this.r() * TAU : heading + this.r.range(-spread, spread);
+        const r = this.r.range(r0, r1);
+        const x = p.x + Math.cos(a) * r, y = p.y + Math.sin(a) * r;
+        const g = this.world.ground(x, y);
+        if (!this.world.isWater(g) && g !== G.CLIFF && this.overLand(x, y, p.x, p.y)) return [x, y];
+      }
     }
     return null;
+  }
+
+  // Is the straight run from (x0,y0) to (x1,y1) clear of the sea, with no sea close to its start?
+  overLand(x0, y0, x1, y1) {
+    const W = this.world;
+    for (let k = 0; k < 8; k++) if (W.ground(x0 + Math.cos(k * 0.785) * 40, y0 + Math.sin(k * 0.785) * 40) === G.SEA) return false;
+    const n = Math.ceil(dist(x0, y0, x1, y1) / 12);
+    for (let i = 1; i < n; i++) {
+      const t = i / n;
+      const g = W.ground(x0 + (x1 - x0) * t, y0 + (y1 - y0) * t);
+      if (g === G.SEA || g === G.DEEP) return false;
+    }
+    return true;
   }
 
   heading() {
@@ -1012,7 +1033,9 @@ export class Game {
         if (pos) this.runners.push(this.makeRunner(pos[0], pos[1], 24, 2));
       }
       // the dogs are slipped and sent straight at you
-      for (const d of this.dogs) if (!d.dead && d.state !== 'chase') { d.state = 'chase'; d.chaseT = 0; d.x = p.x - Math.cos(h) * 320; d.y = p.y - Math.sin(h) * 320; }
+      const dx = p.x - Math.cos(h) * 320, dy = p.y - Math.sin(h) * 320;
+      const dogOk = this.overLand(dx, dy, p.x, p.y);
+      for (const d of this.dogs) if (!d.dead && d.state !== 'chase') { d.state = 'chase'; d.chaseT = 0; if (dogOk) { d.x = dx; d.y = dy; } }
       this.emit(kind, { x: p.x, y: p.y });
     }
   }
