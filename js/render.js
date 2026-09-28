@@ -715,7 +715,7 @@ export class Renderer {
     // hunters: always sensed
     let nh = null, nd = 1e9;
     for (const hu of game.hunters) { const d = dist(hu.x, hu.y, p.x, p.y); if (d < nd) { nd = d; nh = hu; } }
-    if (nh) arrow(nh.x, nh.y - 10, P.danger, Math.round(nd / 10) + 'M', nd < 300 ? Math.sin(game.time * 10) * 1.5 + 1 : 0);
+    if (nh) arrow(nh.x, nh.y - 10, P.danger, (this.imperial ? Math.round(nd / 10 * 3.281) + 'FT' : Math.round(nd / 10) + 'M'), nd < 300 ? Math.sin(game.time * 10) * 1.5 + 1 : 0);
     for (const d of game.dogs) if (!d.dead && dist(d.x, d.y, p.x, p.y) < 500) arrow(d.x, d.y, P.fire1, null);
     if (game.gnus.length && game.stampedeWarn > 0) { const g0 = game.gnus[0]; arrow(g0.x, g0.y, P.sand3, 'STAMPEDE', Math.sin(game.time * 14) * 2 + 2); }
     for (const r of game.runners) if (!r.leaving) arrow(r.x, r.y - 10, P.danger, null, Math.sin(game.time * 12) * 1.5 + 1);

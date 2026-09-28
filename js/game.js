@@ -229,6 +229,7 @@ export class Game {
     if (mag > 0.01) { const l = Math.hypot(ix, iy); ix /= l; iy /= l; }
     const moving = mag > 0.15 && p.pounce <= 0;
     const wantSprint = inp.sprint && moving && !p.overheated && !p.exhausted && p.stamina > 1;
+    p.stalking = !!inp.stalk && moving && !wantSprint;
 
     // pounce
     p.pounceCd -= dt;
@@ -254,7 +255,7 @@ export class Game {
       if (p.pdx) p.face = Math.sign(p.pdx);
       this.pounceHits();
     } else {
-      speed = wantSprint ? T.sprint : T.trot * this.perk('stride', 1.07) * Math.max(0.35, mag);
+      speed = wantSprint ? T.sprint : T.trot * this.perk('stride', 1.07) * Math.max(0.35, mag) * (p.stalking ? 0.42 : 1);
       if (this.isNight && this.has('night')) speed *= 1.12;
       if (p.overheated) speed = T.trot * 0.5;
       speed *= water && this.has('river') ? Math.min(1, gi.speed * 1.4) : gi.speed;
@@ -267,7 +268,14 @@ export class Game {
     }
     const sp = Math.hypot(p.vx, p.vy);
     const ox = p.x, oy = p.y;
-    const res = W.move(p, p.vx * dt, p.vy * dt, { fire: true });
+    const res = W.move(p, p.vx * dt, p.vy * dt, { fire: true, climb: p.state === 'pounce' });
+    // a pounce that runs out on a cliff face carries on to the top
+    if (p.pounce <= 0 && p.state === 'pounce' && W.typeAt(p.x, p.y) === G.CLIFF && (p.climbX = (p.climbX || 0) + dt) < 0.25) p.pounce = dt;
+    else if (p.pounce <= 0) p.climbX = 0;
+    if (res === 'climb' && !(p.hop > 0)) {
+      p.hop = 0.34;
+      this.emit('climb', { x: p.x, y: p.y });
+    }
     if (res === 'drop' && !(p.hop > 0)) {
       p.hop = 0.34;
       p.dropMark = true;
@@ -307,11 +315,15 @@ export class Game {
     const lm = W.landmarkNear(p.x, p.y, 90);
     p.landmark = lm && dist(lm.x, lm.y, p.x, p.y) < 60 ? lm : null;
     if (lm && lm.def.pool && Math.hypot((p.x - lm.x) / (lm.def.pool.rx + 10), (p.y - lm.y - lm.def.pool.dy) / (lm.def.pool.ry + 8)) < 1) nearWater = true;
-    if (p.still > 0.25) {
-      if (nearWater && p.water < 99.5) p.drinking = true;
+    // once full, stay up until thirst or hunger has really come back (no bobbing head)
+    if (p.still <= 0) p.sated = 0;
+    if (p.water >= 99.5) p.sated |= 1; else if (p.water < 85) p.sated &= ~1;
+    if (p.food >= 99.5) p.sated |= 2; else if (p.food < 85) p.sated &= ~2;
+    if (p.still > 0.2) {
+      if (nearWater && !(p.sated & 1)) p.drinking = true;
       else {
-        const c = this.carcasses.find((c) => c.meat > 0 && dist(c.x, c.y, p.x, p.y) < 16);
-        if (c && p.food < 99.5) p.eating = c;
+        const c = this.carcasses.find((c) => c.meat > 0 && dist(c.x, c.y, p.x, p.y) < (c.small ? 22 : 28));
+        if (c && !(p.sated & 2)) p.eating = c;
       }
     }
     p.lying = p.still > 1.1 && !p.drinking && !p.eating && !water;
@@ -428,7 +440,7 @@ export class Game {
     for (const q of this.prey) {
       if (q.dead) continue;
       const S = SPECIES[q.kind];
-      if ((q.z || 0) < 6 && dist(q.x, q.y, p.x, p.y) < S.hit + 3 * (this.perks.pounce || 0)) {
+      if ((q.z || 0) < 6 && dist(q.x, q.y, p.x, p.y) < S.hit + 5 + 3 * (this.perks.pounce || 0)) {
         q.dead = true;
         this.stats.prey++;
         if (q.kind === 'gazelle') this.stats.gazelles = (this.stats.gazelles || 0) + 1;
@@ -1148,7 +1160,8 @@ export class Game {
       if (herds.size < 3) this.spawnHerd();
       if (hares < 2) this.spawnHare();
     }
-    const alertBase = p.sprinting ? 150 : p.state === 'walk' ? 92 : 56;
+    const pspd = Math.hypot(p.vx, p.vy);
+    const alertBase = p.sprinting ? 150 : p.pounce > 0 ? 110 : lerp(44, 92, clamp((pspd - 8) / (T.trot - 8), 0, 1));
     for (const q of this.prey) {
       if (q.dead) continue;
       const S = SPECIES[q.kind];
@@ -1160,6 +1173,12 @@ export class Game {
       for (const h of this.hunters) {
         if (dist(q.x, q.y, h.x, h.y) < 90) { threat = true; threatX = h.x; threatY = h.y; }
       }
+      // a cat in the open is seen at once; a creeping one only makes them look up
+      if (threat && threatX === p.x && q.state === 'graze' && !p.sprinting && p.pounce <= 0 && pd > alertR * 0.45) {
+        q.sus = (q.sus || 0) + dt * (0.6 + pspd / T.trot);
+        q.vx = 0; q.vy = 0; q.wt = 0.5;
+        if (q.sus < 0.7) threat = false;
+      } else if (!threat) q.sus = Math.max(0, (q.sus || 0) - dt * 0.5);
       if (threat && q.state !== 'flee' && q.state !== 'charge') {
         // warthogs sometimes stand their ground
         if (S.charge && pd < 70 && this.r() < 0.4 && threatX === p.x) {
@@ -1168,6 +1187,7 @@ export class Game {
         } else {
           q.state = 'flee';
           q.fleeT = 0;
+          q.startle = 0.14; // a flinch before the bolt
           if (S.fly) q.air = 2.2 + this.r() * 0.8;
           if (q.herd) for (const o of this.prey) if (o.herd === q.herd && o.state !== 'flee') {
             o.state = 'flee'; o.fleeT = 0; o.tx = threatX; o.ty = threatY;
@@ -1184,9 +1204,12 @@ export class Game {
         q.vx = Math.cos(a) * 140; q.vy = Math.sin(a) * 140;
         if (!q.hitDone && pd < 13) { q.hitDone = true; this.hurtPlayer(12, q.x, q.y, 'warthog'); }
         if (q.chargeT <= 0 || q.hitDone) { q.state = 'flee'; q.fleeT = 0.5; q.tx = p.x; q.ty = p.y; }
+      } else if (q.state === 'flee' && q.startle > 0) {
+        q.startle -= dt;
+        q.vx = 0; q.vy = 0;
       } else if (q.state === 'flee') {
         q.fleeT += dt;
-        const sp = q.fleeT < S.burstT ? S.burst : S.cruise;
+        const sp = q.fleeT < S.burstT ? S.burst * 0.9 : S.cruise;
         let a = Math.atan2(q.y - q.ty, q.x - q.tx);
         q.zig = (q.zig || 0) - dt;
         if (q.zig <= 0) { q.zig = S.zigT; q.zo = (Math.random() - 0.5) * S.zig; }

@@ -93,6 +93,7 @@ export class Input {
     if (K.has('KeyW') || K.has('ArrowUp')) y -= 1;
     if (K.has('KeyS') || K.has('ArrowDown')) y += 1;
     let sprint = K.has('ShiftLeft') || K.has('ShiftRight');
+    let stalk = K.has('KeyC');
     let pounce = this.edges.has('Space') || this.edges.has('KeyJ');
     let pause = this.edges.has('Escape') || this.edges.has('KeyP');
     let confirm = this.edges.has('Enter') || this.edges.has('NumpadEnter');
@@ -104,6 +105,7 @@ export class Input {
       const b = (i) => gp.buttons[i] && gp.buttons[i].pressed;
       if (b(12)) y = -1; if (b(13)) y = 1; if (b(14)) x = -1; if (b(15)) x = 1;
       if (b(7) || b(5) || b(1)) sprint = true;
+      if (b(6) || b(4)) stalk = true;
       const edge = (i) => b(i) && !this.padPrev[i];
       if (edge(0) || edge(2)) { pounce = true; this.lastDevice = 'pad'; }
       if (edge(9)) pause = true;
@@ -134,6 +136,6 @@ export class Input {
     const padConfirm = this.padConfirm; this.padConfirm = false;
     const edges = new Set(this.edges);
     this.edges.clear();
-    return { x, y, sprint, pounce, pause, confirm, padConfirm, edges };
+    return { x, y, sprint, stalk, pounce, pause, confirm, padConfirm, edges };
   }
 }

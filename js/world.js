@@ -4,7 +4,7 @@
 import { hash2, rng } from './util.js';
 import { P } from './palette.js';
 import { canvas } from './art.js';
-import { Terrain, G, B, GROUND_INFO, CHUNK, isWaterType, BIOME_NAMES } from './terrain.js';
+import { Terrain, G, B, GROUND_INFO, CHUNK, FACE, isWaterType, BIOME_NAMES } from './terrain.js';
 import { landmarkForCell, CELL } from './secrets.js';
 
 export { G, B, GROUND_INFO, CHUNK, BIOME_NAMES };
@@ -332,10 +332,12 @@ export class World {
   isWater(g) { return isWaterType(g); }
 
   // Can something at e step to (nx, ny)? 0 = yes, 1 = blocked, 2 = a drop off a ledge.
-  stepRule(x, y, nx, ny) {
+  // climb: a pounce clears a cliff face and one terrace up.
+  stepRule(x, y, nx, ny, climb = false) {
     const t1 = this.typeAt(nx, ny);
     if (t1 === G.SEA) return 1;
     const L0 = this.levelAt(x, y), L1 = this.levelAt(nx, ny);
+    if (climb && L1 <= L0 + 1 && (L1 > L0 || (t1 === G.CLIFF && this.levelAt(nx, ny - FACE - 1) <= L0 + 1))) return L0 > L1 ? 2 : 0;
     if (t1 === G.CLIFF) return L0 > L1 ? 2 : (this.typeAt(x, y) === G.CLIFF || ny > y + 0.01) ? 0 : 1;
     if (L1 === L0) return 0;
     if (this.rampAt(nx, ny) || this.rampAt(x, y)) return 0;
@@ -344,15 +346,20 @@ export class World {
   }
 
   // Move an entity, sliding along walls. Returns 'drop' if it went over a ledge.
-  move(e, dx, dy, { drop = true, fire = false } = {}) {
+  move(e, dx, dy, { drop = true, fire = false, climb = false } = {}) {
     if (!dx && !dy) return null;
     if (!fire && this.fire.size && this.fire.has(this.fkey(e.x + dx, e.y + dy))) return 'blocked';
-    const r = this.stepRule(e.x, e.y, e.x + dx, e.y + dy);
-    if (r === 0 || (r === 2 && drop)) { e.x += dx; e.y += dy; return r === 2 ? 'drop' : null; }
+    const L0 = climb ? this.levelAt(e.x, e.y) : 0;
+    const r = this.stepRule(e.x, e.y, e.x + dx, e.y + dy, climb);
+    if (r === 0 || (r === 2 && drop)) {
+      e.x += dx; e.y += dy;
+      if (r === 2) return 'drop';
+      return climb && this.levelAt(e.x, e.y) > L0 ? 'climb' : null;
+    }
     if (r === 2 && !drop) return 'ledge';
     // slide
-    if (dx && this.stepRule(e.x, e.y, e.x + dx, e.y) === 0) { e.x += dx; return 'slide'; }
-    if (dy && this.stepRule(e.x, e.y, e.x, e.y + dy) === 0) { e.y += dy; return 'slide'; }
+    if (dx && this.stepRule(e.x, e.y, e.x + dx, e.y, climb) === 0) { e.x += dx; return 'slide'; }
+    if (dy && this.stepRule(e.x, e.y, e.x, e.y + dy, climb) === 0) { e.y += dy; return 'slide'; }
     return 'blocked';
   }
 

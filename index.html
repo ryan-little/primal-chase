@@ -61,7 +61,7 @@
         <button class="btn" id="btn-settings">Settings</button>
       </div>
       <p class="best" id="best-title"></p>
-      <p class="keys desk">WASD / arrows · SHIFT sprint · SPACE pounce · TAB map · P pause</p>
+      <p class="keys desk">WASD / arrows · SHIFT sprint · C stalk · SPACE pounce · TAB map · P pause</p>
       </div>
       <span class="demo-tag">Live demo</span>
     </div>
@@ -76,7 +76,7 @@
         <div><h3>They never tire</h3><p>Persistence hunters don't need to be fast. They follow your <b>tracks</b> at a steady walk, all day, every day, and they get faster each dawn.</p></div>
         <div><h3>Cool down</h3><p>Stand still in the <b>shade</b> of a tree or rock, lie down, wade into <b class="cool">water</b>, or wait for night or rain. Every second you rest, they walk.</p></div>
         <div><h3>Break the trail</h3><p><b>Rock</b> and <b class="cool">water</b> hold no prints. Rain washes them away. Cross them and the band has to stop and search.</p></div>
-        <div><h3>Drink &amp; hunt</h3><p>Stand still at water to drink. Stalk gazelles and hares (tall grass hides you), then <b>pounce</b> and stand over the kill to eat.</p></div>
+        <div><h3>Drink &amp; hunt</h3><p>Stand still at water to drink. Creep up on gazelles and hares (hold C, or ease the stick; tall grass hides you), then <b>pounce</b> and stand over the kill to eat.</p></div>
         <div><h3>When they see you</h3><p>They run and throw spears. Watch for the <b class="danger">red line</b> and sidestep, or pounce: a pounce dodges spears and can knock a hunter flat.</p></div>
         <div><h3>Don't run a straight line</h3><p>They read a straight trail like a map. Hold one heading too long and they send runners ahead to meet you. Turn, double back, use the land.</p></div>
         <div><h3>High ground</h3><p>In the highlands you can <b>leap down</b> from ledges. Men have to find a way around, and your trail breaks at the drop. You can only climb back up where the slope is gentle.</p></div>
@@ -85,9 +85,9 @@
         <div><h3>The land and the sky</h3><p>Desert and ashland burn you; woodland hides you. Fog blinds everyone, dust erases tracks, lightning starts grass fires that men cannot cross. The coast is the edge of the world.</p></div>
         <div><h3>Other animals</h3><p>Zebras kick, warthogs charge, birds take flight. Lions guard their kills. Lead the band past a pride and let the lions deal with them.</p></div>
       </div>
-      <p class="keys desk">Move: WASD / arrows · Sprint: hold SHIFT · Pounce: SPACE · Map: TAB · Pause: P / ESC · Mute: M</p>
+      <p class="keys desk">Move: WASD / arrows · Sprint: hold SHIFT · Stalk: hold C · Pounce: SPACE · Map: TAB · Pause: P / ESC · Mute: M</p>
       <p class="keys touchonly">Move: drag on the left · Push to the rim (or tap RUN) to sprint · POUNCE button</p>
-      <p class="keys">Gamepad: left stick · RT / RB sprint · A pounce · Start pause</p>
+      <p class="keys">Gamepad: left stick · RT / RB sprint · LT / LB stalk · A pounce · Start pause</p>
       <button class="btn primary" data-back>Back</button>
     </div>
   </div>
@@ -140,6 +140,7 @@
       <label class="row">Sound <input type="range" id="set-sfx" min="0" max="1" step="0.05"></label>
       <label class="row check"><input type="checkbox" id="set-shake"> Reduce screen shake</label>
       <label class="row check"><input type="checkbox" id="set-hints"> Show survival hints</label>
+      <div class="row">Distances <span class="seg"><button type="button" class="btn" id="set-metric">Metric</button><button type="button" class="btn" id="set-imperial">Imperial</button></span></div>
       <button class="btn primary" data-back>Back</button>
     </div>
   </div>

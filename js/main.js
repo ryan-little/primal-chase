@@ -26,12 +26,20 @@ const store = {
   get(k, d) { try { const v = localStorage.getItem('pc2_' + k); return v == null ? d : JSON.parse(v); } catch { return d; } },
   set(k, v) { try { localStorage.setItem('pc2_' + k, JSON.stringify(v)); } catch { /* private mode */ } },
 };
-const settings = Object.assign({ music: 0.8, sfx: 0.9, reduceShake: false, hints: true }, store.get('settings', {}));
+const usLocale = /-(US|LR|MM)$/i.test(navigator.language || '');
+const settings = Object.assign({ music: 0.8, sfx: 0.9, reduceShake: false, hints: true, units: usLocale ? 'imperial' : 'metric' }, store.get('settings', {}));
+// meters → display string; long for run totals, short for the tracker
+function fmtDist(m, long = false) {
+  if (settings.units === 'imperial') return long ? `${(m / 1609.34).toFixed(2)} mi` : `${Math.round(m * 3.281)} ft`;
+  return long ? `${(m / 1000).toFixed(2)} km` : `${Math.round(m)} m`;
+}
+const MX = '<span class="mx">x</span>';
 function applySettings() {
   audio.musicVol = settings.music;
   audio.sfxVol = settings.sfx;
   audio.applyVolumes();
   renderer.reducedMotion = settings.reduceShake;
+  renderer.imperial = settings.units === 'imperial';
   store.set('settings', settings);
 }
 applySettings();
@@ -215,7 +223,7 @@ $('btn-title').onclick = () => { click(); daily = false; toTitle(); };
 $('btn-share').onclick = () => {
   const s = lastResult;
   if (!s) return;
-  const text = `Primal Chase${daily ? ' (daily ' + todayKey() + ')' : ''}: I survived to Day ${s.day} (${s.phase}), ran ${(s.dist / 1000).toFixed(2)} km and scored ${s.score.toLocaleString()}. They always catch you. How long can you last? https://primalchase.com`;
+  const text = `Primal Chase${daily ? ' (daily ' + todayKey() + ')' : ''}: I survived to Day ${s.day} (${s.phase}), ran ${fmtDist(s.dist, true)} and scored ${s.score.toLocaleString()}. They always catch you. How long can you last? https://primalchase.com`;
   navigator.clipboard?.writeText(text).then(() => { $('btn-share').textContent = 'Copied'; setTimeout(() => ($('btn-share').textContent = 'Copy result'), 1500); });
 };
 document.querySelectorAll('[data-back]').forEach((b) => (b.onclick = () => { click(); show(returnTo); }));
@@ -231,6 +239,12 @@ $('set-music').oninput = (e) => { settings.music = +e.target.value; applySetting
 $('set-sfx').oninput = (e) => { settings.sfx = +e.target.value; applySettings(); audio.play('ui'); };
 $('set-shake').onchange = (e) => { settings.reduceShake = e.target.checked; applySettings(); };
 $('set-hints').onchange = (e) => { settings.hints = e.target.checked; applySettings(); };
+function showUnits() {
+  $('set-metric').classList.toggle('on', settings.units === 'metric');
+  $('set-imperial').classList.toggle('on', settings.units === 'imperial');
+}
+for (const u of ['metric', 'imperial']) $('set-' + u).onclick = () => { click(); settings.units = u; applySettings(); showUnits(); };
+showUnits();
 
 // first gesture unlocks audio
 const unlock = () => { audio.init(); };
@@ -267,7 +281,7 @@ const FEATS = [
   ['escape', '»', 'Slipped away', 'Escape after being seen', (g) => (g.stats.escapes || 0) > 0],
   ['wild', '×', 'Wild', 'Reach a x3 multiplier', (g) => g.mult >= 3],
   ['trample', '▲', 'Let the herd do it', 'Get a hunter trampled', (g) => (g.stats.trampled || 0) > 0],
-  ['marathon', '∞', 'Marathon', 'Run 5 km in one run', (g) => g.stats.dist >= 5000],
+  ['marathon', '∞', 'Marathon', 'Run 5 km (3.1 mi) in one run', (g) => g.stats.dist >= 5000],
   ['secret', '?', 'Curious cat', 'Find a secret place', (g) => (g.stats.secrets || 0) > 0],
   ['secrets3', '\u2736', 'Keeper of old places', 'Find 3 secrets in one run', (g) => (g.stats.secrets || 0) >= 3],
   ['golden', '\u2605', 'Gold on the plain', 'Catch a golden gazelle', (g) => (g.stats.golden || 0) > 0],
@@ -333,7 +347,7 @@ const HINTS = {
   heat: 'You are overheating. Stop in <b>shade</b>, lie down, or wade into water.',
   overheat: 'Overheated! You can barely walk until you cool down.',
   water: 'Thirsty. Follow the <b style="color:#7fd6e0">blue arrow</b>, then stand still at the water to drink.',
-  food: () => `Hungry. Stalk prey slowly, then ${input.usingTouch ? '<b>POUNCE</b>' : '<kbd>Space</kbd> to pounce'}. Stand over the kill to eat.`,
+  food: () => `Hungry. Creep up on prey ${input.usingTouch ? '(ease the stick)' : input.lastDevice === 'pad' ? '(hold LT)' : '(hold <kbd>C</kbd>)'}, then ${input.usingTouch ? '<b>POUNCE</b>' : '<kbd>Space</kbd> to pounce'}. Stand over the kill to eat.`,
   sighted: 'They see you! Sprint, or lose them in <b>tall grass</b>.',
   spear: () => `Spear! Step off the <b style="color:#ff4a2e">red line</b>, or ${input.usingTouch ? 'POUNCE' : '<kbd>Space</kbd>'} through it.`,
   trail: 'Trail broken. They have to search for your tracks.',
@@ -344,7 +358,7 @@ const HINTS = {
   hyenas: 'Hyenas are coming for your kill. Eat fast, or pounce to scatter them.',
   stampede: 'Stampede! Get clear. The herd will trample your trail, and anyone in its way.',
   mult: 'Danger survived raises your <b>multiplier</b> (top right). Getting hurt halves it.',
-  cliff: 'A ledge. You can <b>leap down</b>; the band has to find a way around. You can only climb back up where the slope is gentle.',
+  cliff: 'A ledge. You can <b>leap down</b>; the band has to find a way around. Walk up where the slope is gentle, or <b>pounce</b> up a single ledge.',
   secretnear: 'A golden <b style="color:#e8c040">?</b> at the edge of the screen means a secret place is near. Go and look.',
   map: () => `${input.usingTouch ? 'Tap <b>MAP</b>' : '<kbd>Tab</kbd>'} opens a map of everywhere you have been.`,
   golden: 'A <b style="color:#fff09a">golden gazelle</b> is near. Catch it for a fortune.',
@@ -469,7 +483,7 @@ function finishRun() {
   $('new-best').classList.toggle('hidden', !isBest);
   const stats = [
     ['Day', `${game.day}`, game.phaseName.toLowerCase()],
-    ['Distance', `${(s.dist / 1000).toFixed(2)} km`],
+    ['Distance', fmtDist(s.dist, true)],
     ['Prey caught', s.prey],
     ['Trails broken', s.breaks],
     ['Spears dodged', s.dodges],
@@ -477,7 +491,7 @@ function finishRun() {
     ['Secrets', s.secrets || 0],
     ['Takedowns', s.knockdowns + s.dogs],
     ['Time alive', fmtTime(game.time)],
-    ['Top multiplier', 'x' + (s.bestMult || 1).toFixed(1)],
+    ['Top multiplier', MX + (s.bestMult || 1).toFixed(1)],
   ];
   $('death-stats').innerHTML = stats.map(([k, v, sub]) => `<div class="stat"><b>${v}</b><span>${k}${sub ? ' · ' + sub : ''}</span></div>`).join('');
   const top = store.get('runs', []).slice(0, 5);
@@ -520,6 +534,7 @@ function handleEvents(g) {
         else if (e.sprint) renderer.burst('dust', e.x - p.face * 6, e.y, 2, { col: e.g === G.ROCK ? P.rock3 : e.g === G.LUSH ? P.lush2 : P.sand3, vx: -p.vx * 0.2 });
         break;
       case 'pounce': audio.play('pounce'); renderer.burst('dust', e.x, e.y, 6); renderer.shake(1.5); hint('pounce'); break;
+      case 'climb': audio.play('climb'); renderer.burst('dust', e.x, e.y, 8); renderer.shake(1); break;
       case 'kill': audio.play('kill'); renderer.burst('blood', e.x, e.y, 14); renderer.shake(3); hitstop = 0.07; break;
       case 'eat': audio.play('eat', { vol: 0.8 }); renderer.burst('blood', e.x + p.face * 10, e.y, 2); break;
       case 'drink': audio.play('drink', { vol: 0.8 }); renderer.burst('splash', e.x + p.face * 10, e.y + 2, 2); break;
@@ -613,11 +628,12 @@ function updateHUD(g, dt) {
   $('clock-icon').className = g.isNight ? 'moon' : '';
   $('score').textContent = g.score.toLocaleString();
   const mEl = $('mult');
-  mEl.textContent = 'x' + g.mult.toFixed(1);
+  const mTxt = g.mult.toFixed(1);
+  if (mEl.dataset.v !== mTxt) { mEl.dataset.v = mTxt; mEl.innerHTML = MX + mTxt; }
   mEl.className = (g.mult >= 2.5 ? 'hotter' : g.mult >= 1.5 ? 'hot' : '') + (multBumpT > 0 ? ' bump' : '');
   const th = g.threat();
   const d = th.d;
-  $('band-dist').textContent = `${Math.round(d / 10)} m`;
+  $('band-dist').textContent = fmtDist(d / 10);
   const fill = clamp(1 - (d - 40) / 900, 0.03, 1);
   $('tracker-fill').style.width = (fill * 100).toFixed(1) + '%';
   const mode = g.band.mode;
