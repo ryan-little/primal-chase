@@ -1,0 +1,65 @@
+<!doctype html><html><body style="margin:0;background:#c2a64a">
+<canvas id="c" width="1800" height="3600" style="image-rendering:pixelated"></canvas>
+<script type="module">
+// Creature sprite sheet (4x) + 1x/2x strips on grass + a canvas-edge clipping audit (window.result).
+// Run with: node tools/creatures.mjs tools/shots/creatures.png [scale] [only]
+// ?only=cat,lion,gazelle,...,hunter0,hunter1,birds,misc,strip limits what is drawn; the audit always covers everything.
+import { buildArt } from '../js/art.js';
+import { P } from '../js/palette.js';
+const A = buildArt();
+const c = document.getElementById('c'), x = c.getContext('2d'); x.imageSmoothingEnabled = false;
+const Q = new URLSearchParams(location.search);
+const S = +(Q.get('s') || 4), W = c.width;
+const only = Q.get('only') ? Q.get('only').split(',') : null;
+let show = true;
+const want = (k) => (show = !only || only.includes(k));
+let X = 4, Y = 4, rowH = 0; const clip = [];
+function audit(img, name) {
+  const t = document.createElement('canvas'); t.width = img.width; t.height = img.height;
+  const tx = t.getContext('2d'); tx.drawImage(img, 0, 0); const d = tx.getImageData(0, 0, img.width, img.height).data;
+  const a = (i, j) => d[(j * img.width + i) * 4 + 3] > 0; const e = [];
+  for (let i = 0; i < img.width; i++) { if (a(i, 0)) { e.push('top'); break; } }
+  for (let i = 0; i < img.width; i++) { if (a(i, img.height - 1)) { e.push('bottom'); break; } }
+  for (let j = 0; j < img.height; j++) { if (a(0, j)) { e.push('left'); break; } }
+  for (let j = 0; j < img.height; j++) { if (a(img.width - 1, j)) { e.push('right'); break; } }
+  if (e.length) clip.push(name + ':' + e.join(','));
+}
+function label(s) { if (!show) return; x.fillStyle = P.ink; x.font = '12px monospace'; x.fillText(s, X, Y + 11); X += s.length * 7.5 + 6; rowH = Math.max(rowH, 14); }
+function put(img, name) {
+  audit(img, name); if (!show) return;
+  if (X + img.width * S > W) { X = 4; Y += rowH + 6; rowH = 0; }
+  x.fillStyle = 'rgba(0,0,0,0.08)'; x.fillRect(X, Y, img.width * S, img.height * S);
+  x.drawImage(img, X, Y, img.width * S, img.height * S); X += img.width * S + 6; rowH = Math.max(rowH, img.height * S);
+}
+function nl() { if (!show) return; X = 4; Y += rowH + 8; rowH = 0; }
+const quads = ['cat', 'lion', 'gazelle', 'golden', 'dog', 'hyena', 'gnu', 'zebra', 'warthog', 'hyrax'];
+const strip = [];
+for (const k of quads) { want(k); for (const g of ['idle', 'walk', 'run', 'lie', 'drink', 'pounce', 'dead']) {
+  const arr = A[k][g]; if (!arr) continue;
+  const sv = show; if (Q.get('gait') && !Q.get('gait').split(',').includes(g)) show = false;
+  label(k + '.' + g); arr.forEach((f, i) => put(f, `${k}.${g}[${i}]`)); nl(); strip.push(arr[Math.min(1, arr.length - 1)]);
+  show = sv;
+} }
+for (const v of [0, 1]) { want('hunter' + v); for (const n of ['d', 'n']) for (const g of ['walk', 'run', 'search', 'windup', 'throw', 'down']) {
+  const arr = A.hunter[v][n][g];
+  const sv = show; if (Q.get('gait') && !Q.get('gait').split(',').includes(g + n)) show = false;
+  label(`hunter${v}${n}.${g}`); arr.forEach((f, i) => put(f, `hunter${v}${n}.${g}[${i}]`)); nl(); if (n === 'd') strip.push(arr[Math.min(1, arr.length - 1)]);
+  show = sv;
+} }
+want('birds');
+for (const k of ['hare', 'ostrich', 'fowl', 'flamingo']) for (const g of ['idle', 'run', 'fly', 'dead']) {
+  const arr = A[k][g]; if (!arr) continue;
+  label(k + '.' + g); arr.forEach((f, i) => put(f, `${k}.${g}[${i}]`)); nl(); strip.push(arr[0]);
+}
+want('misc');
+label('misc'); A.croc.forEach((f, i) => put(f, 'croc' + i)); A.vulture.forEach((f, i) => put(f, 'vulture' + i));
+put(A.carcass, 'carcass'); put(A.carcassBones, 'bones'); put(A.smallCarcass, 'smallCarcass'); put(A.spearStuck, 'spear'); nl();
+if (want('strip')) for (const sc of [1, 2, 3]) {
+  let sx = 8, mh = 0; Y += 6; const y0 = Y - 4;
+  const rows = []; for (const f of strip) { if (sx + f.width * sc > W) { sx = 8; Y += mh + 4; mh = 0; } rows.push([f, sx, Y]); sx += f.width * sc + 2; mh = Math.max(mh, f.height * sc); }
+  x.fillStyle = P.grass2; x.fillRect(0, y0, W, Y + mh + 4 - y0);
+  for (const [f, fx, fy] of rows) x.drawImage(f, fx, fy, f.width * sc, f.height * sc);
+  Y += mh + 12;
+}
+window.result = { clip, h: Y };
+</script></body></html>
