@@ -135,6 +135,18 @@ export class Game {
     });
   }
 
+  // Hunters, runners and dogs never get stopped by terrain: logs, rocks and trunks they
+  // scramble over, ledges they climb, both at a crawl.
+  chaserMove(e, dt, r) {
+    const W = this.world;
+    const k = e.vault > 0 ? 0.45 : 1;
+    if (e.vault > 0) e.vault -= dt;
+    const res = W.move(e, e.vx * dt * k, e.vy * dt * k, { climb: true });
+    if (res === 'climb' || W.typeAt(e.x, e.y) === G.CLIFF) e.vault = Math.max(e.vault || 0, 0.5);
+    else if (res === 'drop') e.vault = Math.max(e.vault || 0, 0.2);
+    if (W.collide(e, r, true)) e.vault = Math.max(e.vault || 0, 0.25);
+  }
+
   // n stacks of a perk: base * mult^n
   perk(id, mult, base = 1) { return base * Math.pow(mult, this.perks[id] || 0); }
   has(id) { return (this.perks[id] || 0) > 0; }
@@ -702,8 +714,7 @@ export class Game {
       h.vx = lerp(h.vx, (Math.cos(a) * mv) / dt, Math.min(1, dt * 8));
       h.vy = lerp(h.vy, (Math.sin(a) * mv) / dt, Math.min(1, dt * 8));
       const bx0 = h.x, by0 = h.y;
-      this.world.move(h, h.vx * dt, h.vy * dt);
-      this.world.collide(h, 4);
+      this.chaserMove(h, dt, 4);
       const want = Math.hypot(h.vx, h.vy) * dt;
       if (want > 0.4 && Math.hypot(h.x - bx0, h.y - by0) < want * 0.3) h.stuck = (h.stuck || 0) + dt;
       else h.stuck = Math.max(0, (h.stuck || 0) - dt);
@@ -988,8 +999,7 @@ export class Game {
     const gi = GROUND_INFO[this.world.typeAt(sc.x, sc.y)];
     const mv = Math.min(dist(sc.x, sc.y, tx, ty), sp * Math.max(0.6, gi.speed) * (sc.windup > 0 ? 0.1 : 1) * dt);
     sc.vx = (Math.cos(a) * mv) / dt; sc.vy = (Math.sin(a) * mv) / dt;
-    this.world.move(sc, sc.vx * dt, sc.vy * dt);
-    this.world.collide(sc, 4);
+    this.chaserMove(sc, dt, 4);
     if (Math.abs(sc.vx) > 3) sc.face = Math.sign(sc.vx);
     sc.state = sc.windup > 0 ? 'windup' : Math.hypot(sc.vx, sc.vy) > 60 ? 'run' : 'walk';
     sc.anim = (sc.anim + dt * (sc.state === 'run' ? 1.9 : 1.1)) % 1;
@@ -1167,8 +1177,7 @@ export class Game {
       const gi = GROUND_INFO[this.world.typeAt(d.x, d.y)];
       const mv = Math.min(dist(d.x, d.y, tx, ty), sp * Math.max(0.55, gi.speed) * dt);
       d.vx = Math.cos(a) * mv / dt; d.vy = Math.sin(a) * mv / dt;
-      this.world.move(d, d.vx * dt, d.vy * dt);
-      this.world.collide(d, 3);
+      this.chaserMove(d, dt, 3);
       if (Math.abs(d.vx) > 3) d.face = Math.sign(d.vx);
       d.anim = (d.anim + dt * (mv / dt > 80 ? 2.6 : 1.6)) % 1;
     }
@@ -1199,9 +1208,11 @@ export class Game {
       for (const h of this.hunters) {
         if (dist(q.x, q.y, h.x, h.y) < 90) { threat = true; threatX = h.x; threatY = h.y; }
       }
-      // a cat in the open is seen at once; a creeping one only makes them look up
-      if (threat && threatX === p.x && q.state === 'graze' && !p.sprinting && p.pounce <= 0 && pd > alertR * 0.45) {
-        q.sus = (q.sus || 0) + dt * (0.6 + pspd / T.trot);
+      // anything faster than a creep bolts them the moment it crosses their radius;
+      // a creeping cat in the outer part of it only makes them look up
+      const creeping = pspd < T.trot * 0.55;
+      if (threat && threatX === p.x && q.state === 'graze' && creeping && p.pounce <= 0 && pd > alertR * 0.6) {
+        q.sus = (q.sus || 0) + dt;
         q.vx = 0; q.vy = 0; q.wt = 0.5;
         if (q.sus < 0.7) threat = false;
       } else if (!threat) q.sus = Math.max(0, (q.sus || 0) - dt * 0.5);

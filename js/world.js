@@ -376,10 +376,19 @@ export class World {
     return null;
   }
 
-  collide(e, r) {
+  // vault: hunters and dogs scramble over logs, rocks and trunks instead of being stopped
+  // (returns true while they're climbing through one); big outcrops and landmarks still turn them.
+  collide(e, r, vault = false) {
+    let over = false;
     for (const p of this.propsNear(e.x, e.y, 40)) {
       if (!p.solid) continue;
       if (p.solidW && e.state === 'pounce') continue; // a pounce clears a fallen log
+      if (vault && p.kind !== 'landmark' && (p.solidW || p.solid <= 10)) {
+        const ax = p.solidW ? Math.max(p.x - p.solidW, Math.min(p.x + p.solidW, e.x)) : p.x;
+        const vx = e.x - ax, vy = (e.y - p.y) * 1.6, rr = p.solid + r;
+        if (vx * vx + vy * vy < rr * rr) over = true;
+        continue;
+      }
       const rr = p.solid + r;
       // logs are a capsule along their length, everything else a circle
       const ax = p.solidW ? Math.max(p.x - p.solidW, Math.min(p.x + p.solidW, e.x)) : p.x;
@@ -400,6 +409,7 @@ export class World {
         if (this.stepRule(ox, oy, e.x, e.y) === 1) { e.x = ox; e.y = oy; }
       }
     }
+    return over;
   }
 
   nearestWater(x, y, maxR) {
