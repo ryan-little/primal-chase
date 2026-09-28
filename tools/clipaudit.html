@@ -1,0 +1,113 @@
+<!doctype html><html><body style="margin:0;background:#000">
+<canvas id="viz" width="10" height="10"></canvas>
+<script type="module">
+import { buildArt } from '../js/art.js';
+
+function isAtlasImg(v) {
+  return v && typeof v === 'object' && v.atlas instanceof HTMLCanvasElement &&
+    typeof v.sx === 'number' && typeof v.sy === 'number' &&
+    typeof v.width === 'number' && typeof v.height === 'number';
+}
+function isCanvas(v) { return v instanceof HTMLCanvasElement; }
+
+function getImageData(v) {
+  if (isCanvas(v)) {
+    return v.getContext('2d').getImageData(0, 0, v.width, v.height);
+  }
+  if (isAtlasImg(v)) {
+    return v.atlas.getContext('2d').getImageData(v.sx, v.sy, v.width, v.height);
+  }
+  return null;
+}
+
+// Edge-opacity scan: cut = alpha threshold (crisp() already snaps alpha to 0/255, so >0 is fine)
+function scanEdges(img) {
+  const { data, width: w, height: h } = img;
+  const alphaAt = (x, y) => data[(y * w + x) * 4 + 3];
+  const edges = { top: 0, bottom: 0, left: 0, right: 0 };
+  for (let x = 0; x < w; x++) {
+    if (alphaAt(x, 0) > 0) edges.top++;
+    if (alphaAt(x, h - 1) > 0) edges.bottom++;
+  }
+  for (let y = 0; y < h; y++) {
+    if (alphaAt(0, y) > 0) edges.left++;
+    if (alphaAt(w - 1, y) > 0) edges.right++;
+  }
+  return edges;
+}
+
+function collect(root) {
+  const out = []; // { name, img, w, h }
+  const seen = new Set();
+  const skipKeys = new Set(['icons', 'atlasSheets', 'atlasCount']);
+  const walk = (o, path) => {
+    if (!o || typeof o !== 'object') return;
+    if (isCanvas(o) || isAtlasImg(o)) {
+      if (seen.has(o)) return;
+      seen.add(o);
+      out.push({ name: path, w: o.width, h: o.height, img: o });
+      return;
+    }
+    if (Array.isArray(o)) {
+      o.forEach((v, i) => walk(v, `${path}[${i}]`));
+      return;
+    }
+    for (const k of Object.keys(o)) {
+      if (skipKeys.has(k)) continue;
+      walk(o[k], path ? `${path}.${k}` : k);
+    }
+  };
+  walk(root, '');
+  return out;
+}
+
+const A = buildArt();
+const sprites = collect(A);
+const report = [];
+for (const s of sprites) {
+  const data = getImageData(s.img);
+  const edges = scanEdges(data);
+  const total = edges.top + edges.bottom + edges.left + edges.right;
+  if (total > 0) report.push({ name: s.name, w: s.w, h: s.h, edges, total });
+}
+report.sort((a, b) => b.total - a.total);
+
+// Render the worst offenders, scaled up, onto a visualization canvas.
+const interesting = report.filter((r) => r.edges.left || r.edges.right || r.edges.top);
+const worst = interesting.slice(0, 48);
+const S = 6;
+const cols = 8;
+const cellW = 140, cellH = 140;
+const vw = cols * cellW, vh = Math.ceil(worst.length / cols) * cellH;
+const viz = document.getElementById('viz');
+viz.width = vw; viz.height = vh;
+const vx = viz.getContext('2d');
+vx.imageSmoothingEnabled = false;
+vx.fillStyle = '#333'; vx.fillRect(0, 0, vw, vh);
+worst.forEach((s, i) => {
+  const cx = (i % cols) * cellW, cy = Math.floor(i / cols) * cellH;
+  const sp = sprites.find((x) => x.name === s.name);
+  vx.fillStyle = '#222'; vx.fillRect(cx, cy, cellW, cellH);
+  vx.drawImage(sp.img instanceof HTMLCanvasElement ? sp.img : sp.img.atlas,
+    sp.img instanceof HTMLCanvasElement ? 0 : sp.img.sx,
+    sp.img instanceof HTMLCanvasElement ? 0 : sp.img.sy,
+    sp.w, sp.h,
+    cx + 4, cy + 4, sp.w * S, sp.h * S);
+  // outline canvas bounds in red on edges that are clipped
+  vx.strokeStyle = 'red'; vx.lineWidth = 2;
+  const x0 = cx + 4, y0 = cy + 4, x1 = x0 + sp.w * S, y1 = y0 + sp.h * S;
+  vx.beginPath();
+  if (s.edges.top) { vx.moveTo(x0, y0); vx.lineTo(x1, y0); }
+  if (s.edges.bottom) { vx.moveTo(x0, y1); vx.lineTo(x1, y1); }
+  if (s.edges.left) { vx.moveTo(x0, y0); vx.lineTo(x0, y1); }
+  if (s.edges.right) { vx.moveTo(x1, y0); vx.lineTo(x1, y1); }
+  vx.stroke();
+  vx.fillStyle = '#fff'; vx.font = '10px monospace';
+  vx.fillText(s.name.slice(-22), cx + 2, cy + cellH - 14);
+  vx.fillText(`t${s.edges.top} b${s.edges.bottom} l${s.edges.left} r${s.edges.right}`, cx + 2, cy + cellH - 3);
+});
+
+window.__report = report;
+window.__spriteCount = sprites.length;
+window.done = true;
+</script></body></html>

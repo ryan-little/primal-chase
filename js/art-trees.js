@@ -477,9 +477,11 @@ function tallgrass() {
     for (let i = 0; i < 9; i++) blades.push([r.range(2, 14), r.range(10, 18), r.range(-2, 2), r() < 0.5 ? P.tall1 : r() < 0.5 ? P.tall2 : P.tall0, r() < 0.4]);
     const frames = [];
     for (let f = 0; f < 3; f++) {
-      const c = canvas(18, 22), x = c.getContext('2d');
+      // 4px margin each side so a leaning, swaying blade never touches the edge
+      const c = canvas(26, 22), x = c.getContext('2d');
       const sway = (f - 1) * 1.6;
-      for (const [bx, len, lean, col, head] of blades) {
+      for (let [bx, len, lean, col, head] of blades) {
+        bx += 4;
         const tx = bx + lean + sway * (len / 18), ty = 21 - len;
         line(x, [bx, 21, bx + (lean + sway) * 0.4, 21 - len * 0.5, tx, ty], 1, col);
         if (head) { px(x, tx, ty, P.tall3); px(x, tx, ty + 1, P.tall3); px(x, tx + (sway > 0 ? 1 : -1), ty + 1, P.tall2); }

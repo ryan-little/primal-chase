@@ -401,7 +401,7 @@ export class Renderer {
       } else if (it.k === 11) {
         const wind = Math.sin(t * 1.3 + o.x * 0.02 + o.ph) + Math.sin(t * 2.9 + o.y * 0.03) * 0.4;
         const fr = o.v[wind > 0.5 ? 2 : wind < -0.5 ? 0 : 1];
-        ctx.drawImage(fr, Q(o.x - 9 - cx), Q(o.y - 21 - cy));
+        ctx.drawImage(fr, Q(o.x - 13 - cx), Q(o.y - 21 - cy));
       } else if (it.k === 10) {
         const S = A.lion;
         const pick = (arr) => arr[Math.floor(o.anim * arr.length) % arr.length];
