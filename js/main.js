@@ -627,7 +627,7 @@ function handleEvents(g) {
       case 'throw': audio.play('throw', { vol: near(e) }); break;
       case 'windup': audio.play('windup', { vol: near(e) }); hint('spear'); break;
       case 'thunk': audio.play('thunk', { vol: near(e) }); renderer.burst('dust', e.x, e.y, 5); break;
-      case 'dodge': audio.play('dodge'); if (e.close) { slow = 0.35; } renderer.burst('spark', e.x, e.y - 6, 6, { col: '#ffffff' }); break;
+      case 'dodge': audio.play('dodge'); if (e.close && !window.__pc.steady) { slow = 0.35; } renderer.burst('spark', e.x, e.y - 6, 6, { col: '#ffffff' }); break;
       case 'sighted':
         audio.play('sighted', { vol: 1 });
         renderer.shake(2);
@@ -839,7 +839,7 @@ function frame(now) {
     if (cine) { cine.update(dt, inp, input.pad()); if (cine && cine.t > 31) drawLogo(logoT, $('cine-logo')); }
   } else if (state === 'playing') {
     if (inp.pause && !loreHold) pause(); // Esc on a held lore card only closes the card
-    if (hitstop > 0) { hitstop -= dt; dt = 0; }
+    if (hitstop > 0 && !window.__pc.steady) { hitstop -= dt; dt = 0; }
     slow = Math.min(1, slow + (game.over ? 0.12 : 1.4) * dt);
     if (game.over) slow = Math.min(slow, 0.3);
     if (loreHold) {

@@ -9,7 +9,7 @@ const SHOTS = [
   [9.2, 'band', 0.0, 'Then they came. Thin, and slow, and upright. They carry water. They carry fire.'],
   [14.2, 'heat', 0.5, 'They do not run you down. They walk you down, through the heat, while every other thing lies still.'],
   [19.6, 'night', 0.3, 'They follow your tracks into the dark. They sing to keep awake.'],
-  [24.2, 'chase', 3.0, 'Every runner tires. They are counting on it.'],
+  [24.2, 'chase', 1.5, 'Every runner tires. They are counting on it.'],
 ];
 const BLACK = 28.6; // footage fades out
 const CATCH = 29.2; // "They always catch you."

@@ -124,7 +124,9 @@ export class Renderer {
 
     // camera
     const lookX = p.vx * 0.45, lookY = p.vy * 0.35;
-    const tx = p.x + lookX, ty = p.y - 8 + lookY;
+    // `aim` (set only by tools/clips.mjs) swaps the target but keeps the same easing and sub-pixel path
+    const aim = this.aim && this.aim(game);
+    const tx = aim ? aim[0] : p.x + lookX, ty = aim ? aim[1] : p.y - 8 + lookY;
     if (!this.camInit) { this.cam.x = tx; this.cam.y = ty; this.camInit = true; }
     this.cam.x = lerp(this.cam.x, tx, Math.min(1, dt * 3.2));
     this.cam.y = lerp(this.cam.y, ty, Math.min(1, dt * 3.2));

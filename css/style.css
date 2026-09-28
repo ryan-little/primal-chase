@@ -561,7 +561,9 @@ h3 { font-family: var(--serif); font-size: 20px; }
   position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; object-position: 50% 50%;
   image-rendering: pixelated; image-rendering: crisp-edges;
 }
-#clips video { opacity: 0; transition: opacity 1.2s linear; z-index: 1; }
+/* the clips carry the game's own 3x pixels and sub-pixel camera; smooth scaling keeps that
+   glide even at the odd ratios cover-fit lands on, where nearest-neighbour would step it */
+#clips video { opacity: 0; transition: opacity 1.2s linear; z-index: 1; image-rendering: auto; }
 #clips video.top { z-index: 2; }
 #clips video.on { opacity: 1; }
 
