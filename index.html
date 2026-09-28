@@ -30,7 +30,7 @@
     </div>
     <canvas id="minimap" width="240" height="240" aria-label="Map of where you have been"></canvas>
     <div id="status-line"></div>
-    <div id="lore"><p class="kicker" id="lore-kicker">Secret found</p><h3 id="lore-title"></h3><p id="lore-text"></p><p id="lore-gift"></p></div>
+    <div id="lore" role="status" aria-live="polite"><p class="kicker" id="lore-kicker">Secret found</p><h3 id="lore-title"></h3><p id="lore-text"></p><p id="lore-gift"></p><p id="lore-more"></p></div>
     <div id="toast"></div>
     <div id="card"><h2 id="card-title"></h2><p id="card-sub"></p></div>
     <button id="pause-btn" aria-label="Pause">II</button>
@@ -80,7 +80,7 @@
         <div><h3>When they see you</h3><p>They run and throw spears. Watch for the <b class="danger">red line</b> and sidestep, or pounce: a pounce dodges spears and can knock a hunter flat.</p></div>
         <div><h3>Don't run a straight line</h3><p>They read a straight trail like a map. Hold one heading too long and they send runners ahead to meet you. Turn, double back, use the land.</p></div>
         <div><h3>High ground</h3><p>In the highlands you can <b>leap down</b> from ledges. Men have to find a way around, and your trail breaks at the drop. You can only climb back up where the slope is gentle.</p></div>
-        <div><h3>Secrets</h3><p>A golden <b>?</b> at the screen edge means a secret place is near: caves, springs, bones, a hunters' camp. Each gives something back. <b>TAB</b> opens your map.</p></div>
+        <div><h3>Secrets</h3><p>A golden <b>?</b> at the screen edge means a secret place is near: caves, springs, bones, a hunters' camp. Each gives something back, and its story goes in your Journal. <span class="desk"><b>TAB</b> opens your map.</span><span class="touchonly inl">Tap <b>MAP</b> to see your map.</span></p></div>
         <div><h3>Instincts</h3><p>Every dawn, and at some secrets, choose an instinct: a thicker coat, softer paws, a longer leap. They stack. Choose for the way you like to run.</p></div>
         <div><h3>The land and the sky</h3><p>Desert and ashland burn you; woodland hides you. Fog blinds everyone, dust erases tracks, lightning starts grass fires that men cannot cross. The coast is the edge of the world.</p></div>
         <div><h3>Other animals</h3><p>Zebras kick, warthogs charge, birds take flight. Lions guard their kills. Lead the band past a pride and let the lions deal with them.</p></div>
@@ -154,6 +154,7 @@
       <div class="menu">
         <button class="btn primary" id="btn-resume">Resume</button>
         <button class="btn" id="btn-pause-how">How to survive</button>
+        <button class="btn" id="btn-pause-journal">Journal</button>
         <button class="btn" id="btn-pause-settings">Settings</button>
         <button class="btn" id="btn-quit">Abandon the run</button>
       </div>

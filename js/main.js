@@ -213,11 +213,65 @@ function renderJournal() {
       : '<div class="jentry locked"><h3>???</h3><p>Somewhere out there.</p></div>';
   }).join('');
 }
-let loreT = 0;
+// Secret lore cards. When nothing is hunting nearby the world holds still until the player
+// moves on. With danger close only a short card shows (name and gift) and play never stops;
+// the full story comes back once things are quiet, and it is always in the Journal.
+let loreT = 0, loreHold = false, loreGrace = 0, loreRest = false, lorePending = null, loreQuietT = 0;
+function loreSafe(g) {
+  const p = g.player, th = g.threat();
+  if (g.over || th.mode === 'chase' || th.d < 480 || th.dogD < 360 || g.spears.length || g.croc) return false;
+  return !g.runners.some((r) => !r.leaving && dist(r.x, r.y, p.x, p.y) < 450);
+}
+function showLore(g, S, kicker) {
+  $('lore-kicker').textContent = kicker;
+  $('lore-title').textContent = S.name;
+  $('lore-text').textContent = S.lore;
+  $('lore-gift').textContent = S.gift;
+  loreHold = loreSafe(g);
+  loreGrace = 0.7;
+  loreRest = false;
+  lorePending = loreHold ? null : { S, t: 90 };
+  loreQuietT = 0;
+  loreT = loreHold ? 1 : 5;
+  $('lore-more').innerHTML = loreHold
+    ? (input.usingTouch ? 'Tap here or move to go on' : 'Press <kbd>Space</kbd> or move to go on') + ' · kept in your Journal'
+    : 'The full story when you are safe. Always in your Journal.';
+  $('lore').classList.toggle('hold', loreHold);
+  $('lore').classList.toggle('brief', !loreHold);
+  $('hud').classList.toggle('lorehold', loreHold);
+  $('lore').classList.add('on');
+  // a toast would land on top of the card; it waits until the card is gone
+  $('toast').classList.remove('on');
+}
+function hideLore(all = false) {
+  loreT = 0; loreHold = false;
+  if (all) lorePending = null;
+  $('lore').classList.remove('on', 'hold');
+  $('hud').classList.remove('lorehold');
+}
+function updateLore(inp, dt) {
+  if (loreT <= 0) {
+    // the story found mid-chase returns after a few quiet seconds
+    if (!lorePending || !game || game.over) return;
+    lorePending.t -= dt;
+    loreQuietT = loreSafe(game) ? loreQuietT + dt : 0;
+    if (lorePending.t <= 0) lorePending = null;
+    else if (loreQuietT > 2.5) showLore(game, lorePending.S, 'Remembered');
+    return;
+  }
+  if (!loreHold) { loreT -= dt; if (loreT <= 0) hideLore(); return; }
+  // held: wait for a fresh push of the stick or keys (a held key from walking in does not count)
+  loreGrace -= dt;
+  const moving = Math.hypot(inp.x, inp.y) > 0.3;
+  if (!moving) loreRest = true;
+  if (loreGrace <= 0 && ((moving && loreRest) || inp.pounce || inp.confirm || inp.edges.has('Escape'))) hideLore();
+}
+$('lore').addEventListener('click', () => { if (loreHold && loreGrace <= 0) hideLore(); });
 $('btn-settings').onclick = () => { click(); returnTo = 'title'; show('settings'); };
 $('btn-resume').onclick = () => { click(); resume(); };
 $('btn-pause-how').onclick = () => { click(); returnTo = 'pause'; show('how'); };
 $('btn-pause-settings').onclick = () => { click(); returnTo = 'pause'; show('settings'); };
+$('btn-pause-journal').onclick = () => { click(); returnTo = 'pause'; renderJournal(); show('journal'); };
 $('btn-quit').onclick = () => { click(); game.die('quit'); game.cause = 'You lay down in the grass and let them come.'; resume(); };
 $('btn-again').onclick = () => { click(); startRun(); };
 $('btn-title').onclick = () => { click(); daily = false; toTitle(); };
@@ -416,6 +470,7 @@ function toast(html, dur = 4.2) {
   toastT = dur;
 }
 function updateToasts(dt) {
+  if (loreT > 0) return; // everything waits behind a lore card
   if (toastT > 0) {
     toastT -= dt;
     if (toastT <= 0) $('toast').classList.remove('on');
@@ -489,7 +544,7 @@ function startRun(isDaily = daily) {
 }
 
 function finishRun() {
-  $('lore').classList.remove('on');
+  hideLore(true);
   $('toast').classList.remove('on');
   $('card').classList.remove('on');
   toastT = 0;
@@ -618,12 +673,7 @@ function handleEvents(g) {
         const S = SECRETS[e.secret];
         journal[e.secret] = (journal[e.secret] || 0) + 1;
         store.set('journal', journal);
-        $('lore-kicker').textContent = journal[e.secret] === 1 ? 'A new secret' : 'Secret place';
-        $('lore-title').textContent = S.name;
-        $('lore-text').textContent = S.lore;
-        $('lore-gift').textContent = S.gift;
-        $('lore').classList.add('on');
-        loreT = 8;
+        showLore(g, S, journal[e.secret] === 1 ? 'A new secret' : 'Secret place');
         audio.sting('secret');
         renderer.burst('spark', e.x, e.y - 30, 24, { col: '#ffe08a' });
         break;
@@ -804,7 +854,8 @@ function frame(now) {
     if (hitstop > 0) { hitstop -= dt; dt = 0; }
     slow = Math.min(1, slow + (game.over ? 0.12 : 1.4) * dt);
     if (game.over) slow = Math.min(slow, 0.3);
-    const sdt = dt * slow * (window.__pc?.timeScale || 1);
+    if (loreHold) { updateLore(inp, dt); if (loreHold) inp = { x: 0, y: 0, sprint: false, stalk: false, pounce: false, edges: inp.edges }; }
+    const sdt = loreHold ? 0 : dt * slow * (window.__pc?.timeScale || 1);
     let t0 = performance.now();
     game.update(sdt, inp);
     t0 = tick('update', t0);
@@ -819,7 +870,7 @@ function frame(now) {
     t0 = tick('hud', t0);
     minimap.update(game, dt);
     t0 = tick('minimap', t0);
-    if (loreT > 0) { loreT -= dt; if (loreT <= 0) $('lore').classList.remove('on'); }
+    if (!loreHold) updateLore(inp, dt);
     if (inp.edges.has('Tab') || inp.edges.has('KeyN')) openMap();
     updateToasts(dt);
     if (cardT > 0) { cardT -= dt; if (cardT <= 0) $('card').classList.remove('on'); }
