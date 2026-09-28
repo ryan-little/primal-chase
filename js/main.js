@@ -133,6 +133,8 @@ function bestLine() {
 // Behind the title: recorded clips of real play, not a live game (much lighter on phones).
 const clipLayer = new ClipLayer($('clips'));
 const reel = new TitleReel(clipLayer);
+// autoplay was refused: the first key or tap on the title gets the footage going
+for (const ev of ['keydown', 'pointerdown']) addEventListener(ev, () => { if (!cine) clipLayer.unblock(); }, true);
 function toTitle() {
   state = 'title';
   document.body.classList.remove('playing');

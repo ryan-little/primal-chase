@@ -50,6 +50,7 @@ export class ClipLayer {
   // Cut (with a dissolve of `fade` seconds) to clip `name`, starting `from` seconds in.
   play(name, from = 0, fade = this.fade) {
     if (!this.enabled) return;
+    this.want = [name, from, fade];
     const tok = ++this.token;
     const v = this.vids.find((x) => x !== this.cur);
     const old = this.cur;
@@ -73,9 +74,22 @@ export class ClipLayer {
         };
         // wait for a real frame so the dissolve never fades in a blank
         if (v.requestVideoFrameCallback) v.requestVideoFrameCallback(show); else show();
-      }).catch(() => { if (tok === this.token && !old) this.root.classList.remove('live'); });
+      }).catch((err) => {
+        if (tok !== this.token) return;
+        // the browser blocks autoplay until the player interacts (e.g. Firefox/Zen "block audio and video")
+        if (err && err.name === 'NotAllowedError') this.blocked = true;
+        if (!old) this.root.classList.remove('live');
+      });
     };
     if (v.readyState >= 1) seekAndGo(); else v.addEventListener('loadedmetadata', seekAndGo, { once: true });
+  }
+
+  // After the first key or tap, try again what autoplay refused.
+  unblock() {
+    if (!this.blocked) return false;
+    this.blocked = false;
+    if (this.want && !this.root.classList.contains('hidden')) this.play(...this.want);
+    return true;
   }
 
   show() { this.root.classList.remove('hidden'); }

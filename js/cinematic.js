@@ -56,13 +56,31 @@ export class Cinematic {
   // inp: this frame's input; pad: the connected gamepad, if any
   update(dt, inp, pad) {
     if (this.done) return;
-    this.t += dt;
-    const t = this.t;
     // skip: a real key (not pad-stick drift), a tap, or a fresh pad button
     const padDown = !!(pad && pad.buttons.some((b) => b.pressed));
     if (!padDown) this.padHeld = false;
     const key = [...inp.edges].some((k) => !k.startsWith('Nav'));
-    if (this.skipAsked || key || (padDown && !this.padHeld)) { this.finish(); return; }
+    const pressed = this.skipAsked || key || (padDown && !this.padHeld);
+    if (padDown) this.padHeld = true;
+    // Autoplay refused: hold at the start until the first press, which begins it instead of skipping.
+    if (this.layer.blocked || this.gated) {
+      if (!this.gated) {
+        this.gated = true;
+        const touch = window.matchMedia && matchMedia('(pointer: coarse)').matches;
+        this.skipEl.textContent = touch ? 'Tap to begin' : 'Press any key to begin';
+        this.skipEl.classList.add('on');
+      }
+      if (!pressed) return;
+      this.gated = false; this.skipAsked = false;
+      this.layer.blocked = false;
+      this.t = 0; this.shot = -1;
+      const touch = window.matchMedia && matchMedia('(pointer: coarse)').matches;
+      this.skipEl.textContent = touch ? 'Tap to skip' : 'Press any key to skip';
+      return;
+    }
+    if (pressed) { this.finish(); return; }
+    this.t += dt;
+    const t = this.t;
 
     let i = -1;
     for (let k = 0; k < SHOTS.length; k++) if (t >= SHOTS[k][0]) i = k;
