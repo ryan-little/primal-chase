@@ -309,8 +309,8 @@ function resume() {
 }
 
 // ---------------- feats ----------------
-// Prey kinds count across every run (the golden gazelle has its own feat).
-const PREY_KINDS = Object.keys(SPECIES).filter((k) => k !== 'golden');
+// Prey kinds count across every run (the golden gazelle has its own feat; wildebeest come only in stampedes).
+const PREY_KINDS = [...Object.keys(SPECIES).filter((k) => k !== 'golden'), 'gnu'];
 let kindsEaten = new Set(store.get('kinds', []));
 const secretsFound = () => SECRET_IDS.filter((id) => journal[id]).length;
 const km = (k) => settings.units === 'imperial' ? `${(k / 1.60934).toFixed(1)} mi` : `${k} km`;
@@ -419,7 +419,7 @@ const HINTS = {
   dogs: 'Dogs run faster than you and follow scent over rock. Pounce to drive them off.',
   croc: 'Something moves in the deep water. Get out!',
   hyenas: 'Hyenas are coming for your kill. Eat fast, or pounce to scatter them.',
-  stampede: 'Stampede! Get clear. The herd will trample your trail, and anyone in its way.',
+  stampede: 'Stampede! Get clear, or pounce one for a big meal. The herd tramples your trail, and anyone in its way.',
   mult: 'Danger survived raises your <b>multiplier</b> (top right). Getting hurt halves it.',
   cliff: 'A ledge. You can <b>leap down</b>; the band has to find a way around. Walk up where the slope is gentle, or <b>pounce</b> up a single ledge.',
   secretnear: 'A golden <b style="color:#e8c040">?</b> at the edge of the screen means a secret place is near. Go and look.',

@@ -468,6 +468,21 @@ export class Game {
         p.vx *= 0.2; p.vy *= 0.2;
       }
     }
+    // a wildebeest from the stampede: big, fast, and worth the risk
+    if (this.stampedeWarn <= 1.2) for (const g of this.gnus) {
+      if (g.gone || dist(g.x, g.y, p.x, p.y) >= 17 + 3 * (this.perks.pounce || 0)) continue;
+      g.gone = true;
+      this.stats.prey++;
+      this.stats.kinds = this.stats.kinds || {};
+      this.stats.kinds.gnu = (this.stats.kinds.gnu || 0) + 1;
+      const meat = 110 * this.perk('scavenger', 1.4);
+      this.carcasses.push({ id: UID++, x: g.x, y: g.y, meat, max: meat, kind: 'gnu', small: false, face: g.face, t: 0 });
+      this.addScore(260, 'WILDEBEEST', g.x, g.y - 18, '#ffe08a', 0.45);
+      this.emit('kill', { x: g.x, y: g.y });
+      p.pounce = Math.min(p.pounce, 0.04);
+      p.vx *= 0.2; p.vy *= 0.2;
+      break;
+    }
     for (const h of [...this.hunters, ...this.runners]) {
       if (h.down > 0) continue;
       if (dist(h.x, h.y - 4, p.x, p.y) < 14) {
@@ -854,10 +869,10 @@ export class Game {
         ok = this.overLand(sx - Math.cos(a) * 150, sy - Math.sin(a) * 150, p.x + Math.cos(a) * 200, p.y + Math.sin(a) * 200);
       }
       const perp = a + Math.PI / 2;
-      const n = ok ? this.r.int(11, 16) : 0;
+      const n = ok ? this.r.int(24, 34) : 0;
       if (!ok) this.stampedeT = 20;
       for (let i = 0; i < n; i++) {
-        const lat = this.r.range(-38, 38), back = this.r.range(0, 150);
+        const lat = this.r.range(-62, 62), back = this.r.range(0, 260);
         this.gnus.push({ id: UID++, x: sx + Math.cos(perp) * lat - Math.cos(a) * back, y: sy + Math.sin(perp) * lat - Math.sin(a) * back,
           a, sp: this.r.range(150, 175), anim: this.r(), face: Math.sign(Math.cos(a)) || 1, life: 0, hitCd: 0 });
       }
@@ -887,7 +902,7 @@ export class Game {
           this.emit('knockdown', { x: h.x, y: h.y });
         }
       }
-      if (g.life > 9) g.gone = true;
+      if (g.life > 11) g.gone = true;
     }
     this.gnus = this.gnus.filter((g) => !g.gone);
   }
