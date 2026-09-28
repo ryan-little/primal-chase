@@ -11,8 +11,8 @@
 // Framing: the renderer's camera eases toward a target with the same lerp it always uses; here
 // the target is the midpoint of the cat and the nearest action (hunter, prey, herd, fire), led
 // by the cat's velocity just enough to cancel the easing lag. The cat's input keeps that action
-// close and mostly level with it, so everything stays inside the frame's centre, which is
-// what the title's logo and menu and a portrait phone's centre crop leave visible.
+// close and mostly level with it, so everything stays inside the frame's center, which is
+// what the title's logo and menu and a portrait phone's center crop leave visible.
 import { chromium } from 'file:///C:/Users/ryan/Projects/Primal-Chase-Fable/node_modules/playwright/index.mjs';
 import fs from 'node:fs';
 import path from 'node:path';
@@ -107,7 +107,7 @@ window.nearFire = (r) => { const g = window.__pc.game; const h = near([...g.fire
 window.pair = (f, k) => { const q = window.cat(); let x = q.x, y = q.y - 10; if (f) { x += (f[0] - x) * k; y += (f[1] - y) * k; } return [x, y]; };
 // ...then smoothed with a critically damped spring, so a zig-zagging cat, a new nearest hunter
 // or a kill never jerks the frame, and led by the target's low-passed velocity (clamped, jumps
-// ignored) by exactly the lag of spring + renderer easing, so it stays centred
+// ignored) by exactly the lag of spring + renderer easing, so it stays centered
 window.smooth = (raw, w = 2.4) => {
   let s = null, last = 0;
   return (g) => {

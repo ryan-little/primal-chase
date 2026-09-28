@@ -1,4 +1,4 @@
-"""Checks the recorded clips (tools/clips.mjs): smooth motion and action kept in the safe centre.
+"""Checks the recorded clips (tools/clips.mjs): smooth motion and action kept in the safe center.
   python tools/clipcheck.py [name ...]              new clips vs the same scene with the game's own camera
   python tools/clipcheck.py old=path/to/old.mp4 ...  the same motion measurement on any other clip
 
@@ -8,7 +8,7 @@ A step-like clip shows runs of zeros broken by whole-pixel jumps (0,0,2,0,0,2); 
 shows a steady small number every refresh.
 Framing: from the per-frame log, the share of frames where the cat and the action it's framed
 with sit inside the safe box (what the title's logo and menu, the cinematic's line and a
-portrait phone's centre crop all leave clear).
+portrait phone's center crop all leave clear).
 """
 import json, subprocess, sys, os
 import numpy as np
