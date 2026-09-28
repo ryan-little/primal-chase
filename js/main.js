@@ -7,7 +7,8 @@ import { SPECIES } from './fauna.js';
 import { PERK_BY_ID } from './perks.js';
 import { SECRETS, SECRET_IDS } from './secrets.js';
 import { Minimap } from './minimap.js';
-import { makeBot } from './bot.js';
+import { ClipLayer, TitleReel } from './clips.js';
+import { Cinematic } from './cinematic.js';
 import { Renderer } from './render.js';
 import { Input } from './input.js';
 import { drawText } from './font.js';
@@ -28,7 +29,7 @@ const store = {
   set(k, v) { try { localStorage.setItem('pc2_' + k, JSON.stringify(v)); } catch { /* private mode */ } },
 };
 const usLocale = /-(US|LR|MM)$/i.test(navigator.language || '');
-const settings = Object.assign({ music: 0.8, sfx: 0.9, reduceShake: false, hints: true, units: usLocale ? 'imperial' : 'metric' }, store.get('settings', {}));
+const settings = Object.assign({ music: 0.8, sfx: 0.9, reduceShake: false, hints: true, units: usLocale ? 'imperial' : 'metric', cinematic: true }, store.get('settings', {}));
 // meters → display string; long for run totals, short for the tracker
 function fmtDist(m, long = false) {
   if (settings.units === 'imperial') return long ? `${(m / 1609.34).toFixed(2)} mi` : `${Math.round(m * 3.281)} ft`;
@@ -58,8 +59,8 @@ for (const [id, key] of [['v-health', 'health'], ['v-heat', 'heat'], ['v-water',
 }
 const silCache = new Map();
 let logoText = null;
-function drawLogo(t = 0) {
-  const c = $('logo'), x = c.getContext('2d');
+function drawLogo(t = 0, c = $('logo')) {
+  const x = c.getContext('2d');
   x.imageSmoothingEnabled = false;
   x.clearRect(0, 0, c.width, c.height);
   // sun
@@ -116,7 +117,6 @@ function drawLogo(t = 0) {
 // ---------------- screens ----------------
 let state = 'title';
 let game = null;
-let attract = null;
 let returnTo = 'title';
 const screens = ['title', 'how', 'settings', 'pause', 'death', 'feats', 'perk', 'mapview', 'journal'];
 function show(name) {
@@ -130,6 +130,9 @@ function bestLine() {
   const db = store.get('daily_' + todayKey(), 0);
   return best ? `Best: ${best.toLocaleString()} · ${runs.length} run${runs.length === 1 ? '' : 's'}${db ? ` · today's daily ${db.toLocaleString()}` : ''} · feats ${feats.size}/${FEATS.length}` : '';
 }
+// Behind the title: recorded clips of real play, not a live game (much lighter on phones).
+const clipLayer = new ClipLayer($('clips'));
+const reel = new TitleReel(clipLayer);
 function toTitle() {
   state = 'title';
   document.body.classList.remove('playing');
@@ -140,45 +143,17 @@ function toTitle() {
   audio.night = 0;
   audio.rain = 0;
   audio.setMuffle(false);
-  makeAttract();
+  reel.start();
   show('title');
 }
-// The title screen plays the real game: a bot runs, the band follows, the world turns.
-let attractBot = null;
-let attractT = 0;
-function makeAttract() {
-  if (attract) attract.world.destroy();
-  attract = new Game((Math.random() * 1e9) | 0, art, audio, { startClock: 0.2 + Math.random() * 0.4 });
-  attract.demo = true;
-  attractBot = makeBot(2);
-  attractT = 0;
-  // start the band closer so the chase is on screen soon
-  const p = attract.player, b = attract.band;
-  const a = Math.atan2(b.y - p.y, b.x - p.x);
-  attract.hunters.forEach((h, i) => { h.x = p.x + Math.cos(a) * 260 + i * 12; h.y = p.y + Math.sin(a) * 260 + i * 8; });
-  b.x = p.x + Math.cos(a) * 260; b.y = p.y + Math.sin(a) * 260;
-  b.idx = Math.max(0, attract.trail.length - 26);
-  renderer.camInit = false;
-}
-function stepAttract(dt) {
-  const g = attract;
-  attractT += dt;
-  const p = g.player;
-  // the demo cat cannot die, and never needs to stop for long
-  p.health = Math.max(p.health, 60);
-  p.water = Math.max(p.water, 45);
-  p.food = Math.max(p.food, 45);
-  if (g.perkChoices > 0) { const o = g.offerPerks(1); if (o.length) g.takePerk(o[0].id); else g.perkChoices = 0; }
-  g.update(dt, attractBot(g));
-  if (g.clock > 0.6) g.clock = 0.12; // the demo stays in daylight
-  for (const e of g.events) {
-    if (e.type === 'kill' || e.type === 'hurt') renderer.burst('blood', e.x, e.y, 10);
-    else if (e.type === 'step' && e.sprint && !e.water) renderer.burst('dust', e.x, e.y, 1);
-    else if (e.type === 'step' && e.water) renderer.burst('splash', e.x, e.y, 2);
-    else if (e.type === 'thunk' || e.type === 'knockdown') renderer.burst('dust', e.x, e.y, 5);
-  }
-  g.events.length = 0;
-  if (g.over || attractT > 110) makeAttract();
+// The opening, once per page load when the setting is on. It starts silent (browsers hold
+// audio until a gesture); the key or tap that skips it also wakes the title music.
+let cine = null;
+function startCinematic() {
+  state = 'cine';
+  show(null);
+  cine = new Cinematic(clipLayer, { root: $('cine'), line: $('cine-line'), logo: $('cine-logo'), skip: $('cine-skip') }, () => { cine = null; toTitle(); });
+  cine.start();
 }
 
 const click = () => audio.play('ui', { pitch: 81 });
@@ -300,6 +275,12 @@ function showUnits() {
 }
 for (const u of ['metric', 'imperial']) $('set-' + u).onclick = () => { click(); settings.units = u; applySettings(); showUnits(); };
 showUnits();
+function showCine() {
+  $('set-cine-on').classList.toggle('on', settings.cinematic);
+  $('set-cine-off').classList.toggle('on', !settings.cinematic);
+}
+for (const [id, v] of [['set-cine-on', true], ['set-cine-off', false]]) $(id).onclick = () => { click(); settings.cinematic = v; applySettings(); showCine(); };
+showCine();
 
 // first gesture unlocks audio
 const unlock = () => { audio.init(); };
@@ -512,7 +493,7 @@ function todayKey() {
 let daily = false;
 function startRun(isDaily = daily) {
   audio.init();
-  if (attract) { attract.world.destroy(); attract = null; }
+  reel.stop();
   if (game) game.world.destroy();
   audio.menu = false;
   daily = !!isDaily;
@@ -845,10 +826,11 @@ function frame(now) {
   menuNav(inp);
   if (state === 'title') {
     logoT += dt;
-    drawLogo(logoT);
+    if (Math.floor(logoT * 20) !== Math.floor((logoT - dt) * 20)) drawLogo(logoT); // the silhouettes animate at 10-20 fps; no need to repaint every frame
     if (inp.confirm && document.activeElement?.tagName !== 'BUTTON') startRun();
-    stepAttract(dt);
-    renderer.draw(attract, dt, false);
+  } else if (state === 'cine') {
+    logoT += dt;
+    if (cine) { cine.update(dt, inp, input.pad()); if (cine && cine.t > 31) drawLogo(logoT, $('cine-logo')); }
   } else if (state === 'playing') {
     if (inp.pause) pause();
     if (hitstop > 0) { hitstop -= dt; dt = 0; }
@@ -899,7 +881,7 @@ function frame(now) {
   requestAnimationFrame(frame);
 }
 
-toTitle();
+if (settings.cinematic) startCinematic(); else toTitle();
 requestAnimationFrame(frame);
 
 // debug hook for automated testing
