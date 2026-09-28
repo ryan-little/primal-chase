@@ -1,0 +1,39 @@
+<!doctype html><html><body style="margin:0;background:#c2a64a;font:10px monospace">
+<canvas id="c" width="1600" height="2400" style="image-rendering:pixelated"></canvas>
+<script type="module">
+// Every tree/prop variant at 2x (red dot = anchor), plus a clipping check:
+// an opaque pixel on the top/left/right canvas edge means the drawing ran off the canvas.
+import { buildArt } from '../js/art.js';
+const A = buildArt();
+const c = document.getElementById('c'), x = c.getContext('2d');
+x.imageSmoothingEnabled = false;
+const S = 2; let X = 70, Y = 4, rowH = 0;
+const clipped = [];
+function edge(img) {
+  const t = document.createElement('canvas'); t.width = img.width; t.height = img.height;
+  const g = t.getContext('2d'); g.drawImage(img, 0, 0);
+  const d = g.getImageData(0, 0, img.width, img.height).data, w = img.width, h = img.height, s = [];
+  const a = (i, j) => d[(j * w + i) * 4 + 3] > 0;
+  for (let i = 0; i < w; i++) if (a(i, 0)) { s.push('top'); break; }
+  for (let j = 0; j < h; j++) if (a(0, j)) { s.push('left'); break; }
+  for (let j = 0; j < h; j++) if (a(w - 1, j)) { s.push('right'); break; }
+  return s;
+}
+const only = new URLSearchParams(location.search).get('k');
+for (const k in A.props) {
+  if (only && !only.split(',').includes(k)) continue;
+  X = 70; Y += rowH + 8; rowH = 0;
+  x.fillStyle = '#000'; x.fillText(k + ' ' + A.props[k].length, 2, Y + 10);
+  A.props[k].forEach((p, i) => {
+    const e = edge(p.img);
+    if (e.length) clipped.push(k + '[' + i + ']:' + e.join('/') + ' ' + p.img.width + 'x' + p.img.height);
+    if (X + p.img.width * S > 1600) { X = 70; Y += rowH + 6; rowH = 0; }
+    x.drawImage(p.img, X, Y, p.img.width * S, p.img.height * S);
+    x.fillStyle = 'rgba(255,0,0,.8)'; x.fillRect(X + p.ox * S - 1, Y + p.oy * S - 1, 3, 3);
+    if (e.length) { x.strokeStyle = '#f00'; x.strokeRect(X, Y, p.img.width * S, p.img.height * S); }
+    X += p.img.width * S + 6; rowH = Math.max(rowH, p.img.height * S);
+  });
+}
+window.clipped = clipped; window.stats = { sheets: A.atlasSheets, count: A.atlasCount, height: Y + rowH };
+window.done = true;
+</script></body></html>
