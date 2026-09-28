@@ -577,7 +577,7 @@ function handleEvents(g) {
         break;
       }
       case 'secondwind': toast('<b>Second wind!</b> Stamina restored.', 2.5); audio.play('roar', { vol: 0.6 }); renderer.burst('spark', e.x, e.y - 8, 10, { col: '#ffe08a' }); break;
-      case 'golden': hint('golden', true); break;
+      case 'golden': hint('golden', true); audio.play('golden'); break;
       case 'pride': hint('pride', true); audio.play('roar', { vol: near(e, 700) * 0.6 }); break;
       case 'roar': audio.play('roar', { vol: near(e, 600) }); renderer.shake(2); break;
       case 'weather': {
@@ -588,7 +588,8 @@ function handleEvents(g) {
       case 'strike': audio.play('thunder', { vol: 1 }); audio.play('snap', { vol: 0.6 }); renderer.shake(5); renderer.burst('spark', e.x, e.y, 16, { col: '#fffbe0' }); break;
       case 'wildfire': hint('fire', true); break;
       case 'mult': multBumpT = 0.25; audio.play('ui', { pitch: 84 + Math.min(12, Math.round(e.v * 3)) }); hint('mult'); break;
-      case 'multloss': break;
+      case 'multloss': audio.play('multloss'); break;
+      case 'drop': audio.play('drop', { vol: 0.8 }); break;
       case 'linewarn': toast('They are reading your line. <b>Change direction</b> or they will run ahead to meet you.', 4.5); audio.play('shout', { vol: 0.5 }); break;
       case 'intercept': toast('<b style="color:#ff4a2e">Interceptors ahead!</b> They cut across your line.', 3.5); audio.play('sighted'); renderer.shake(2); break;
       case 'ambush': toast('<b style="color:#ff4a2e">Ambush!</b> They were waiting where your line led.', 3.5); audio.play('sighted'); renderer.shake(3); break;
@@ -685,6 +686,7 @@ function updateMusic(g, dt) {
   audio.night = g.isNight ? 1 : 0;
   audio.rain = g.weather.rain;
   audio.dust = g.weather.dust;
+  audio.heat = g.weather.heat; audio.fog = g.weather.fog; audio.storm = g.weather.kind === 'storm' ? g.weather.rain : 0;
   audio.fire = g.fireAlarm ? 1 : 0;
   g._bioT = (g._bioT || 0) - dt;
   if (g._bioT <= 0) {
