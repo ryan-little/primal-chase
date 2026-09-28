@@ -11,24 +11,24 @@ export { G, B, GROUND_INFO, CHUNK, BIOME_NAMES };
 
 // Which props grow where: [ground, biome or -1 for any, [[threshold, kind], ...]] (first match wins)
 const FLORA = [
-  [G.GRASS, B.HIGHLAND, [[0.015, 'acacia'], [0.04, 'aloe'], [0.05, 'candelabra'], [0.08, 'heath'], [0.09, 'boulder']]],
+  [G.GRASS, B.HIGHLAND, [[0.015, 'acacia'], [0.04, 'aloe'], [0.05, 'candelabra'], [0.08, 'heath'], [0.1, 'boulder'], [0.104, 'kopje']]],
   [G.GRASS, B.COAST, [[0.03, 'palm'], [0.05, 'bush']]],
-  [G.GRASS, B.WOODLAND, [[0.04, 'marula'], [0.07, 'mopane'], [0.1, 'bush']]],
-  [G.GRASS, -1, [[0.02, 'acacia'], [0.032, 'umbrella'], [0.05, 'bush'], [0.056, 'termite'], [0.059, 'bones'], [0.0615, 'baobab']]],
-  [G.LUSH, B.WOODLAND, [[0.06, 'mopane'], [0.09, 'marula'], [0.1, 'fig'], [0.15, 'bush'], [0.17, 'fever'], [0.22, 'fern']]],
+  [G.GRASS, B.WOODLAND, [[0.04, 'marula'], [0.07, 'mopane'], [0.1, 'bush'], [0.112, 'log'], [0.12, 'boulder']]],
+  [G.GRASS, -1, [[0.02, 'acacia'], [0.032, 'umbrella'], [0.05, 'bush'], [0.056, 'termite'], [0.059, 'bones'], [0.0615, 'baobab'], [0.066, 'boulder'], [0.069, 'log']]],
+  [G.LUSH, B.WOODLAND, [[0.06, 'mopane'], [0.09, 'marula'], [0.1, 'fig'], [0.15, 'bush'], [0.17, 'fever'], [0.22, 'fern'], [0.235, 'log']]],
   [G.LUSH, B.DESERT, [[0.22, 'palm'], [0.3, 'bush']]],
   [G.LUSH, B.WETLAND, [[0.05, 'fever'], [0.07, 'fig'], [0.12, 'papyrus']]],
   [G.LUSH, B.COAST, [[0.05, 'palm'], [0.08, 'mangrove']]],
   [G.LUSH, -1, [[0.06, 'acacia'], [0.08, 'marula'], [0.13, 'bush'], [0.135, 'baobab']]],
-  [G.LEAF, -1, [[0.08, 'mopane'], [0.11, 'marula'], [0.15, 'fever'], [0.17, 'log'], [0.24, 'fern'], [0.28, 'bush']]],
+  [G.LEAF, -1, [[0.08, 'mopane'], [0.11, 'marula'], [0.15, 'fever'], [0.185, 'log'], [0.24, 'fern'], [0.28, 'bush']]],
   [G.TALL, B.WOODLAND, [[0.04, 'fever'], [0.06, 'marula']]],
   [G.TALL, B.WETLAND, [[0.06, 'papyrus'], [0.08, 'deadtree']]],
   [G.TALL, -1, [[0.015, 'acacia'], [0.022, 'umbrella']]],
   [G.SAND, B.DESERT, [[0.01, 'deadtree'], [0.02, 'quiver'], [0.035, 'euphorbia'], [0.07, 'sage'], [0.075, 'bones'], [0.085, 'boulder']]],
-  [G.SAND, -1, [[0.05, 'thornbush'], [0.065, 'bones'], [0.07, 'baobab'], [0.09, 'sage']]],
+  [G.SAND, -1, [[0.05, 'thornbush'], [0.065, 'bones'], [0.07, 'baobab'], [0.09, 'sage'], [0.1, 'boulder']]],
   [G.DUNE, -1, [[0.006, 'deadtree'], [0.02, 'sage'], [0.024, 'bones']]],
   [G.SALT, -1, [[0.008, 'bones']]],
-  [G.CLAY, -1, [[0.02, 'bones'], [0.045, 'termite'], [0.06, 'thornbush']]],
+  [G.CLAY, -1, [[0.02, 'bones'], [0.045, 'termite'], [0.06, 'thornbush'], [0.072, 'boulder']]],
   [G.ROCK, B.HIGHLAND, [[0.07, 'boulder'], [0.12, 'kopje'], [0.15, 'aloe'], [0.17, 'quiver'], [0.19, 'candelabra'], [0.23, 'heath']]],
   [G.ROCK, -1, [[0.1, 'boulder'], [0.15, 'kopje'], [0.16, 'acacia']]],
   [G.MUD, B.WETLAND, [[0.3, 'papyrus'], [0.4, 'reeds'], [0.42, 'mangrove']]],
@@ -249,7 +249,7 @@ export class World {
         if (def.solid && this.typeAt(jx, jy + 4) === G.CLIFF) continue;
         props.push({
           kind, def, x: jx, y: jy,
-          shade: def.shade || 0, solid: def.solid || 0, flat: !!def.flat,
+          shade: def.shade || 0, solid: def.solid || 0, solidW: def.solidW || 0, flat: !!def.flat,
           flip: hash2(wx, wy, this.seed + 39) < 0.5,
         });
       }
@@ -379,8 +379,11 @@ export class World {
   collide(e, r) {
     for (const p of this.propsNear(e.x, e.y, 40)) {
       if (!p.solid) continue;
+      if (p.solidW && e.state === 'pounce') continue; // a pounce clears a fallen log
       const rr = p.solid + r;
-      const dx = e.x - p.x, dy = (e.y - p.y) * 1.6;
+      // logs are a capsule along their length, everything else a circle
+      const ax = p.solidW ? Math.max(p.x - p.solidW, Math.min(p.x + p.solidW, e.x)) : p.x;
+      const dx = e.x - ax, dy = (e.y - p.y) * 1.6;
       const d2 = dx * dx + dy * dy;
       if (d2 < rr * rr && d2 > 0.0001) {
         const d = Math.sqrt(d2);

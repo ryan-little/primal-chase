@@ -3,6 +3,7 @@
 import { buildArt, canvas } from './art.js';
 import { Audio } from './audio.js';
 import { Game, BITS } from './game.js';
+import { SPECIES } from './fauna.js';
 import { PERK_BY_ID } from './perks.js';
 import { SECRETS, SECRET_IDS } from './secrets.js';
 import { Minimap } from './minimap.js';
@@ -269,45 +270,68 @@ function resume() {
 }
 
 // ---------------- feats ----------------
+// Prey kinds count across every run (the golden gazelle has its own feat).
+const PREY_KINDS = Object.keys(SPECIES).filter((k) => k !== 'golden');
+let kindsEaten = new Set(store.get('kinds', []));
+const secretsFound = () => SECRET_IDS.filter((id) => journal[id]).length;
+const km = (k) => settings.units === 'imperial' ? `${(k / 1.60934).toFixed(1)} mi` : `${k} km`;
+// [id, icon, name, description (string or function), test]
 const FEATS = [
   ['day2', '☀', 'First dawn', 'Live to see Day 2', (g) => g.day >= 2],
   ['day4', '☀', 'Long legs', 'Live to see Day 4', (g) => g.day >= 4],
   ['day7', '★', 'Legend of the plain', 'Live to see Day 7', (g) => g.day >= 7],
+  ['day10', '☀', 'Undying', 'Live to see Day 10', (g) => g.day >= 10],
+  ['untouched', '◇', 'Not a scratch', 'See Day 3 without taking a hit', (g) => g.day >= 3 && !(g.stats.hurts > 0)],
   ['hunt', '✦', 'Apex', 'Catch a gazelle', (g) => (g.stats.gazelles || 0) > 0],
   ['glutton', '✦', 'Well fed', 'Catch 8 prey in one run', (g) => g.stats.prey >= 8],
+  ['feast', '✦', 'Feast', 'Catch 15 prey in one run', (g) => g.stats.prey >= 15],
+  ['menu', '❀', 'Taste of everything', () => `Catch every kind of prey, over all your runs (${PREY_KINDS.filter((k) => kindsEaten.has(k)).length}/${PREY_KINDS.length})`, () => PREY_KINDS.every((k) => kindsEaten.has(k))],
+  ['golden', '★', 'Gold on the plain', 'Catch a golden gazelle', (g) => (g.stats.golden || 0) > 0],
   ['takedown', '✕', 'Turn the hunt', 'Knock a hunter flat', (g) => g.stats.knockdowns > 0],
+  ['hunterbane', '✖', 'Hunter of hunters', 'Knock 5 hunters flat in one run', (g) => g.stats.knockdowns >= 5],
+  ['packbreaker', '⚔', 'Pack breaker', 'Drive off 5 dogs in one run', (g) => g.stats.dogs >= 5],
+  ['scatter', '❧', 'Mine, not yours', 'Scatter hyenas from your kill', (g) => (g.stats.scatters || 0) > 0],
   ['whisker', '≈', 'By a whisker', 'Dodge 5 spears in one run', (g) => g.stats.dodges >= 5],
   ['ghost', '~', 'Ghost', 'Break your trail 10 times in one run', (g) => g.stats.breaks >= 10],
   ['escape', '»', 'Slipped away', 'Escape after being seen', (g) => (g.stats.escapes || 0) > 0],
   ['wild', '×', 'Wild', 'Reach a x3 multiplier', (g) => g.mult >= 3],
+  ['wilder', '✕', 'Untamed', 'Reach the x4 multiplier', (g) => g.mult >= 4],
   ['trample', '▲', 'Let the herd do it', 'Get a hunter trampled', (g) => (g.stats.trampled || 0) > 0],
-  ['marathon', '∞', 'Marathon', 'Run 5 km (3.1 mi) in one run', (g) => g.stats.dist >= 5000],
+  ['pride', '♛', 'Let the lions do it', 'Lead the band into a pride', (g) => (g.stats.lionTakedowns || 0) > 0],
+  ['marathon', '∞', 'Marathon', () => `Run ${km(5)} in one run`, (g) => g.stats.dist >= 5000],
+  ['ultra', '∞', 'Ultramarathon', () => `Run ${km(10)} in one run`, (g) => g.stats.dist >= 10000],
+  ['climber', '▲', 'Ledge leaper', 'Pounce up 5 ledges in one run', (g) => (g.stats.climbs || 0) >= 5],
+  ['explorer', '◉', 'Wide wanderer', 'Visit 5 different lands in one run', (g) => (g.biomesSeen ? g.biomesSeen.size : 0) >= 5],
   ['secret', '?', 'Curious cat', 'Find a secret place', (g) => (g.stats.secrets || 0) > 0],
-  ['secrets3', '\u2736', 'Keeper of old places', 'Find 3 secrets in one run', (g) => (g.stats.secrets || 0) >= 3],
-  ['golden', '\u2605', 'Gold on the plain', 'Catch a golden gazelle', (g) => (g.stats.golden || 0) > 0],
-  ['pride', '\u265b', 'Let the lions do it', 'Lead the band into a pride', (g) => (g.stats.lionTakedowns || 0) > 0],
-  ['instincts', '\u2726', 'Old instincts', 'Hold 5 instincts at once', (g) => Object.values(g.perks).reduce((a, b) => a + b, 0) >= 5],
-  ['explorer', '\u25c9', 'Wide wanderer', 'Visit 5 different lands in one run', (g) => (g.biomesSeen ? g.biomesSeen.size : 0) >= 5],
+  ['secrets3', '✶', 'Keeper of old places', 'Find 3 secrets in one run', (g) => (g.stats.secrets || 0) >= 3],
+  ['allsecrets', '✷', 'Keeper of every secret', () => `Find every secret place, over all your runs (${secretsFound()}/${SECRET_IDS.length})`, () => secretsFound() >= SECRET_IDS.length],
+  ['instincts', '✦', 'Old instincts', 'Hold 5 instincts at once', (g) => Object.values(g.perks).reduce((a, b) => a + b, 0) >= 5],
 ];
+const featText = (d) => (typeof d === 'function' ? d() : d);
 let feats = new Set(store.get('feats', []));
 let runFeats = new Set();
+let featQ = []; // feat notices wait for a clear moment in play, so no screen or hint can hide them
 let featT = 0;
 function checkFeats(g, dt) {
   featT -= dt;
   if (featT > 0) return;
   featT = 0.5;
+  if (g.stats.kinds) {
+    const n = kindsEaten.size;
+    for (const k of Object.keys(g.stats.kinds)) kindsEaten.add(k);
+    if (kindsEaten.size !== n) store.set('kinds', [...kindsEaten]);
+  }
   for (const [id, icon, name, , test] of FEATS) {
     if (feats.has(id) || !test(g)) continue;
     feats.add(id);
     runFeats.add(name);
     store.set('feats', [...feats]);
-    toast(`<b>Feat:</b> ${icon} ${name}`, 3);
-    audio.play('trail');
+    featQ.push(`<b>Feat:</b> ${icon} ${name}`);
   }
 }
 function renderFeats() {
   $('feats-count').textContent = `${feats.size} of ${FEATS.length} earned`;
-  $('feats-list').innerHTML = FEATS.map(([id, icon, name, desc]) => `<div class="feat ${feats.has(id) ? 'got' : ''}"><i>${feats.has(id) ? icon : '·'}</i><div><b>${name}</b><span>${desc}</span></div></div>`).join('');
+  $('feats-list').innerHTML = FEATS.map(([id, icon, name, desc]) => `<div class="feat ${feats.has(id) ? 'got' : ''}"><i>${feats.has(id) ? icon : '·'}</i><div><b>${name}</b><span>${featText(desc)}</span></div></div>`).join('');
 }
 
 // ---------------- perks ----------------
@@ -383,7 +407,10 @@ function hint(key, force = false) {
   }
   hintQ.push(key);
 }
+let toastLock = 0, laterQ = [];
 function toast(html, dur = 4.2) {
+  // a feat notice holds the slot; anything else waits its turn
+  if (toastLock > 0) { laterQ.push([html, dur]); return; }
   $('toast').innerHTML = html;
   $('toast').classList.add('on');
   toastT = dur;
@@ -394,6 +421,14 @@ function updateToasts(dt) {
     if (toastT <= 0) $('toast').classList.remove('on');
     return;
   }
+  toastLock = 0;
+  if (featQ.length && state === 'playing') {
+    toast(featQ.shift(), 3);
+    toastLock = 3;
+    audio.play('trail');
+    return;
+  }
+  if (laterQ.length) { toast(...laterQ.shift()); return; }
   if (hintQ.length && cardT <= 0.3) {
     const k = hintQ.shift();
     seenHints.add(k);
@@ -429,6 +464,7 @@ function startRun(isDaily = daily) {
   const seed = daily ? [...todayKey()].reduce((h, c) => (h * 31 + c.charCodeAt(0)) | 0, 7) >>> 0 : (Math.random() * 1e9) | 0;
   game = new Game(seed, art, audio);
   runFeats = new Set();
+  featQ = []; laterQ = []; toastLock = 0;
   minimap.reset();
   renderer.camInit = false;
   renderer.parts = [];

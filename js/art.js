@@ -584,7 +584,7 @@ function boulder(seed, big) {
     if (r() < 0.6) line(x, [sx + r.range(-3, 3), sy - ry * 0.6, sx + r.range(-2, 4), sy + ry * 0.3], 1, P.rock0);
   }
   crisp(c);
-  return { img: c, ox: w / 2, oy: h - 3, shadow: { rx: big ? 30 : 11, ry: big ? 8 : 3.5, dy: 0 }, shade: big ? 26 : 0, solid: big ? 20 : 8 };
+  return { img: c, ox: w / 2, oy: h - 3, shadow: { rx: big ? 30 : 11, ry: big ? 8 : 3.5, dy: 0 }, shade: big ? 26 : 0, solid: big ? 25 : 10 };
 }
 
 function termite(seed) {

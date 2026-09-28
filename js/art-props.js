@@ -34,7 +34,7 @@ function log(seed) {
   ell(x, 15, -4, 1.2, 1.4, P.bark0);
   line(x, [-6, -4, -8, -9], 1.2, P.bark1);
   px(x, 0, -2, P.lush2); px(x, 6, -3, P.lush2);
-  return fit(c, { shadow: { rx: 16, ry: 3, dy: 0 }, solid: 6 });
+  return fit(c, { shadow: { rx: 16, ry: 3, dy: 0 }, solid: 4, solidW: 13 });
 }
 
 function papyrus(seed, o) {

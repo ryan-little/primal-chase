@@ -274,6 +274,7 @@ export class Game {
     else if (p.pounce <= 0) p.climbX = 0;
     if (res === 'climb' && !(p.hop > 0)) {
       p.hop = 0.34;
+      this.stats.climbs = (this.stats.climbs || 0) + 1;
       this.emit('climb', { x: p.x, y: p.y });
     }
     if (res === 'drop' && !(p.hop > 0)) {
@@ -473,6 +474,7 @@ export class Game {
       if (h.state === 'flee') continue;
       if (dist(h.x, h.y, p.x, p.y) < 15) {
         for (const o of this.hyenas) if (o.target === h.target) o.state = 'flee';
+        this.stats.scatters = (this.stats.scatters || 0) + 1;
         this.addScore(80, 'HYENAS SCATTER', h.x, h.y - 20, '#ff9a6a', 0.2);
         this.emit('dogdown', { x: h.x, y: h.y });
       }
@@ -492,6 +494,7 @@ export class Game {
   hurtPlayer(dmg, fromX, fromY, kind) {
     const p = this.player;
     if (p.iframes > 0 || this.over) return false;
+    this.stats.hurts = (this.stats.hurts || 0) + 1;
     dmg *= this.perk('hide', 0.85);
     p.health -= dmg;
     p.hurt = 0.4;
