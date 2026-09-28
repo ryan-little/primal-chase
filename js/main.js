@@ -287,7 +287,11 @@ const unlock = () => { audio.init(); };
 window.addEventListener('pointerdown', unlock);
 window.addEventListener('keydown', unlock);
 window.addEventListener('resize', () => renderer.resize());
-document.addEventListener('visibilitychange', () => { if (document.hidden && state === 'playing') pause(); });
+document.addEventListener('visibilitychange', () => {
+  if (document.hidden && state === 'playing') pause();
+  // silence everything already scheduled while away; the sequencer skips ahead on return
+  if (audio.ctx) { if (document.hidden) audio.ctx.suspend(); else audio.ctx.resume(); }
+});
 
 function pause() {
   if (state !== 'playing') return;

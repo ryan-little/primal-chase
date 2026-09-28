@@ -755,6 +755,12 @@ export class Audio {
     const want = I >= 3 ? 108 + this.sec.dt : base + this.sec.dt + (I >= 2 ? 6 : 0);
     this.tempo += (want - this.tempo) * Math.min(1, dt * 0.8);
     const spb = 60 / this.tempo / 4;
+    // fell behind (tab was in the background): skip the missed steps, never play them all at once
+    if (this.nextTime < ctx.currentTime - 0.05) {
+      const n = Math.ceil((ctx.currentTime - this.nextTime) / spb);
+      this.nextTime += n * spb;
+      this.step += n;
+    }
     while (this.nextTime < ctx.currentTime + 0.15) {
       this.schedule(this.step, this.nextTime, spb);
       this.nextTime += spb;
