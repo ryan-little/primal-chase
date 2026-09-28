@@ -105,75 +105,91 @@ function lionSpec() {
 // ---- birds, drawn by hand ----
 function ostrich() {
   const run = [], idle = [];
+  // drawn 2px lower on a 46px canvas so the bobbing head never touches the top edge
+  const plume = (x, y) => { ell(x, 8, y, 3.6, 3.2, P.ost1); ell(x, 6, y + 2, 2.2, 1.8, P.ost1); }; // ragged, not a disc
+  const wingEdge = (x, y) => line(x, [11, y, 17, y + 0.5], 1, P.ost1); // white wing fringe breaks up the black mass
   for (let i = 0; i < 8; i++) {
-    const c = canvas(30, 44), x = c.getContext('2d');
+    const c = canvas(30, 46), x = c.getContext('2d');
+    x.translate(0, 2);
     const t = (i / 8) * TAU, s = Math.sin(t);
     const bob = -Math.abs(Math.cos(t)) * 1.5;
-    // legs
+    // legs: far leg darker so the stride reads
+    line(x, [15, 26 + bob, 15 - s * 5, 34, 16 - s * 7, 41], 1.6, P.flam0);
     line(x, [14, 26 + bob, 14 + s * 5, 34, 13 + s * 7, 41], 1.6, P.ost2);
-    line(x, [15, 26 + bob, 15 - s * 5, 34, 16 - s * 7, 41], 1.6, P.ost2);
     ell(x, 14, 22 + bob, 9, 6, P.ost0);
-    ell(x, 8, 20 + bob, 4, 4, P.ost1); // tail plume
+    plume(x, 20 + bob);
     ell(x, 15, 24 + bob, 6, 3, P.ost0);
+    wingEdge(x, 25 + bob);
     line(x, [19, 20 + bob, 22, 12 + bob, 23, 5 + bob], 1.6, P.ost2);
     ell(x, 24, 4.5 + bob, 2, 1.6, P.ost2);
     px(x, 26, 5 + bob, P.ink); px(x, 24, 4 + bob, P.ink);
     run.push(crisp(c));
   }
   for (let i = 0; i < 2; i++) {
-    const c = canvas(30, 44), x = c.getContext('2d');
-    line(x, [13, 27, 13, 41], 1.6, P.ost2); line(x, [16, 27, 16, 41], 1.6, P.ost2);
-    ell(x, 14, 23, 9, 6, P.ost0); ell(x, 8, 21, 4, 4, P.ost1);
+    const c = canvas(30, 46), x = c.getContext('2d');
+    x.translate(0, 2);
+    line(x, [16, 27, 16, 41], 1.6, P.flam0); line(x, [13, 27, 13, 41], 1.6, P.ost2);
+    ell(x, 14, 23, 9, 6, P.ost0); plume(x, 21);
+    wingEdge(x, 26);
     const hy = i ? 12 : 4;
     line(x, [19, 21, 21, 14, 22 + i * 2, hy + 1], 1.6, P.ost2);
     ell(x, 23 + i * 2, hy, 2, 1.6, P.ost2); px(x, 23 + i * 2, hy - 0.5, P.ink);
     idle.push(crisp(c));
   }
-  return { ox: 14, oy: 41, run, idle, walk: run };
+  return { ox: 14, oy: 43, run, idle, walk: run };
 }
 
 function fowl() {
   const run = [], fly = [], idle = [];
+  // guineafowl speckle: staggered, not a keypad grid
+  const dots = [[4, 6], [7, 5.5], [5.5, 8], [8.5, 7.5], [3.5, 9], [7, 9.5]];
   const body = (x, oy) => {
     ell(x, 7, 7 + oy, 4.6, 3.4, P.fowl0);
-    for (let k = 0; k < 6; k++) px(x, 4 + (k % 3) * 2, 6 + oy + Math.floor(k / 3) * 2, P.fowl2);
+    for (const [a, b] of dots) px(x, a, b + oy, P.fowl2);
     ell(x, 11, 4.5 + oy, 1.6, 1.6, P.fowl1);
     px(x, 11, 3 + oy, P.danger); px(x, 12.5, 5 + oy, P.bone0);
   };
+  // 18x19 canvas drawn at (+2, +3): room for the flapping wing and the feet's outline
+  const mk = () => { const c = canvas(18, 19), x = c.getContext('2d'); x.translate(2, 3); return [c, x]; };
   for (let i = 0; i < 4; i++) {
-    const c = canvas(16, 14), x = c.getContext('2d');
+    const [c, x] = mk();
     const s = Math.sin((i / 4) * TAU);
     line(x, [7, 10, 7 + s * 2, 13], 1, P.bone0); line(x, [8, 10, 8 - s * 2, 13], 1, P.bone0);
     body(x, 0);
     run.push(crisp(c));
   }
   for (let i = 0; i < 4; i++) {
-    const c = canvas(16, 14), x = c.getContext('2d');
+    const [c, x] = mk();
     const f = Math.sin((i / 4) * TAU) * 3;
     body(x, 0);
     line(x, [5, 6, 2, 3 - f, 0, 5 - f], 1.4, P.fowl1);
     fly.push(crisp(c));
   }
-  { const c = canvas(16, 14), x = c.getContext('2d'); line(x, [7, 10, 7, 13], 1, P.bone0); line(x, [8, 10, 8, 13], 1, P.bone0); body(x, 0); idle.push(crisp(c)); }
-  return { ox: 8, oy: 13, run, fly, idle, walk: run };
+  { const [c, x] = mk(); line(x, [7, 10, 7, 13], 1, P.bone0); line(x, [8, 10, 8, 13], 1, P.bone0); body(x, 0); idle.push(crisp(c)); }
+  return { ox: 10, oy: 16, run, fly, idle, walk: run };
 }
 
 function flamingo() {
   const idle = [], run = [], fly = [];
+  // legB === null: the classic one-legged stance, other leg tucked up under the body
   const draw = (x, legA, legB, headDown, wing) => {
-    line(x, [11, 14, 11 + legA, 22, 11 + legA * 1.4, 31], 1, P.flam0);
-    line(x, [12, 14, 12 + legB, 22, 12 + legB * 1.4, 31], 1, P.flam0);
+    if (legB === null) line(x, [12.5, 14, 15.5, 18, 12.5, 19.5], 1, P.flam0);
+    else line(x, [12.5, 14, 12.5 + legB, 22, 12.5 + legB * 1.4, 31], 1, P.flam0);
+    line(x, [9.5, 14, 9.5 + legA, 22, 9.5 + legA * 1.4, 31], 1, P.flam0); // half-pixel x keeps each leg 1px wide
     ell(x, 11, 12, 6, 3.6, P.flam1);
     ell(x, 9, 12, 3, 2, P.flam0);
+    px(x, 5.5, 12.5, P.ink); // black flight feathers at the wing tip
     if (headDown) line(x, [15, 11, 18, 6, 19, 16], 1.3, P.flam1);
     else line(x, [15, 11, 17, 5, 16, 1, 18, 1], 1.3, P.flam1);
     px(x, 19, headDown ? 17 : 1, P.ink);
-    if (wing) line(x, [8, 11, 2, 11 - wing, -1, 12 - wing], 2, P.flam0);
+    if (wing) { line(x, [8, 11, 2, 11 - wing, -1, 12 - wing], 2, P.flam0); px(x, -1, 12 - wing, P.ink); }
   };
-  for (let i = 0; i < 2; i++) { const c = canvas(24, 34), x = c.getContext('2d'); draw(x, 0, 0.5, i === 1, 0); idle.push(crisp(c)); }
-  for (let i = 0; i < 6; i++) { const c = canvas(24, 34), x = c.getContext('2d'); const s = Math.sin((i / 6) * TAU) * 3; draw(x, s, -s, false, 0); run.push(crisp(c)); }
-  for (let i = 0; i < 4; i++) { const c = canvas(24, 34), x = c.getContext('2d'); draw(x, -5, -5, false, Math.sin((i / 4) * TAU) * 4); fly.push(crisp(c)); }
-  return { ox: 11, oy: 31, idle, run, fly, walk: run };
+  // 29x36 canvas drawn at (+4, +2): the raised head and the flight wingtip keep their outline
+  const mk = () => { const c = canvas(29, 36), x = c.getContext('2d'); x.translate(4, 2); return [c, x]; };
+  for (let i = 0; i < 2; i++) { const [c, x] = mk(); draw(x, 0, i === 1 ? 1.2 : null, i === 1, 0); idle.push(crisp(c)); }
+  for (let i = 0; i < 6; i++) { const [c, x] = mk(); const s = Math.sin((i / 6) * TAU) * 3; draw(x, s, -s, false, 0); run.push(crisp(c)); }
+  for (let i = 0; i < 4; i++) { const [c, x] = mk(); draw(x, -5, -5, false, Math.sin((i / 4) * TAU) * 4); fly.push(crisp(c)); }
+  return { ox: 15, oy: 33, idle, run, fly, walk: run };
 }
 
 function smallCarcass() {

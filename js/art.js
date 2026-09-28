@@ -236,11 +236,18 @@ export function drawQuad(ctx, S, gait, p) {
 // ---------- species ----------
 function catSpec() {
   const C = { body: P.fur2, belly: P.fur4, far: P.fur1 };
+  // rosettes on a jittered two-row grid so they read as an even coat, not a clump on the spine
   const ros = [];
   const r = rng(77);
-  for (let i = 0; i < 17; i++) ros.push([r.range(-0.95, 0.85), r.range(-0.6, 0.5), r() < 0.45]);
+  for (let row = 0; row < 2; row++) {
+    for (let i = 0; i < 5 - row; i++) {
+      const u = -0.84 + i * 0.37 + row * 0.19 + r.range(-0.03, 0.03);
+      ros.push([u, row ? 0.2 : -0.42, row === 0 || i % 2 === 0]);
+    }
+  }
+  ros.push([-1.02, 0.35, false], [0.86, 0.3, false]);
   return {
-    w: 66, h: 30, ground: 27, body: { x: 30, y: 17.5, rx: 11.5, ry: 4.1 },
+    w: 66, h: 30, ground: 27, body: { x: 30, y: 17.5, rx: 11.5, ry: 4.1 }, pad: [0, 0, 0, 2],
     hipF: 8, hipR: 8, l1: 4.4, l2: 4.6, legW: 2.7, neckW: 3.8, tailW: 2, neckX: 3.2, neckY: -0.8, headR: 3.6,
     col: C,
     back: P.fur1,
@@ -334,7 +341,12 @@ function hyenaSpec() {
     hipF: 6, hipR: 5, l1: 4.8, l2: 4.4, legW: 2, neckW: 3.4, tailW: 1.5, neckX: 2.5, neckY: 0.4, headR: 3.2,
     col: C, back: P.mud2,
     spots(ctx, bx, by, rx, ry) {
-      for (const [u, v] of sp) px(ctx, bx + u * rx, by + v * ry * 1.3, P.mud0);
+      // two-pixel blotches instead of lone pixels: reads as spots at 1x rather than noise
+      sp.forEach(([u, v], i) => {
+        const x = bx + u * rx, y = by + v * ry * 1.3;
+        px(ctx, x, y, P.mud0);
+        if (i % 2) px(ctx, x + 1, y, P.mud0); else px(ctx, x, y + 1, P.mud0);
+      });
     },
     tail(ctx, [x, y], w) {
       line(ctx, [x, y + 1, x - 3, y + 5 + w * 0.5], 1.5, P.mud0);
@@ -376,7 +388,7 @@ function gnuSpec() {
 }
 
 function croc(frame) {
-  const c = canvas(34, 14), x = c.getContext('2d');
+  const c = canvas(35, 14), x = c.getContext('2d'); // extra column on the right keeps the jaw tips' outline
   if (frame === 0) {
     ell(x, 17, 8, 12, 2.2, P.leaf0);
     ell(x, 27, 8, 4, 1.8, P.leaf0);
@@ -385,10 +397,12 @@ function croc(frame) {
     px(x, 30, 7.5, P.ink); px(x, 30, 8.5, P.ink);
   } else {
     ell(x, 12, 9, 7, 2.6, P.leaf0);
-    tri(x, [14, 8], [33, 1], [31, 5], P.leaf1);
-    tri(x, [14, 9], [33, 13], [31, 10], P.leaf1);
+    tri(x, [14, 7.5], [32.5, 1.6], [31, 5.2], P.leaf1);
+    tri(x, [14, 9.5], [32.5, 12.2], [31, 10], P.leaf1);
+    line(x, [15, 7.2, 31.5, 2.2], 1, P.leaf2); // lit ridge on the upper jaw
     for (let i = 0; i < 5; i++) { px(x, 18 + i * 3, 4.2 + i * -0.4 + 1.5, P.bone); px(x, 18 + i * 3, 11 - i * -0.2 - 1, P.bone); }
     tri(x, [15, 8.5], [31, 5.5], [31, 10.5], P.blood);
+    ell(x, 13, 7, 1.2, 1, P.leaf1);
     px(x, 11, 6.5, P.hint);
   }
   crisp(c);
@@ -399,15 +413,21 @@ function croc(frame) {
 // pose: walk | run | windup | throw | search | down ; p phase
 function drawHuman(ctx, pose, p, night, variant) {
   const W = 28, G = 38;
-  const skin = variant % 2 ? P.skin3 : P.skin2, skinD = P.skin1;
+  // far limbs one full step darker than near ones so the scissor of the legs reads at 1x
+  const skin = variant % 2 ? P.skin3 : P.skin2, skinD = variant % 2 ? P.skin1 : P.skin0;
+  const hl = variant % 2 ? P.sand0 : P.skin3;
   const s = Math.sin(p * TAU);
   if (pose === 'down') {
+    line(ctx, [2, G - 1, 30, G - 1.5], 1.2, P.bark2); // dropped spear
+    tri(ctx, [33.5, G - 1.7], [30, G - 0.4], [30, G - 2.8], P.rock3);
     line(ctx, [4, G - 2, 12, G - 3], 3, skinD);
-    line(ctx, [12, G - 3, 22, G - 4], 4, skin);
-    ell(ctx, 13, G - 3, 3, 1.8, P.hide1);
+    line(ctx, [12, G - 3, 22, G - 4], 4.4, skin);
+    tri(ctx, [15, G - 6.4], [22, G - 6.6], [21, G - 3.5], P.ochre); // cape
+    ell(ctx, 13, G - 3, 3.2, 2, P.hide1);
+    line(ctx, [19, G - 3, 23, G - 1], 2, skin); // arm
     ell(ctx, 24, G - 5, 3.2, 3, skin);
     ell(ctx, 24.5, G - 7, 3, 1.6, P.ink);
-    line(ctx, [2, G - 1, 26, G - 1], 1, P.bark1);
+    line(ctx, [21.6, G - 6.2, 27, G - 6.6], 1, P.ochre);
     return;
   }
   let lean = 0, bob = 0, legA = 0, armA = 0, armB = 0, crouch = 0;
@@ -419,32 +439,37 @@ function drawHuman(ctx, pose, p, night, variant) {
   const hx = 13, hy = G - 13 + bob + crouch;
   const shx = hx + lean, shy = hy - 9 + crouch * 0.3;
   // far leg & arm
-  leg(ctx, hx, hy, -legA, -legA + Math.max(0, legA) * 0.2 - 0.25 - crouch * 0.12, 6.5, 6.6 - crouch * 0.3, 2.2, skinD, skinD);
+  leg(ctx, hx, hy, -legA, -legA + Math.max(0, legA) * 0.2 - 0.25 - crouch * 0.12, 6.5, 6.6 - crouch * 0.3, 2.9, skinD, skinD);
   const armFar = armB || -armA;
-  leg(ctx, shx, shy + 0.5, armFar * 0.8, armFar * 0.8 - 0.6, 4.5, 4.2, 1.8, skinD, null);
-  // torso
-  line(ctx, [hx, hy, shx, shy], 4.8, skin);
+  leg(ctx, shx, shy + 0.5, armFar * 0.8, armFar * 0.8 - 0.6, 4.5, 4.2, 2.1, skinD, null);
+  // torso: broader chest tapering to the waist
+  line(ctx, [hx, hy, shx, shy], 4.6, skin);
+  line(ctx, [hx + lean * 0.35, hy - 4, shx, shy + 1], 6.2, skin);
+  line(ctx, [hx + 1.7 + lean * 0.3, hy - 3.5, shx + 2, shy + 1.8], 1, hl); // lit front edge
   line(ctx, [hx - 0.3, hy - 3.5, shx - 0.2, shy + 2.5], 1, P.paint); // body paint stripe
-  // hide cape over the shoulders: makes the silhouette read against grass
-  tri(ctx, [shx - 3.2, shy - 0.5], [shx + 2.4, shy - 0.5], [shx - 2.2 - lean * 0.4, shy + 7], P.ochre);
-  line(ctx, [shx - 3, shy - 0.3, shx + 2.2, shy - 0.3], 1.2, P.clay2);
-  ell(ctx, hx + 0.3, hy + 0.5, 3, 2.1, P.hide1);
-  line(ctx, [hx + 1.2, hy + 1.5, hx + 2.4, hy + 5], 1.4, P.hide0);
+  // hide cape over the shoulders and down the back: makes the silhouette read against grass
+  tri(ctx, [shx - 3.6, shy - 0.8], [shx + 2.6, shy - 0.8], [shx - 2.8 - lean * 0.4, shy + 8.5], P.ochre);
+  line(ctx, [shx - 3.2, shy - 0.4, shx + 2.4, shy - 0.4], 1.4, P.clay2);
+  // hide wrap at the waist with a hanging flap
+  ell(ctx, hx + 0.3, hy + 0.3, 3.4, 2.5, P.hide0);
+  line(ctx, [hx + 1.2, hy + 1.5, hx + 2.4, hy + 5.5], 1.6, P.hide0);
+  line(ctx, [hx - 2.8, hy - 1.4, hx + 3.2, hy - 1.6], 1, P.paint); // pale cord belt splits torso from legs
   // near leg
-  leg(ctx, hx, hy, legA, legA - Math.max(0, -legA) * 0.3 + 0.1 - crouch * 0.1, 6.5, 6.6 - crouch * 0.3, 2.4, skin, skinD);
+  leg(ctx, hx, hy, legA, legA - Math.max(0, -legA) * 0.3 + 0.1 - crouch * 0.1, 6.5, 6.6 - crouch * 0.3, 3.1, skin, skinD);
   // head
   const hdx = shx + 0.8, hdy = shy - 3.6;
-  ell(ctx, hdx, hdy, 2.9, 3.1, skin);
-  ell(ctx, hdx - 0.8, hdy - 1.6, 3, 1.9, P.ink); // hair
-  px(ctx, hdx - 3, hdy - 0.2, P.ink);
-  line(ctx, [hdx - 2.6, hdy - 1.2, hdx + 2.4, hdy - 1.4], 1, P.ochre);
+  ell(ctx, hdx, hdy, 3, 3.2, skin);
+  ell(ctx, hdx - 0.9, hdy - 1.6, 3.2, 2, P.ink); // hair
+  ell(ctx, hdx - 3, hdy + 0.2, 1.3, 1.5, P.ink); // hair knot at the nape
+  line(ctx, [hdx - 2.8, hdy - 1.2, hdx + 2.6, hdy - 1.4], 1, P.ochre); // headband
   px(ctx, hdx + 1.6, hdy - 0.3, P.ink); // eye
+  px(ctx, hdx + 3, hdy + 0.2, skin); // nose
   px(ctx, hdx + 1.2, hdy + 0.8, P.ochre); // face paint
   px(ctx, hdx + 0.2, hdy + 0.8, P.ochre);
   if (pose === 'search') px(ctx, hdx + 2.5, hdy + 0.5, P.skin3);
   // near arm + spear
   const aA = armA;
-  const [ex, ey] = leg(ctx, shx, shy + 0.5, aA * 0.7, aA * 0.7 - (pose === 'windup' ? 0.4 : -0.6), 4.5, 4.2, 2, skin, null);
+  const [ex, ey] = leg(ctx, shx, shy + 0.5, aA * 0.7, aA * 0.7 - (pose === 'windup' ? 0.4 : -0.6), 4.5, 4.2, 2.4, skin, null);
   if (pose !== 'throw') {
     let sa; // spear angle (radians, 0 = pointing right)
     if (pose === 'windup') sa = -0.08;
@@ -455,10 +480,11 @@ function drawHuman(ctx, pose, p, night, variant) {
     const cx = Math.cos(sa), cy = Math.sin(sa);
     const bx = ex - cx * len * 0.45, by = ey - cy * len * 0.45;
     const tx = ex + cx * len * 0.55, ty = ey + cy * len * 0.55;
-    line(ctx, [bx, by, tx, ty], 1, P.bark2);
-    tri(ctx, [tx + cx * 3.2, ty + cy * 3.2], [tx - cy * 1.3, ty + cx * 1.3], [tx + cy * 1.3, ty - cx * 1.3], P.rock3);
+    line(ctx, [bx, by, tx, ty], 1.2, P.bark2);
+    tri(ctx, [tx + cx * 3.6, ty + cy * 3.6], [tx - cy * 1.4, ty + cx * 1.4], [tx + cy * 1.4, ty - cx * 1.4], P.rock3);
+    px(ctx, tx + cx * 1.6 - cy * 0.4, ty + cy * 1.6 + cx * 0.4, P.rock4); // glint on the stone point
   }
-  ell(ctx, ex, ey, 1.1, 1.1, skin);
+  ell(ctx, ex, ey, 1.3, 1.3, skin);
   if (night && pose !== 'windup') {
     // torch in far hand
     line(ctx, [shx - 3, shy + 5, shx - 4, shy - 4], 1.4, P.bark1);
@@ -580,7 +606,7 @@ function termite(seed) {
 
 function bones(seed) {
   const r = rng(seed);
-  const c = canvas(20, 12), x = c.getContext('2d');
+  const c = canvas(22, 12), x = c.getContext('2d'); // 22 wide so the skull's outline isn't cut on the right
   for (let i = 0; i < 4; i++) line(x, [4 + i * 3, 3, 5 + i * 3 + r.range(-1, 1), 9], 1, P.bone);
   line(x, [3, 6, 15, 6], 1.2, P.bone0);
   ell(x, 16, 6, 2.6, 2.2, P.bone);
@@ -652,35 +678,47 @@ export function makeIcons() {
 }
 
 // ---------- build everything ----------
+// Frames are drawn on a generous canvas, then every frame of the species is cropped to the union
+// of their opaque pixels plus a 1px clear margin, so horns, tails and paws are never cut off at the
+// canvas edge. Anchors follow the crop. spec.pad = [left, top, right, bottom] opts out of the crop
+// and just adds a fixed margin (used by the cat, whose frame origin other screens rely on).
 export function quadFrames(spec, gaits) {
-  const o = { w: spec.w, h: spec.h, ox: spec.body.x, oy: spec.ground };
+  const fixed = spec.pad;
+  const [pl, pt, pr, pb] = fixed || [12, 12, 12, 12];
+  const w = spec.w + pl + pr, h = spec.h + pt + pb;
+  const raw = {};
   for (const [g, n] of gaits) {
-    o[g] = [];
+    raw[g] = [];
     for (let i = 0; i < n; i++) {
-      const c = canvas(spec.w, spec.h);
-      drawQuad(c.getContext('2d'), spec, g, i / n);
-      o[g].push(crisp(c));
+      const c = canvas(w, h), x = c.getContext('2d');
+      x.translate(pl, pt);
+      drawQuad(x, spec, g, i / n);
+      raw[g].push(crisp(c));
     }
   }
+  if (fixed) return { w, h, ox: spec.body.x + pl, oy: spec.ground + pt, ...raw };
+  let x0 = w, y0 = h, x1 = -1, y1 = -1;
+  for (const g in raw) for (const c of raw[g]) {
+    const d = c.getContext('2d').getImageData(0, 0, w, h).data;
+    for (let y = 0; y < h; y++) for (let x = 0; x < w; x++) {
+      if (!d[(y * w + x) * 4 + 3]) continue;
+      if (x < x0) x0 = x; if (x > x1) x1 = x; if (y < y0) y0 = y; if (y > y1) y1 = y;
+    }
+  }
+  x0--; y0--; x1++; y1++;
+  const cw = x1 - x0 + 1, ch = y1 - y0 + 1;
+  const o = { w: cw, h: ch, ox: spec.body.x + pl - x0, oy: spec.ground + pt - y0 };
+  for (const g in raw) o[g] = raw[g].map((c) => {
+    const k = canvas(cw, ch);
+    k.getContext('2d').drawImage(c, -x0, -y0);
+    return k;
+  });
   return o;
 }
 
 export function buildArt() {
   const A = {};
-  const frames = (spec, gait, n) => {
-    const out = [];
-    for (let i = 0; i < n; i++) {
-      const c = canvas(spec.w, spec.h);
-      drawQuad(c.getContext('2d'), spec, gait, i / n);
-      out.push(crisp(c));
-    }
-    return out;
-  };
-  const quad = (spec, gaits) => {
-    const o = { w: spec.w, h: spec.h, ox: spec.body.x, oy: spec.ground };
-    for (const [g, n] of gaits) o[g] = frames(spec, g, n);
-    return o;
-  };
+  const quad = quadFrames;
   A.cat = quad(catSpec(), [['idle', 8], ['walk', 8], ['run', 8], ['lie', 8], ['drink', 4], ['pounce', 1], ['dead', 1]]);
   A.gazelle = quad(gazelleSpec(), [['idle', 4], ['walk', 8], ['run', 8], ['drink', 2], ['dead', 1]]);
   A.dog = quad(dogSpec(), [['idle', 4], ['run', 8], ['walk', 8], ['dead', 1], ['pounce', 1]]);
@@ -688,10 +726,11 @@ export function buildArt() {
   A.gnu = quad(gnuSpec(), [['run', 8]]);
   A.croc = [croc(0), croc(1)];
 
-  // hare: tiny hop cycle
-  A.hare = { ox: 8, oy: 12, idle: [], run: [], dead: [] };
+  // hare: tiny hop cycle (drawn 4px lower on an 18px canvas so the ear tips aren't cut)
+  A.hare = { ox: 8, oy: 16, idle: [], run: [], dead: [] };
   for (let i = 0; i < 6; i++) {
-    const c = canvas(18, 14), x = c.getContext('2d');
+    const c = canvas(18, 18), x = c.getContext('2d');
+    x.translate(0, 4);
     const t = i / 6, hop = Math.sin(t * Math.PI) * 3;
     ell(x, 8, 9 - hop, 4.2 + Math.sin(t * Math.PI) * 1.2, 2.8, P.hare1);
     ell(x, 12, 7 - hop, 2.2, 2, P.hare1);
@@ -702,33 +741,43 @@ export function buildArt() {
     A.hare.run.push(crisp(c));
   }
   {
-    const c = canvas(18, 14), x = c.getContext('2d');
+    const c = canvas(18, 18), x = c.getContext('2d');
+    x.translate(0, 4);
+    line(x, [11.8, 5.5, 12.4, 1], 1.1, P.hare0); // far ear, darker so the pair separates
     ell(x, 8, 9.5, 4, 2.8, P.hare1);
+    ell(x, 7.5, 11, 2.8, 1, P.hare2); // belly
     ell(x, 11.5, 7, 2.1, 2, P.hare1);
     line(x, [11, 5.5, 10.5, 0.8], 1.3, P.hare2);
-    line(x, [11.8, 5.5, 12.4, 1], 1.1, P.hare1);
     ell(x, 4.5, 9, 1.3, 1.3, P.bone);
     px(x, 12.5, 6.5, P.ink);
     A.hare.idle.push(crisp(c));
-    const d = canvas(18, 14), y = d.getContext('2d');
-    ell(y, 9, 10, 4.5, 2, P.hare1);
-    px(y, 12, 9, P.blood1);
+    // dead: on its side, ears flat behind the head, hind leg out
+    const d = canvas(18, 18), y = d.getContext('2d');
+    y.translate(0, 4);
+    line(y, [13, 9.5, 15.5, 8.5], 1.2, P.hare2);
+    line(y, [5, 11, 2.5, 11.5], 1.2, P.hare0);
+    ell(y, 8.5, 10, 4.5, 2, P.hare1);
+    ell(y, 8, 11, 3, 0.8, P.hare2);
+    ell(y, 13, 10, 1.8, 1.5, P.hare1);
+    px(y, 14, 9.5, P.ink);
+    px(y, 11, 9, P.blood1);
     A.hare.dead.push(crisp(d));
   }
 
   // hunters (two skin variants), day and night (torch) versions
   A.hunter = [];
   for (let v = 0; v < 2; v++) {
-    const set = { ox: 19, oy: 38 };
+    // 10px left margin so the windup spear butt isn't cut; extra rows below for the planted search spear
+    const set = { ox: 23, oy: 38 };
     for (const night of [false, true]) {
       const k = night ? 'n' : 'd';
       set[k] = {};
       for (const [pose, n] of [['walk', 8], ['run', 8], ['search', 4], ['windup', 1], ['throw', 1], ['down', 1]]) {
         set[k][pose] = [];
         for (let i = 0; i < n; i++) {
-          const c = canvas(50, 42);
+          const c = canvas(54, 46);
           const hx = c.getContext('2d');
-          hx.translate(6, 0);
+          hx.translate(10, 0);
           drawHuman(hx, pose, i / n, night, v);
           set[k][pose].push(crisp(c));
         }
@@ -749,7 +798,7 @@ export function buildArt() {
   A.vulture = [0, 1, 2, 3].map((i) => {
     const c = canvas(22, 12), x = c.getContext('2d');
     const f = Math.sin((i / 4) * TAU) * 2.5;
-    line(x, [1, 6 + f, 6, 4, 11, 5, 16, 4, 21, 6 + f], 1.8, P.inkSoft);
+    line(x, [2, 6 + f, 6, 4, 11, 5, 16, 4, 20, 6 + f], 1.8, P.inkSoft); // wingtips kept 1px off the edge
     ell(x, 11, 6, 2, 3, P.inkSoft);
     px(x, 11, 3, P.bone0);
     return crisp(c, { outline: false });
