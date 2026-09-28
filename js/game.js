@@ -1211,6 +1211,7 @@ export class Game {
           q.state = 'flee';
           q.fleeT = 0;
           q.startle = 0.14; // a flinch before the bolt
+          this.emit('startle', { x: q.x, y: q.y, fly: !!S.fly });
           if (S.fly) q.air = 2.2 + this.r() * 0.8;
           if (q.herd) for (const o of this.prey) if (o.herd === q.herd && o.state !== 'flee') {
             o.state = 'flee'; o.fleeT = 0; o.tx = threatX; o.ty = threatY;
