@@ -241,7 +241,10 @@ export class World {
         }
         if (!kind || !A[kind]) continue;
         const arr = A[kind];
-        const def = arr[Math.floor(hash2(wx, wy, this.seed + 29) * arr.length)];
+        // variant from position; rare ones (dead, dry) keep only ~1 in 4 of their picks
+        const vi = Math.floor(hash2(wx, wy, this.seed + 29) * arr.length);
+        let def = arr[vi];
+        if (def.rare && hash2(wx, wy, this.seed + 49) > 0.25) def = arr[(vi + 1) % arr.length];
         // big props shouldn't sit on a cliff face
         if (def.solid && this.typeAt(jx, jy + 4) === G.CLIFF) continue;
         props.push({
