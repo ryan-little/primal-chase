@@ -836,11 +836,15 @@ function frame(now) {
     logoT += dt;
     if (cine) { cine.update(dt, inp, input.pad()); if (cine && cine.t > 31) drawLogo(logoT, $('cine-logo')); }
   } else if (state === 'playing') {
-    if (inp.pause) pause();
+    if (inp.pause && !loreHold) pause(); // Esc on a held lore card only closes the card
     if (hitstop > 0) { hitstop -= dt; dt = 0; }
     slow = Math.min(1, slow + (game.over ? 0.12 : 1.4) * dt);
     if (game.over) slow = Math.min(slow, 0.3);
-    if (loreHold) { updateLore(inp, dt); if (loreHold) inp = { x: 0, y: 0, sprint: false, stalk: false, pounce: false, edges: inp.edges }; }
+    if (loreHold) {
+      updateLore(inp, dt);
+      // held: the world waits. Just closed: the key that closed it doesn't also pounce
+      inp = loreHold ? { x: 0, y: 0, sprint: false, stalk: false, pounce: false, edges: inp.edges } : { ...inp, pounce: false, confirm: false, pause: false };
+    }
     const sdt = loreHold ? 0 : dt * slow * (window.__pc?.timeScale || 1);
     let t0 = performance.now();
     game.update(sdt, inp);
