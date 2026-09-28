@@ -12,6 +12,21 @@
 <body>
   <canvas id="game" aria-label="Primal Chase game view"></canvas>
 
+  <!-- title and opening backdrop: recorded gameplay clips over a still poster -->
+  <div id="clips" class="hidden" aria-hidden="true">
+    <img id="clips-poster" src="assets/clips/poster.png" alt="">
+    <video muted playsinline preload="none" disablepictureinpicture></video>
+    <video muted playsinline preload="none" disablepictureinpicture></video>
+  </div>
+
+  <!-- opening cinematic (Settings: Opening cinematic) -->
+  <div id="cine" class="hidden">
+    <div class="bar top"></div><div class="bar bottom"></div>
+    <canvas id="cine-logo" width="340" height="112" aria-label="Primal Chase"></canvas>
+    <p id="cine-line"></p>
+    <span id="cine-skip"></span>
+  </div>
+
   <!-- in-game HUD -->
   <div id="hud" class="hidden">
     <div id="hud-top">
@@ -63,7 +78,6 @@
       <p class="best" id="best-title"></p>
       <p class="keys desk">WASD / arrows · SHIFT sprint · C stalk · SPACE pounce · TAB map · P pause</p>
       </div>
-      <span class="demo-tag">Live demo</span>
     </div>
   </div>
 
@@ -141,6 +155,7 @@
       <label class="row check"><input type="checkbox" id="set-shake"> Reduce screen shake</label>
       <label class="row check"><input type="checkbox" id="set-hints"> Show survival hints</label>
       <div class="row">Distances <span class="seg"><button type="button" class="btn" id="set-metric">Metric</button><button type="button" class="btn" id="set-imperial">Imperial</button></span></div>
+      <div class="row">Opening cinematic <span class="seg"><button type="button" class="btn" id="set-cine-on">On</button><button type="button" class="btn" id="set-cine-off">Off</button></span></div>
       <button class="btn primary" data-back>Back</button>
     </div>
   </div>
