@@ -2,6 +2,7 @@ import { chromium } from '../../Primal-Chase-Fable/node_modules/playwright/index
 const b = await chromium.launch({ channel: 'msedge' });
 const p = await b.newPage({ viewport: { width: 1280, height: 800 } });
 const errs = []; p.on('pageerror', e => errs.push('PAGEERR ' + e.stack)); p.on('console', m => { if (m.type()==='error') errs.push(m.text()); });
+await p.addInitScript(() => { const s = JSON.parse(localStorage.getItem('pc2_settings') || '{}'); s.cinematic = false; localStorage.setItem('pc2_settings', JSON.stringify(s)); /* cinematic:false */ });
 await p.goto('http://127.0.0.1:8791/index.html'); await p.waitForTimeout(1500);
 await p.click('#btn-start'); await p.waitForTimeout(1500);
 // keep hunters far, no threats

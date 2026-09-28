@@ -4,6 +4,7 @@ const W = +(process.argv[3]||1280), H = +(process.argv[4]||720);
 const b = await chromium.launch({ channel: 'msedge', args:['--autoplay-policy=no-user-gesture-required'] });
 const p = await b.newPage({ viewport: { width: W, height: H } });
 const errs = []; p.on('pageerror', e => errs.push('PAGEERR ' + e.stack)); p.on('console', m => { if (m.type()==='error') errs.push(m.text()); });
+await p.addInitScript(() => { const s = JSON.parse(localStorage.getItem('pc2_settings') || '{}'); s.cinematic = false; localStorage.setItem('pc2_settings', JSON.stringify(s)); /* cinematic:false */ });
 await p.goto('http://127.0.0.1:8791/index.html'); await p.waitForTimeout(1500);
 await p.screenshot({ path: `${out}/01-title.png` });
 await p.click('#btn-start'); await p.waitForTimeout(1200);
