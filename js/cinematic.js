@@ -1,5 +1,6 @@
 // The opening: real footage from the game under a few lines of narration, then the title.
-// Driven by the main loop's clock; any key, click, tap or pad button skips it.
+// Driven by the main loop's clock; a key press (a tap on touch screens, or a pad button) skips it.
+// A mouse click doesn't, so clicking into the tab never cuts it short.
 
 // [start second, clip, seconds into the clip, line]
 const SHOTS = [
@@ -30,7 +31,7 @@ export class Cinematic {
     this.skipAsked = false;
     const touch = window.matchMedia && matchMedia('(pointer: coarse)').matches;
     this.skipEl.textContent = touch ? 'Tap to skip' : 'Press any key to skip';
-    this.el.addEventListener('pointerdown', (e) => { e.preventDefault(); this.skipAsked = true; });
+    if (touch) this.el.addEventListener('pointerdown', (e) => { if (e.pointerType !== 'mouse') { e.preventDefault(); this.skipAsked = true; } });
   }
 
   start() {
@@ -57,10 +58,11 @@ export class Cinematic {
     if (this.done) return;
     this.t += dt;
     const t = this.t;
-    // skip: any key, pointer, or a fresh pad button
+    // skip: a real key (not pad-stick drift), a tap, or a fresh pad button
     const padDown = !!(pad && pad.buttons.some((b) => b.pressed));
     if (!padDown) this.padHeld = false;
-    if (this.skipAsked || inp.edges.size || inp.confirm || inp.pounce || (padDown && !this.padHeld)) { this.finish(); return; }
+    const key = [...inp.edges].some((k) => !k.startsWith('Nav'));
+    if (this.skipAsked || key || (padDown && !this.padHeld)) { this.finish(); return; }
 
     let i = -1;
     for (let k = 0; k < SHOTS.length; k++) if (t >= SHOTS[k][0]) i = k;

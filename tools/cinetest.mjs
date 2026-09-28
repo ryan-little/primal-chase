@@ -1,0 +1,13 @@
+import { chromium } from '../../Primal-Chase-Fable/node_modules/playwright/index.mjs';
+const b = await chromium.launch({ channel: 'msedge' });
+const p = await b.newPage({ viewport: { width: 1280, height: 800 } });
+const errs = []; p.on('pageerror', e => errs.push('PAGEERR ' + e.stack));
+await p.goto('http://127.0.0.1:8791/index.html'); await p.waitForTimeout(2000);
+const s0 = await p.evaluate(() => window.__pc.state);
+await p.mouse.click(640, 400); await p.waitForTimeout(800);
+const s1 = await p.evaluate(() => window.__pc.state);
+await p.keyboard.press('Space'); await p.waitForTimeout(1500);
+const s2 = await p.evaluate(() => window.__pc.state);
+console.log(JSON.stringify({ onLoad: s0, afterMouseClick: s1, afterSpace: s2 }));
+console.log(errs.join('\n') || 'no errors');
+await b.close();
