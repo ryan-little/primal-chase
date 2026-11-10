@@ -52,7 +52,7 @@ const uiBuild = installUI(art);
 for (const [id, key] of [['v-health', 'health'], ['v-heat', 'heat'], ['v-water', 'water'], ['v-food', 'food']]) {
   $(id).querySelector('img').src = art.icons[key];
 }
-const drawLogo = (t = 0, c = $('logo')) => drawLogoArt(c, t, c.id === 'cine-logo');
+const drawLogo = (t = 0, c = $('logo')) => drawLogoArt(c, t, true); // sunset band behind the silhouettes, on the title as on the opening's last card
 const pxCss = () => parseFloat(getComputedStyle(document.documentElement).getPropertyValue('--px')) || 2;
 // How to survive: a strip of the chase over the page, and an icon for each lesson
 {
@@ -167,7 +167,9 @@ let cine = null;
 function startCinematic() {
   state = 'cine';
   show(null);
-  cine = new Cinematic(clipLayer, { root: $('cine'), line: $('cine-line'), logo: $('cine-logo'), skip: $('cine-skip'), voice: settings.sfx > 0 }, () => { cine = null; toTitle(); });
+  cine = new Cinematic(clipLayer, { root: $('cine'), line: $('cine-line'), logo: $('cine-logo'), skip: $('cine-skip'), voice: settings.sfx > 0, voiceVol: settings.sfx,
+    needGesture: () => !!audio.ctx && audio.ctx.state !== 'running' }, () => { cine = null; toTitle(); });
+  audio.init(); // so we can tell whether the browser lets sound start before a press
   cine.start();
 }
 

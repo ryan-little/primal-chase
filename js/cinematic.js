@@ -8,16 +8,19 @@ const SHOTS = [
   [6.2, 'hunt', 0.2, 'You were the fastest thing in it. You still are.'],
   [11.0, 'stampede', 1.6, 'The land had its own herds, and its own teeth.'],
   [14.0, 'pride', 1.2, null],
-  [17.0, 'camp', 0.6, 'Then they came. Thin, and slow, and upright. They carry water. They carry fire.'],
-  [23.6, 'heat', 0.5, 'They do not run you down. They walk you down, through the heat of the day.'],
-  [30.0, 'secret', 0.8, 'But the land is older than they are, and it keeps places only you can find.'],
-  [36.2, 'night', 0.3, 'They follow your tracks into the dark. They sing to keep awake.'],
-  [41.8, 'chase', 1.5, 'Every runner tires. They are counting on it.'],
+  [17.0, 'storm', 1.4, 'It had its storms, and its fires.'],
+  [20.0, 'fire', 1.6, null],
+  [23.0, 'camp', 0.6, 'Then they came. Thin, and slow, and upright. They carry water. They carry fire.'],
+  [29.6, 'heat', 0.5, 'They do not run you down. They walk you down, through the heat of the day.'],
+  [36.0, 'secret', 0.8, 'But the land is older than they are, and it keeps places only you can find.'],
+  [42.2, 'night', 0.3, 'They follow your tracks into the dark. They sing to keep awake.'],
+  [47.8, 'chase', 1.5, 'Every runner tires. They are counting on it.'],
 ];
-const BLACK = 46.4; // footage fades out
-const CATCH = 47.0; // "They always catch you."
-const LOGO = 50.4; // title reveal
-const END = 54.0;
+const BLACK = 52.4; // footage fades out
+const CATCH = 53.0; // "They always catch you."
+const LOGO = 56.4; // title reveal
+const END = 60.0;
+const SPOKEN = SHOTS.filter((x) => x[3] !== null).length; // files 00..SPOKEN-1 are the shots' lines, then the two closing ones
 
 // Narration read aloud with the browser's own speech voice, when it has one. A low, slow English
 // voice is picked if available; no voice, or a browser that refuses to speak, just leaves the text.
@@ -45,6 +48,22 @@ function say(text) {
   u.rate = neural ? 0.9 : 0.86; u.pitch = neural ? 1 : 0.7; u.volume = 0.95;
   ss.speak(u);
 }
+// The narration proper: recorded lines in assets/voice (made with tools/voicegen.py), one file per
+// spoken line in order. If a file won't play, the browser's speech voice reads the line instead.
+let LINE = null;
+function speak(i, text, vol = 1) {
+  hush();
+  const a = new Audio('assets/voice/' + String(i).padStart(2, '0') + '.mp3');
+  a.volume = Math.max(0, Math.min(1, vol));
+  LINE = a;
+  const fallback = () => { if (LINE === a) { LINE = null; say(text); } };
+  a.addEventListener('error', fallback);
+  a.play().catch(fallback);
+}
+function hush() {
+  if (LINE) { LINE.pause(); LINE = null; }
+  say('');
+}
 if (window.speechSynthesis) speechSynthesis.onvoiceschanged = () => { VOICE = pickVoice(); };
 
 export class Cinematic {
@@ -58,7 +77,9 @@ export class Cinematic {
     this.t = 0;
     this.shot = -1;
     this.done = false;
-    this.voice = els.voice !== false; // narration spoken aloud (settings can turn it off)
+    this.needGesture = els.needGesture || null; // () => true while the browser is holding sound back for a first press
+    this.voice = els.voice !== false;
+    this.voiceVol = els.voiceVol ?? 1; // narration spoken aloud (settings can turn it off)
     this.padHeld = true; // a button already down at load doesn't count until it's released
     this.skipAsked = false;
     const touch = window.matchMedia && matchMedia('(pointer: coarse)').matches;
@@ -95,15 +116,21 @@ export class Cinematic {
     const pressed = this.skipAsked || key || (padDown && !this.padHeld);
     if (padDown) this.padHeld = true;
     // Autoplay refused: hold at the start until the first press, which begins it instead of skipping.
-    if (this.layer.blocked || this.gated) {
+    // Sound refused until a press (most browsers, first visit): wait at the start like a refused video does,
+    // so the music and the narration begin with the pictures instead of joining late.
+    this.wait = (this.wait || 0) + dt;
+    const mute = this.t < 1.5 && !this.begun && this.needGesture && this.needGesture() && this.wait > 0.35;
+    if (this.gated && this.muteGate && !this.needGesture()) { this.gated = false; this.muteGate = false; this.skipEl.classList.remove('gate'); } // it came on by itself
+    if (this.layer.blocked || this.gated || mute) {
       if (!this.gated) {
+        this.muteGate = !this.layer.blocked;
         this.gated = true;
         const touch = window.matchMedia && matchMedia('(pointer: coarse)').matches;
         this.skipEl.textContent = touch ? 'Tap to begin' : 'Press any key to begin';
         this.skipEl.classList.add('on', 'gate');
       }
       if (!pressed) return;
-      this.gated = false; this.skipAsked = false;
+      this.gated = false; this.skipAsked = false; this.begun = true;
       this.layer.blocked = false;
       this.t = 0; this.shot = -1;
       const touch = window.matchMedia && matchMedia('(pointer: coarse)').matches;
@@ -112,6 +139,7 @@ export class Cinematic {
       return;
     }
     if (pressed) { this.finish(); return; }
+    if (this.needGesture && !this.begun && this.wait < 0.45) return; // settle whether sound is allowed before the first line starts
     this.t += dt;
     const t = this.t;
 
@@ -120,16 +148,16 @@ export class Cinematic {
     if (i !== this.shot && t < BLACK) {
       this.shot = i;
       const [, clip, from, text] = SHOTS[i];
-      if (text !== null && this.voice) say(text);
+      if (text !== null && this.voice) speak(SHOTS.slice(0, i).filter((x) => x[3] !== null).length, text, this.voiceVol);
       this.layer.play(clip, from, i === 0 ? 1.6 : 0.8);
       if (SHOTS[i + 1]) setTimeout(() => this.layer.prime(SHOTS[i + 1][1]), 1200);
       if (text !== null) this.setLine(text);
     }
     if (t >= BLACK) this.el.classList.add('black');
     if (t >= BLACK && t < CATCH) this.setLine('');
-    if (t >= CATCH && t < LOGO) { if (this.voice && !this.saidCatch) { this.saidCatch = true; say('They always catch you.'); } this.setLine('They always catch you.', 'big'); }
+    if (t >= CATCH && t < LOGO) { if (this.voice && !this.saidCatch) { this.saidCatch = true; speak(SPOKEN, 'They always catch you.', this.voiceVol); } this.setLine('They always catch you.', 'big'); }
     this.logoSoon = t > LOGO - 1.4;
-    if (t >= LOGO) { this.setLine('How long can you run?', 'tag'); this.logo.classList.add('on'); }
+    if (t >= LOGO) { if (this.voice && !this.saidTag) { this.saidTag = true; speak(SPOKEN + 1, 'How long can you run?', this.voiceVol); } this.setLine('How long can you run?', 'tag'); this.logo.classList.add('on'); }
     this.skipEl.classList.toggle('on', t > 1 && t < LOGO);
     if (t >= END) this.finish();
   }
@@ -137,10 +165,10 @@ export class Cinematic {
   finish() {
     if (this.done) return;
     this.done = true;
-    say('');
+    hush();
     clearTimeout(this.lineT);
     this.el.classList.add('out');
-    setTimeout(() => this.el.classList.add('hidden'), 700);
+    setTimeout(() => this.el.classList.add('hidden'), 1900); // the title comes up out of the black
     this.onDone();
   }
 }

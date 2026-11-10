@@ -17,7 +17,7 @@ A real-time rebuild of Primal Chase. You are the big cat. The band behind you ar
 
 ## Running it
 
-No build step and no dependencies. Every sprite, sound and music cue is generated in code at load time; the repo ships no image or audio files.
+No build step and no dependencies. Every sprite, sound and music cue is generated in code at load time. The only shipped media are the title and opening clips in `assets/clips` (recorded from the game with `tools/clips.mjs`) and the opening's narration in `assets/voice` (read by the open-source Kokoro voice `bm_lewis`, generated locally with `tools/voicegen.py`).
 
 ```sh
 python -m http.server 8791   # then open http://127.0.0.1:8791

@@ -35,10 +35,10 @@ const SCENES = [
   { name: 'dawn', biome: 0, clock: 0.035, secs: 6, pre: 90, setup: `g.weather.fogDawn = true; g.weather.fog = 0.85; clearBand(); level(); gazelles(95, 3);`, input: `trot(0.6, 9)`, aim: `pair(nearPrey(150), 0.35)` },
   { name: 'hunt', avoid: [2], biome: 0, clock: 0.16, secs: 6, pre: 20, setup: `clearBand(); pl.food = 18; level(); gazelles(105, 4);`, input: `hunt()`, aim: `pair(g.stats.prey ? null : nearPrey(110), 0.5)` },
   { name: 'band', crf: 29, biome: 0, clock: 0.22, secs: 6, pre: 150, setup: `level(); bandBehind(85);`, input: `keep(55, 85)`, aim: `pair(nearHunter(), 0.5)` },
-  { name: 'heat', biome: 3, clock: 0.36, secs: 7, pre: 150, setup: `g.weather.heatDay = true; g.weather.heat = 1; level(); bandBehind(205); pl.heat = 40;`, input: `keep(195, 225)`, aim: `pair(nearHunter(), 0.5)`, heatCap: 76 },
-  { name: 'night', biome: 4, clock: 0.8, secs: 6, pre: 150, setup: `g.day = 5; level(); bandBehind(200);`, input: `keep(190, 220)`, aim: `pair(nearHunter(), 0.5)` },
+  { name: 'heat', avoid: [6, 7, 8], biome: 3, clock: 0.36, secs: 7, pre: 150, setup: `g.weather.heatDay = true; g.weather.heat = 1; level(); bandBehind(80); pl.heat = 40; g.sightRange = () => 0;`, quiet: true, input: `keep(58, 84)`, aim: `pair(nearHunter(), 0.5)`, heatCap: 76 },
+  { name: 'night', avoid: [6, 7, 8, 2], biome: 0, clock: 0.8, secs: 6, pre: 150, setup: `g.day = 5; level(); bandBehind(80); g.sightRange = () => 0;`, quiet: true, input: `keep(58, 84)`, aim: `pair(nearHunter(), 0.5)` },
   { name: 'chase', crf: 29, biome: 2, clock: 0.5, secs: 7, pre: 120, setup: `level(); bandBehind(85, true);`, input: `keep(60, 95, 0.45)`, aim: `pair(nearHunter(), 0.5)` },
-  { name: 'stampede', avoid: [2], biome: 0, salt: 'b', clock: 0.3, secs: 6, pre: 30, setup: `clearBand(); level(); herd();`, input: `gnu()`, aim: `pair(nearGnus(), 0.3)` },
+  { name: 'stampede', avoid: [2], biome: 0, salt: 'b', clock: 0.3, secs: 6, pre: 30, setup: `clearBand(); level(); herd();`, input: `aside(96)`, aim: `pair(nearGnus(), 0.3)` },
   { name: 'storm', crf: 29, biome: 2, salt: 'b', clock: 0.45, secs: 6, pre: 90, setup: `clearBand(); level(); g.startWeather('storm', 60); g.weather.rain = 1; g.weather.strikeT = 99; strikes([[2.2, 55], [5.2, -60]]);`, input: `trot(0.45, 7)`, aim: `pair(nearFire(120), 0.4)` },
   { name: 'fire', avoid: [3, 6, 7, 8], check: `g.fire.size > 20`, biome: 0, clock: 0.6, secs: 6, pre: 60, setup: `clearBand(); level(); fireBehind();`, input: `trot(0.3, 8)`, aim: `pair(nearFire(110), 0.4)` },
   // the quiet life between chases: no hunters anywhere
@@ -48,7 +48,7 @@ const SCENES = [
   // the band at home: sat around their fire while the cat watches from the grass
   { name: 'camp', biome: 0, landmark: 'camp', clock: 0.6, secs: 7, pre: 40, check: `!!window.__lm`, setup: `level(); bandAtCamp();`, input: `watch(150)`, aim: `pair([window.__lm.x + 6, window.__lm.y - 12], 0.62)`, still: true },
   // a pride on its kill: the cat gives it a wide berth, and one of them sees it off
-  { name: 'pride', avoid: [2], biome: 0, clock: 0.3, secs: 6, pre: 30, setup: `clearBand(); level(); prideAhead(150, 62);`, input: `trot(0.75, 9)`, aim: `pair(nearLion(), 0.5)` },
+  { name: 'pride', avoid: [2], biome: 0, clock: 0.3, secs: 6, pre: 30, setup: `clearBand(); level(); prideAhead(150, 84);`, input: `trot(0.42, 9)`, aim: `pair(nearLion(), 0.5)` },
   // a secret place, not yet found
   { name: 'secret', biome: 4, salt: 'c', avoid: [2], landmark: 'painted', clock: 0.3, secs: 7, pre: 30, check: `!!window.__lm`, setup: `clearBand(); level();`, input: `visit(34)`, aim: `pair([window.__lm.x, window.__lm.y - 26], 0.5)`, still: true },
 ].filter((s) => !only.length || only.includes(s.name));
@@ -86,6 +86,7 @@ const herd = () => {
     g.gnus.push({ id: 7e6 + i, x: sx + Math.cos(perp) * lat - ax * back, y: sy + Math.sin(perp) * lat - ay * back, a, sp: 150 + Math.random() * 25, anim: Math.random(), face: Math.sign(ax) || 1, life: 0, hitCd: 0 });
   }
   g.stampedeWarn = 1.3; g.stampedeT = 1e9;
+  window.__herd = { x: sx, y: sy, ax, ay };
   window.__away = [-ax, -ay]; // the cat trots against the herd, so they meet mid-frame
 };
 const fireBehind = () => {
@@ -114,6 +115,8 @@ const prideAhead = (d, off) => {
   g.carcasses.push({ id: 8e6 + 1, x: cx, y: cy, meat: 60, max: 90, kind: 'zebra', face: 1, t: 0, lions: true, hyenas: true });
   for (let i = 0; i < 3; i++) { const a = i / 3 * 6.283; g.lions.push({ id: 9e6 + i, x: cx + Math.cos(a) * 22, y: cy + Math.sin(a) * 12, hx: cx + Math.cos(a) * 22, hy: cy + Math.sin(a) * 12, vx: 0, vy: 0, face: Math.cos(a) > 0 ? -1 : 1, anim: Math.random(), state: 'rest', t: 0, target: null, bite: 0, life: 110 }); }
   g.prideT = 1e9;
+  // they stay on their kill for the shot: heads up, tails flicking, nobody charges
+  g.updateLions = (dt) => { for (const L of g.lions) { L.anim = (L.anim + dt * 0.3) % 1; L.state = 'rest'; } };
 };
 const strikes = (list) => { window.__strikes = list.map(([t, dx]) => ({ t, dx })); };
 `;
@@ -179,9 +182,13 @@ window.steer = (inp, g) => {
     const w = (1 - Math.abs(side) / R) * (1 - Math.max(0, along) / 62);
     turn += (side >= 0 ? -1 : 1) * (0.6 + 1.8 * w);
   }
-  if (!turn) return inp;
   turn = Math.max(-2.2, Math.min(2.2, turn));
-  dx += nx * turn; dy += ny * turn;
+  // eased, and committed to a side once chosen, so the heading never flickers frame to frame
+  const S = window.__steer || (window.__steer = { v: 0 });
+  if (turn && S.v && Math.sign(turn) !== Math.sign(S.v) && Math.abs(S.v) > 0.25) turn = Math.sign(S.v) * Math.abs(turn);
+  S.v += (turn - S.v) * 0.12;
+  if (Math.abs(S.v) < 0.02) return inp;
+  dx += nx * S.v; dy += ny * S.v;
   const l = Math.hypot(dx, dy) || 1;
   return { ...inp, x: dx / l * m, y: dy / l * m };
 };
@@ -206,6 +213,8 @@ window.__mk = {
   watch: (stop) => (g) => { const q = g.player, lm = window.__lm; if (!lm) return { x: 0, y: 0 }; const d = Math.hypot(lm.x - q.x, lm.y + 8 - q.y); if (d < stop) return { x: 0, y: 0 }; return { x: (lm.x - q.x) / d * 0.3, y: (lm.y + 8 - q.y) / d * 0.3, stalk: true }; },
   // walk up to a landmark
   visit: (stop) => (g) => { const q = g.player, lm = window.__lm; if (!lm) return { x: 0, y: 0 }; const tx = lm.x + (q.x < lm.x ? -stop : stop), ty = lm.y + 6, d = Math.hypot(tx - q.x, ty - q.y); if (d < 5) return { x: 0, y: 0 }; const m = d < 24 ? 0.4 : 0.62; return { x: (tx - q.x) / d * m, y: (ty - q.y) / d * m }; },
+  // a herd is coming down the line the cat is on: break sideways until it is clear by the gap, then turn and watch it pass
+  aside: (gap) => (g) => { const q = g.player, H = window.__herd; if (!H) return { x: 0, y: 0 }; const nx = -H.ay, ny = H.ax, lat = (q.x - H.x) * nx + (q.y - H.y) * ny, sd = lat >= 0 ? 1 : -1; if (Math.abs(lat) >= gap) { q.face = Math.sign(-nx * sd) || q.face; return { x: 0, y: 0 }; } const m = Math.abs(lat) < gap - 30 ? 1 : 0.6; return { x: nx * sd * m - H.ax * 0.25, y: ny * sd * m - H.ay * 0.25, sprint: Math.abs(lat) < 55 }; },
   // trot at the herd, pounce the first wildebeest that comes close, then stay on the kill
   gnu: () => (g) => { const q = g.player, [ax, ay] = window.__away; if (q.eating || g.stats.prey) return { x: 0, y: 0 }; const h = near(g.gnus); if (h && h.d < 34 && q.stamina > 25) return { x: (h.x - q.x) / h.d, y: (h.y - q.y) / h.d, pounce: true }; return { x: ax * 0.4, y: ay * 0.4, sprint: false, stalk: false, pounce: false }; },
   hunt: () => (g) => { const q = g.player; if (q.eating || g.stats.prey) return { x: 0, y: 0 }; let b = null, bd = 1e9; for (const k of g.prey) { const d = Math.hypot(k.x - q.x, k.y - q.y); if (d < bd) { bd = d; b = k; } } if (!b) return { x: 0, y: 0 }; const dx = b.x - q.x, dy = b.y - q.y; return { x: dx / bd, y: dy / bd, stalk: bd > 40, sprint: false, pounce: bd < 40 && q.stamina > 20 }; },
@@ -302,6 +311,7 @@ async function record(sc, framed, tries = 0) {
     window.__pc.override = (g) => {
       const q = g.player; q.health = 100; if (!${sc.name === 'drink'}) q.water = Math.max(q.water, 60); if (!${sc.name === 'hunt' || sc.name === 'feast'}) q.food = Math.max(q.food, 60);
       q.heat = Math.min(q.heat, heatCap); g.perkChoices = 0;
+      if (${!!sc.quiet}) for (const h of g.hunters) { h.throwCd = 9; h.windup = 0; if (h.markType === '?') h.mark = 0; }
       for (const s of window.__strikes || []) if (!s.done && g.time >= window.__t0 + s.t) { s.done = true; g.weather.strikes.push({ x: q.x + s.dx, y: q.y - 6, t: 0.9 }); }
       return window.steer(inner(g), g);
     };})()`);

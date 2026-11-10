@@ -534,7 +534,7 @@ kbd, #toast kbd, #lore-more kbd {
 #clips video.on { opacity: 1; }
 
 /* the opening: letterbox, a line at a time, then the title */
-#cine { position: fixed; inset: 0; z-index: 30; cursor: pointer; background: rgba(0, 0, 0, 0); transition: background .9s ease, opacity .7s ease; }
+#cine { position: fixed; inset: 0; z-index: 30; cursor: pointer; background: rgba(0, 0, 0, 0); transition: background .9s ease, opacity 1.8s ease; }
 #cine.black { background: #000; }
 #cine.out { opacity: 0; pointer-events: none; }
 #cine .bar { position: absolute; left: 0; right: 0; height: min(10vh, 96px); background: #000; }
