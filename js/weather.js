@@ -6,7 +6,7 @@ import { lerp, clamp, dist, TAU } from './util.js';
 import { G } from './terrain.js';
 
 const FCELL = 8;
-export const FIRE_DAY = 6;
+export const FIRE_DAY = 7;
 const FLAMMABLE = new Set([G.GRASS, G.TALL, G.LUSH, G.LEAF]);
 export const WEATHER_NAMES = { clear: 'Clear', rain: 'Rain', storm: 'Thunderstorm', heat: 'Heatwave', dust: 'Dust storm', fog: 'Fog' };
 

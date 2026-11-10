@@ -14,7 +14,9 @@ export { FIRE_DAY }; // from day 6 they burn the grass to drive you back to them
 export const DAY_LEN = 170; // seconds per full day/night cycle
 export const T = {
   trot: 66, sprint: 132, pounceSpeed: 340, pounceTime: 0.22,
-  hunterWalk: 49, hunterWalkPerDay: 7.5, hunterWalkLate: 2.5, hunterRun: 78, hunterRunPerDay: 6,
+  // The band's pace by day (index 0 = day 1). They start well under your trot (66) and learn you slowly:
+  // the walk passes your trot on PACE_DAY and keeps climbing; past the table each day adds the last step again.
+  hunterWalk: [44, 47, 51, 56, 62, 68, 75, 82, 88, 94, 100], hunterRun: [70, 73, 77, 82, 88, 94, 100, 106, 112, 118, 124],
   dogRun: 136, spearSpeed: 310,
 };
 
@@ -32,9 +34,11 @@ export const BITS = [
 ];
 
 // Each dawn after the first teaches the band something new.
-export const HUNTER_DAYS = [3, 5, 6, 7, 8];
-export const TRACKERS_DAY = 3; // broken trails buy less time
-export const TORCH_DAY = 4; // no slowing down at night
+export const HUNTER_DAYS = [4, 6, 7, 8, 9];
+export const TRACKERS_DAY = 4; // broken trails buy less time
+export const TORCH_DAY = 5; // no slowing down at night
+export const PACE_DAY = 6; // their walk now outpaces your trot
+const pace = (table, day) => table[Math.min(table.length - 1, Math.max(0, day - 1))];
 
 let UID = 1;
 
@@ -223,7 +227,7 @@ export class Game {
       this.grantPerkChoice();
       // escalation
       if (HUNTER_DAYS.includes(this.day)) this.addHunters(1);
-      const dogsWanted = this.day >= 2 ? Math.min(5, Math.floor((this.day + 1) / 2)) : 0;
+      const dogsWanted = this.day >= 2 ? Math.min(5, Math.floor(this.day / 2)) : 0; // one on day 2, another every second day
       while (this.dogs.filter((d) => !d.dead).length < dogsWanted) this.addDog();
       this.planDay();
     }
@@ -574,8 +578,8 @@ export class Game {
     const day = this.day;
     const night = this.isNight;
     const torches = day >= TORCH_DAY;
-    let walk = Math.min(100, T.hunterWalk + T.hunterWalkPerDay * (day - 1) + T.hunterWalkLate * Math.max(0, day - 3)) * (night && !torches ? 0.85 : 1);
-    const run = Math.min(124, T.hunterRun + T.hunterRunPerDay * (day - 1)) * (night && !torches ? 0.88 : 1) * (day === 1 ? 0.93 : 1);
+    let walk = pace(T.hunterWalk, day) * (night && !torches ? 0.85 : 1);
+    const run = pace(T.hunterRun, day) * (night && !torches ? 0.88 : 1);
     const lead = this.hunters.filter((h) => h.down <= 0);
     const d = dist(b.x, b.y, p.x, p.y);
     // they read the land faster when far behind: persistence
@@ -876,9 +880,11 @@ export class Game {
     this.hyenas = this.hyenas.filter((h) => !h.gone);
 
     // --- stampedes: a river of hooves that tramples your trail flat
-    this.stampedeT -= dt;
+    // the clock only runs from day 2, so it can't run out during day 1 and fire the instant day 2 dawns
+    if (this.day >= 2) this.stampedeT -= dt;
     if (this.stampedeT <= 0 && this.day >= 2 && !this.gnus.length && !this.over) {
       this.stampedeT = this.r.range(110, 170);
+      if (this.prideT != null) this.prideT = Math.max(this.prideT, 45); // never a herd and a pride together
       // the herd comes over land and runs on past you over land, never out of the sea
       let a = 0, sx = 0, sy = 0, ok = false;
       for (let k = 0; k < 12 && !ok; k++) {
@@ -984,7 +990,8 @@ export class Game {
   updateScout(dt) {
     const p = this.player;
     this.scoutT = (this.scoutT ?? 75) - dt;
-    if (!this.runners.length && this.scoutT <= 0 && !this.over && this.band.mode !== 'chase' && this.hunterDist() > 280) {
+    this.updateKeepers();
+    if (!this.runners.some((r) => !r.keeper) && this.scoutT <= 0 && !this.over && this.band.mode !== 'chase' && this.hunterDist() > 280) {
       const h = this.heading();
       const side = this.r() < 0.5 ? 1 : -1;
       const pos = this.groundPoint(h + side * 1.05, 0.45, 250, 300);
@@ -992,12 +999,62 @@ export class Game {
         this.runners.push(this.makeRunner(pos[0], pos[1], 26, this.day === 1 ? 2 : 3));
         this.emit('scout', { x: pos[0], y: pos[1] });
       }
-      this.scoutT = Math.max(30, this.r.range(55, 80) - this.day * 5);
+      this.scoutT = Math.max(35, this.r.range(75, 105) - this.day * 6);
     }
     this.runners = this.runners.filter((sc) => this.updateRunner(sc, dt));
   }
 
+  // ---------------- the camp keeper ----------------
+  // A camp is never left empty: one hunter stays by the fire. He isn't scanning the grass the way the
+  // band does, so he only notices a cat that comes close; then he defends the camp with his spears but
+  // won't leave it to chase.
+  updateKeepers() {
+    const p = this.player;
+    this.keepers = this.keepers || new Set();
+    for (const lm of this.world.landmarksNear(p.x, p.y, 520)) {
+      if (lm.type !== 'camp' || this.keepers.has(lm.key)) continue;
+      this.keepers.add(lm.key);
+      const k = this.makeRunner(lm.x + 27, lm.y + 6, 1e9, 1e9);
+      Object.assign(k, { keeper: true, key: lm.key, hx: k.x, hy: k.y, state: 'walk', face: -1, throwCd: 1.6, scout: false });
+      this.runners.push(k);
+    }
+  }
+  updateKeeper(sc, dt) {
+    const p = this.player;
+    sc.mark = Math.max(0, sc.mark - dt);
+    const pd = dist(sc.x, sc.y, p.x, p.y);
+    if (pd > 900) { this.keepers.delete(sc.key); return false; }
+    if (sc.down > 0) {
+      sc.down -= dt;
+      this.world.move(sc, sc.vx * dt, sc.vy * dt, { drop: false }); sc.vx *= 0.9; sc.vy *= 0.9;
+      sc.state = 'down';
+      return true;
+    }
+    if (!sc.seen && pd < this.sightRange() * 0.45 && !this.over) {
+      sc.seen = true; sc.mark = 1.5; sc.markType = '!';
+      this.emit('scoutsee', { x: sc.x, y: sc.y });
+    } else if (sc.seen && pd > 230) sc.seen = false;
+    // meet the cat a little way out from the fire, otherwise go back and sit by it
+    let tx = sc.hx, ty = sc.hy, sp = pace(T.hunterWalk, this.day);
+    if (sc.seen) {
+      const a = Math.atan2(p.y - sc.hy, p.x - sc.hx), out = Math.max(0, Math.min(46, dist(sc.hx, sc.hy, p.x, p.y) - 70));
+      tx = sc.hx + Math.cos(a) * out; ty = sc.hy + Math.sin(a) * out; sp = pace(T.hunterRun, this.day) * 0.75;
+    }
+    const d = dist(sc.x, sc.y, tx, ty);
+    if (d > 2) {
+      const a = Math.atan2(ty - sc.y, tx - sc.x), mv = Math.min(d, sp * (sc.windup > 0 ? 0.1 : 1) * dt);
+      sc.vx = (Math.cos(a) * mv) / dt; sc.vy = (Math.sin(a) * mv) / dt;
+      this.chaserMove(sc, dt, 4);
+    } else { sc.vx = 0; sc.vy = 0; }
+    if (sc.seen) sc.face = Math.sign(p.x - sc.x) || sc.face; else if (Math.abs(sc.vx) > 3) sc.face = Math.sign(sc.vx);
+    sc.state = sc.windup > 0 ? 'windup' : Math.hypot(sc.vx, sc.vy) > 60 ? 'run' : 'walk';
+    sc.anim = (sc.anim + dt * (sc.state === 'run' ? 1.9 : 1.1)) % 1;
+    this.combat(sc, dt, sc.seen);
+    return true;
+  }
+
   updateRunner(sc, dt) {
+    if (sc.keeper) return this.updateKeeper(sc, dt);
     const p = this.player;
     sc.mark = Math.max(0, sc.mark - dt);
     sc.life -= dt;
@@ -1011,7 +1068,7 @@ export class Game {
     }
     if (sc.life <= 0 || pd > 520) sc.leaving = true;
     let tx, ty, sp;
-    const run = Math.min(126, T.hunterRun + 4 + T.hunterRunPerDay * (this.day - 1));
+    const run = pace(T.hunterRun, this.day) + 4;
     if (sc.leaving) {
       const a = Math.atan2(sc.y - p.y, sc.x - p.x);
       tx = sc.x + Math.cos(a) * 50; ty = sc.y + Math.sin(a) * 50; sp = run * 0.8;
@@ -1376,9 +1433,11 @@ export class Game {
   // do the same to them.
   updateLions(dt) {
     const p = this.player;
-    this.prideT = (this.prideT ?? this.r.range(120, 200)) - dt;
+    // counts from day 2 (see the stampede clock): the first pride shows up well into that day
+    this.prideT = (this.prideT ?? this.r.range(80, 150)) - (this.day >= 2 ? dt : 0);
     if (this.prideT <= 0 && !this.lions.length && this.day >= 2 && !this.over) {
       this.prideT = this.r.range(150, 240);
+      this.stampedeT = Math.max(this.stampedeT, 45);
       const h = this.heading();
       const pos = this.groundPoint(h + this.r.range(-0.6, 0.6), 0.2, 300, 380);
       const bio = pos ? this.world.biomeAt(pos[0], pos[1]) : -1;
