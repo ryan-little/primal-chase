@@ -34,14 +34,14 @@ fs.mkdirSync(TMP, { recursive: true });
 const SCENES = [
   { name: 'dawn', biome: 0, clock: 0.035, secs: 6, pre: 90, setup: `g.weather.fogDawn = true; g.weather.fog = 0.85; clearBand(); level(); gazelles(95, 3);`, input: `trot(0.6, 9)`, aim: `pair(nearPrey(150), 0.35)` },
   // a flat-out sprint at grazing gazelles on open ground, ending on the catch
-  { name: 'hunt', avoid: [2], tries: 20, catchAt: [1.3, 2.4], post: `openAt(g.carcasses[0])`, biome: 0, clock: 0.16, secs: 6, pre: 8, check: `!g.stats.prey && !window.__wet`, setup: `clearBand(); pl.food = 18; level(); dryAhead(400); gazelles(125, 1);`, input: `sprint()`, aim: `pair(nearPrey(140) || (g.carcasses[0] && [g.carcasses[0].x, g.carcasses[0].y - 6]), 0.45)` },
+  { name: 'hunt', avoid: [2], tries: 40, catchAt: [1.3, 2.4], post: `openAt(g.carcasses[0])`, biome: 0, clock: 0.16, secs: 6, pre: 8, check: `!g.stats.prey && !window.__wet`, setup: `clearBand(); pl.food = 18; level(); dryAhead(400); gazelles(125, 1);`, input: `sprint()`, aim: `pair(nearPrey(140) || (g.carcasses[0] && [g.carcasses[0].x, g.carcasses[0].y - 6]), 0.45)` },
   { name: 'band', crf: 29, biome: 0, clock: 0.22, secs: 6, pre: 150, setup: `level(); bandBehind(420); g.sightRange = () => 0;`, quiet: true, input: `keep(380, 460)`, aim: `pair(bandAt(), 1)` },
   { name: 'heat', avoid: [6, 7, 8], biome: 3, clock: 0.36, secs: 7, pre: 150, setup: `g.weather.heatDay = true; g.weather.heat = 1; level(); bandBehind(420); pl.heat = 40; g.sightRange = () => 0;`, quiet: true, input: `keep(380, 460)`, aim: `pair(bandAt(), 1)`, heatCap: 76 },
-  { name: 'night', avoid: [6, 7, 8, 2], biome: 0, clock: 0.8, secs: 6, pre: 150, setup: `g.day = 5; level(); bandBehind(420); g.sightRange = () => 0;`, quiet: true, input: `keep(380, 460)`, aim: `pair(bandAt(), 1)` },
+  { name: 'night', avoid: [6, 7, 8, 2], biome: 0, salt: 'n', clock: 0.8, secs: 6, pre: 150, setup: `g.day = 5; level(); bandBehind(420); g.sightRange = () => 0;`, quiet: true, input: `keep(380, 460)`, aim: `pair(bandAt(), 1)` },
   { name: 'chase', crf: 29, biome: 2, clock: 0.5, secs: 7, pre: 120, setup: `level(); bandBehind(85, true);`, input: `keep(60, 95, 0.45)`, aim: `pair(nearHunter(), 0.5)` },
   { name: 'stampede', avoid: [2], biome: 0, salt: 'b', clock: 0.3, secs: 6, pre: 30, setup: `clearBand(); level(); herd();`, input: `aside(96)`, aim: `pair(nearGnus(), 0.3)` },
   { name: 'storm', crf: 29, biome: 2, salt: 'b', clock: 0.45, secs: 6, pre: 90, setup: `clearBand(); level(); g.startWeather('storm', 60); g.weather.rain = 1; g.weather.strikeT = 99; strikes([[2.2, 55], [5.2, -60]]);`, input: `trot(0.45, 7)`, aim: `pair(nearFire(120), 0.4)` },
-  { name: 'fire', avoid: [3, 6, 7, 8], check: `g.fire.size > 20`, biome: 0, clock: 0.6, secs: 6, pre: 60, setup: `clearBand(); level(); fireBehind(); fireproof();`, input: `wary(0.3, 8, 34)`, aim: `pair(nearFire(110), 0.4)` },
+  { name: 'fire', avoid: [2, 3, 6, 7, 8], check: `g.fire.size > 20`, biome: 0, clock: 0.6, secs: 6, pre: 60, setup: `clearBand(); level(); fireBehind(); fireproof();`, input: `wary(0.3, 8, 34)`, aim: `pair(nearFire(110), 0.4)` },
   // the quiet life between chases: no hunters anywhere
   { name: 'drink', biome: 0, clock: 0.12, secs: 7, pre: 20, check: `!!window.__water`, setup: `clearBand(); level(); pl.water = 22; waterAhead(70, 150); gazelles(150, 3);`, input: `drink()`, aim: `pair(null, 0)`, still: true },
   { name: 'feast', avoid: [2], biome: 0, clock: 0.42, secs: 7, pre: 20, check: `window.__open`, setup: `clearBand(); level(); pl.food = 20; carcassAhead(75);`, input: `feast()`, aim: `pair(null, 0)`, still: true },
@@ -233,7 +233,7 @@ window.__mk = {
   // so the cat visibly closes the gap inside the shot)
   sprint: () => (g) => { for (const k of g.prey) if (k.state === 'flee' && k.fleeT < 2.3) k.fleeT = 2.3; const q = g.player; if (g.stats.prey) return window.__mk.dine(g); const b = near(g.prey); if (!b) return { x: 0, y: 0 }; return { x: (b.x - q.x) / b.d, y: (b.y - q.y) / b.d, sprint: true, stalk: false, pounce: b.d < 52 }; },
   // settle beside the kill, level with it, facing it, head over the body
-  dine: (g) => { const q = g.player, c = g.carcasses[0]; if (!c) return { x: 0, y: 0 }; const D = window.__dine || (window.__dine = { side: Math.sign(q.x - c.x) || 1 }); const tx = c.x + D.side * 13, ty = c.y + 1, d = Math.hypot(tx - q.x, ty - q.y); if (D.sat || d < 3) { D.sat = true; q.face = -D.side; return { x: 0, y: 0 }; } const m = d < 20 ? 0.35 : 0.55; return { x: (tx - q.x) / d * m, y: (ty - q.y) / d * m }; },
+  dine: (g) => { const q = g.player, c = g.carcasses[0]; if (!c) return { x: 0, y: 0 }; const D = window.__dine || (window.__dine = { side: Math.sign(q.x - c.x) || 1 }); const tx = c.x + D.side * 20, ty = c.y + 1, d = Math.hypot(tx - q.x, ty - q.y); if (D.sat || d < 3) { D.sat = true; q.face = -D.side; return { x: 0, y: 0 }; } const m = d < 20 ? 0.35 : 0.55; return { x: (tx - q.x) / d * m, y: (ty - q.y) / d * m }; },
   hunt: () => (g) => { const q = g.player; if (q.eating || g.stats.prey) return { x: 0, y: 0 }; let b = null, bd = 1e9; for (const k of g.prey) { const d = Math.hypot(k.x - q.x, k.y - q.y); if (d < bd) { bd = d; b = k; } } if (!b) return { x: 0, y: 0 }; const dx = b.x - q.x, dy = b.y - q.y; return { x: dx / bd, y: dy / bd, stalk: bd > 40, sprint: false, pounce: bd < 40 && q.stamina > 20 }; },
 };
 `;
