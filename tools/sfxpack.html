@@ -1,0 +1,225 @@
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Primal Chase sound pack: before and after</title>
+<style>
+  :root { --ink: #1a110c; --panel: #f3ead2; --line: #cdbf96; --accent: #c2562e; }
+  * { box-sizing: border-box; }
+  body { margin: 0; background: #2b1d15; color: var(--ink); font: 13px/1.4 ui-monospace, Consolas, Menlo, monospace; }
+  header { position: sticky; top: 0; z-index: 5; background: #1a110c; color: #f3ead2; padding: 8px 14px; display: flex; flex-wrap: wrap; gap: 6px 18px; align-items: center; border-bottom: 2px solid var(--accent); }
+  header h1 { font-size: 15px; margin: 0 8px 0 0; letter-spacing: .5px; }
+  header label { display: inline-flex; align-items: center; gap: 5px; white-space: nowrap; }
+  button, select { font: inherit; background: #3a2618; color: #f3ead2; border: 1px solid #7a5434; border-radius: 3px; padding: 2px 7px; cursor: pointer; }
+  button:hover { border-color: #ffb13b; }
+  button.on { background: var(--accent); border-color: #ffb13b; }
+  button.b { background: #4a4038; } button.a { background: #6b3a1e; }
+  nav { display: flex; flex-wrap: wrap; gap: 4px 10px; width: 100%; font-size: 12px; }
+  nav a { color: #ffe08a; text-decoration: none; } nav a:hover { text-decoration: underline; }
+  main { padding: 10px 14px 60px; }
+  .stats { color: #e0bb84; margin: 4px 0 2px; font-size: 12px; }
+  .note { color: #e0bb84; font-size: 12px; margin: -2px 0 8px; max-width: 980px; }
+  section > h2 { color: #ffe08a; font-size: 15px; margin: 22px 0 8px; border-bottom: 1px solid #7a5434; padding-bottom: 3px; display: flex; gap: 12px; align-items: baseline; }
+  section > h2 button { font-size: 11px; }
+  .card { background: var(--panel); border: 1px solid var(--line); border-radius: 4px; margin: 0 0 8px; display: grid; grid-template-columns: 230px 1fr 1fr; overflow: hidden; }
+  .card .lab { padding: 6px 8px; background: #e4d7b0; border-right: 1px solid var(--line); display: flex; flex-direction: column; gap: 5px; }
+  .card .lab b { font-size: 13px; }
+  .card .lab .btns { display: flex; gap: 5px; }
+  .new { background: var(--accent); color: #fff; border-radius: 2px; padding: 0 4px; font-size: 10px; margin-left: 4px; }
+  .side { padding: 5px 8px 6px; border-right: 1px solid var(--line); min-width: 0; }
+  .side .cap { font-size: 11px; color: #6e4a2c; display: flex; gap: 10px; flex-wrap: wrap; margin-bottom: 3px; }
+  .side .cap .k { color: #8a6e2a; text-transform: uppercase; letter-spacing: .5px; }
+  .side canvas { display: block; width: 100%; height: 96px; image-rendering: auto; background: #000; border-radius: 2px; cursor: pointer; }
+  .side.none { background: repeating-linear-gradient(45deg, #e4d7b0, #e4d7b0 4px, #d9caa0 4px, #d9caa0 8px); color: #8a6e2a; font-size: 11px; display: flex; align-items: center; justify-content: center; }
+  .delta { font-weight: bold; } .up { color: #a33; } .dn { color: #2a6a8a; }
+  .amb { background: var(--panel); border: 1px solid var(--line); border-radius: 4px; padding: 8px 10px; display: flex; flex-wrap: wrap; gap: 8px 18px; align-items: center; }
+  .amb label { display: inline-flex; gap: 5px; align-items: center; }
+  .amb input[type=range] { width: 90px; }
+  .amb .grp { display: flex; gap: 10px; flex-wrap: wrap; align-items: center; padding-right: 14px; border-right: 1px solid var(--line); }
+  .playing { outline: 2px solid #ffb13b; }
+</style></head><body>
+<header>
+  <h1>PRIMAL CHASE · sound pack</h1>
+  <label>volume <input id="vol" type="range" min="0" max="1" step="0.05" value="0.8"></label>
+  <label>play all as <select id="allas"><option value="after">after</option><option value="before">before</option><option value="both">before then after</option></select></label>
+  <button id="stopall">stop</button>
+  <nav id="nav"></nav>
+</header>
+<main>
+  <div class="stats" id="stats">rendering…</div>
+  <div class="note">Every cue has a BEFORE (the engine as it was, tools/audio-before.js) and an AFTER (live js/audio.js). Each click plays a fresh take, so you hear the variation. The picture is one offline render: a spectrogram on a log-frequency axis (40 Hz to 16 kHz, bright is loud) with the level envelope above it; click it to play that exact render. Numbers: integrated loudness (LUFS, K-weighted over the audible span), peak (dBFS), length. Positional cues are shown at full volume, centre.</div>
+  <div id="out"></div>
+</main>
+<script type="module">
+import { CUES, SCENES, OLD_SCENE, applyScene, renderCue, renderScene, analyze, drawSpec } from './sfxlib.js';
+import { Audio as After } from '../js/audio.js';
+import { Audio as Before } from './audio-before.js';
+const E = { after: After, before: Before };
+const $ = (id) => document.getElementById(id);
+const el = (tag, cls, text) => { const e = document.createElement(tag); if (cls) e.className = cls; if (text != null) e.textContent = text; return e; };
+
+// ---- live engines: one per side for one-shots, one per side for the ambience ----
+const live = {};
+function engine(kind) {
+  if (live[kind]) return live[kind];
+  const a = new E[kind.split('-')[0]]();
+  a.init();
+  a.menu = true; a.playing = false;
+  a.musicVol = 0.8; a.sfxVol = +$('vol').value; a.applyVolumes();
+  if (a.wind) a.wind.gain.value = 0; // the old engine's wind runs from the start; keep one-shots clean
+  return (live[kind] = a);
+}
+$('vol').oninput = () => { for (const a of Object.values(live)) { a.sfxVol = +$('vol').value; a.applyVolumes(); if (!a.amb2 && a.wind && !ambOn) a.wind.gain.value = 0; } };
+let timers = [];
+function playCue(cue, which) {
+  const a = engine(which + '-shot');
+  if (a.ctx.state === 'suspended') a.ctx.resume();
+  let end = 0;
+  for (const [t, fn] of cue[which]) { timers.push(setTimeout(() => fn(a), t * 1000)); end = Math.max(end, t); }
+  return (end + cue.secs) * 1000;
+}
+// exact render playback (what the picture shows)
+let ctxR = null, srcR = null;
+function playBuf(buf) {
+  ctxR = ctxR || new AudioContext();
+  if (srcR) try { srcR.stop(); } catch (e) {}
+  srcR = ctxR.createBufferSource(); srcR.buffer = buf;
+  const g = ctxR.createGain(); g.gain.value = +$('vol').value / 0.9;
+  srcR.connect(g).connect(ctxR.destination); srcR.start();
+}
+function stopAll() { timers.forEach(clearTimeout); timers = []; for (const [k, a] of Object.entries(live)) if (k.endsWith('-shot')) { a.ctx.close(); delete live[k]; } if (srcR) try { srcR.stop(); } catch (e) {} allRun = null; document.querySelectorAll('.playing').forEach((n) => n.classList.remove('playing')); }
+$('stopall').onclick = () => { stopAll(); stopAmb(); };
+
+// ---- cards ----
+const fmt = (s) => (s && !s.silent ? `${s.lufs} LUFS · pk ${s.peak} · ${s.dur}s` : 'silent');
+const jobs = [];
+function side(cue, which, card) {
+  const d = el('div', 'side' + (cue[which] ? '' : ' none'));
+  if (!cue[which]) { d.textContent = 'did not exist before'; return d; }
+  const cap = el('div', 'cap'); cap.append(el('span', 'k', which), el('span', 'num', '…'));
+  const cv = el('canvas'); cv.width = 360; cv.height = 96;
+  d.append(cap, cv);
+  jobs.push(async () => {
+    const buf = await (cue.kind === 'scene' ? renderScene(E[which], cue.scene, 8) : renderCue(E[which], cue, which));
+    drawSpec(cv, buf, { w: 360, h: 70, wave: 26 });
+    const st = analyze(buf);
+    cue.st = cue.st || {}; cue.st[which] = st;
+    cap.querySelector('.num').textContent = fmt(st);
+    if (which === 'after' && cue.st.before && !cue.st.before.silent && !st.silent) {
+      const dl = +(st.lufs - cue.st.before.lufs).toFixed(1);
+      cap.append(el('span', 'delta ' + (dl > 0 ? 'up' : 'dn'), (dl > 0 ? '+' : '') + dl + ' dB'));
+    }
+    cv.onclick = () => playBuf(buf);
+    cv.title = 'play this exact render';
+  });
+  return d;
+}
+function card(cue) {
+  const c = el('div', 'card');
+  const lab = el('div', 'lab');
+  const t = el('b', null, cue.label);
+  if (cue.isNew) t.append(el('span', 'new', 'new'));
+  const btns = el('div', 'btns');
+  const bb = el('button', 'b', 'BEFORE'), ba = el('button', 'a', 'AFTER');
+  if (!cue.before) bb.disabled = true;
+  bb.onclick = () => (cue.kind === 'scene' ? startAmb('before', cue.scene) : playCue(cue, 'before'));
+  ba.onclick = () => (cue.kind === 'scene' ? startAmb('after', cue.scene) : playCue(cue, 'after'));
+  btns.append(bb, ba);
+  lab.append(t, btns, el('small', null, cue.id));
+  c.append(lab, side(cue, 'before', c), side(cue, 'after', c));
+  cue.node = c;
+  return c;
+}
+let allRun = null;
+async function playAll(list) {
+  stopAll();
+  const run = (allRun = {});
+  const mode = $('allas').value;
+  for (const cue of list) {
+    for (const w of mode === 'both' ? ['before', 'after'] : [mode]) {
+      if (allRun !== run) return;
+      if (!cue[w]) continue;
+      cue.node.classList.add('playing'); cue.node.scrollIntoView({ block: 'nearest' });
+      const ms = playCue(cue, w);
+      await new Promise((r) => setTimeout(r, Math.min(ms, 4500) + 250));
+      cue.node.classList.remove('playing');
+    }
+  }
+}
+
+// ---- ambience: live beds driven by the real update loop ----
+let ambOn = null, raf = 0;
+const st = { biome: 0, night: 0, rain: 0, storm: 0, dust: 0, heat: 0, fog: 0, coast: 0, fire: 0 };
+const sc = { trees: 0, tall: 0, torch: 0, whistle: 0, camp: 0, oasis: 0, herd: 0 };
+function stopAmb() { cancelAnimationFrame(raf); for (const k of ['before-amb', 'after-amb']) if (live[k]) { live[k].ctx.close(); delete live[k]; } ambOn = null; $('ambstate') && ($('ambstate').textContent = 'stopped'); }
+function startAmb(which, scene) {
+  if (scene) setControls(scene);
+  stopAmb();
+  const a = engine(which + '-amb');
+  a.amb2 = true; a.playing = true; a.menu = false;
+  if (a.wind) a.wind.gain.value = 0.16;
+  ambOn = which;
+  $('ambstate').textContent = 'playing ' + which;
+  let last = performance.now();
+  const tick = (now) => {
+    const dt = Math.min(0.05, (now - last) / 1000); last = now;
+    Object.assign(a, st);
+    a.music.gain.value = $('music').checked ? a.musicVol * 0.55 : 0;
+    a.sc = { ...sc, t: now / 1000, x: 0, y: 0, torchPan: 0.4, herdPan: -0.3, whistlePan: 0.2, embersPan: -0.2 };
+    a.update(dt);
+    raf = requestAnimationFrame(tick);
+  };
+  raf = requestAnimationFrame(tick);
+}
+function setControls(scene) {
+  for (const k in st) st[k] = 0; for (const k in sc) sc[k] = 0;
+  Object.assign(st, scene.st); Object.assign(sc, scene.sc || {});
+  syncControls();
+}
+function syncControls() { document.querySelectorAll('[data-st]').forEach((i) => { const v = st[i.dataset.st]; if (i.type === 'checkbox') i.checked = !!v; else i.value = v; }); document.querySelectorAll('[data-sc]').forEach((i) => (i.value = sc[i.dataset.sc])); }
+function ambPanel() {
+  const p = el('div', 'amb');
+  const g1 = el('div', 'grp');
+  g1.innerHTML = `<label>biome <select data-st="biome">${['Savanna', 'Woodland', 'Wetland', 'Desert', 'Highland', 'Ashlands', 'Coast'].map((n, i) => `<option value="${i}">${n}</option>`).join('')}</select></label>
+    <label><input type="checkbox" data-st="night"> night</label><label>coast <input type="range" min="0" max="1" step="0.05" data-st="coast"></label>`;
+  const g2 = el('div', 'grp');
+  g2.innerHTML = ['rain', 'storm', 'dust', 'heat', 'fog'].map((k) => `<label>${k} <input type="range" min="0" max="1" step="0.05" data-st="${k}"></label>`).join('') + '<label><input type="checkbox" data-st="fire"> fire near</label>';
+  const g3 = el('div', 'grp');
+  g3.innerHTML = [['trees', 'trees'], ['tall', 'tall grass'], ['torch', 'torches'], ['whistle', 'whistling rocks'], ['camp', 'camp embers'], ['oasis', 'oasis'], ['herd', 'stampede']].map(([k, l]) => `<label>${l} <input type="range" min="0" max="1" step="0.05" data-sc="${k}"></label>`).join('');
+  const g4 = el('div', 'grp');
+  g4.innerHTML = `<button class="b" id="ambB">play BEFORE</button><button class="a" id="ambA">play AFTER</button><button id="ambS">stop</button><label><input type="checkbox" id="music"> music</label><span id="ambstate">stopped</span>`;
+  p.append(g1, g2, g3, g4);
+  p.querySelectorAll('[data-st]').forEach((i) => (i.oninput = () => (st[i.dataset.st] = i.type === 'checkbox' ? (i.checked ? 1 : 0) : +i.value)));
+  p.querySelectorAll('[data-sc]').forEach((i) => (i.oninput = () => (sc[i.dataset.sc] = +i.value)));
+  setTimeout(() => { $('ambB').onclick = () => startAmb('before'); $('ambA').onclick = () => startAmb('after'); $('ambS').onclick = stopAmb; syncControls(); });
+  return p;
+}
+
+// ---- page ----
+const cats = [...new Set(CUES.map((c) => c.cat))];
+const out = $('out'), nav = $('nav');
+const amb = el('section'); amb.id = 'ambience';
+const h = el('h2', null, 'Ambience beds (live)'); amb.append(h, el('div', 'note', 'Set the land, hour and weather, then play BEFORE or AFTER: the real update loop runs, music muted unless ticked. The extras (trees, torches, rocks, herd) are what the game reports from around the cat; the old engine had nothing for them. The presets below are 8 s offline renders; their buttons load the preset into the live panel.'), ambPanel());
+const scenes = SCENES.map((s) => ({ kind: 'scene', id: s.id, label: s.label, scene: s, isNew: !OLD_SCENE.has(s.id), before: OLD_SCENE.has(s.id) ? [] : null, after: [] }));
+for (const s of scenes) amb.append(card(s));
+out.append(amb);
+nav.append(Object.assign(el('a', null, 'Ambience'), { href: '#ambience' }));
+for (const cat of cats) {
+  const sec = el('section'); sec.id = cat.replace(/[^a-z]+/gi, '-');
+  const list = CUES.filter((c) => c.cat === cat);
+  const hh = el('h2', null, cat);
+  const all = el('button', null, '▶ play all in category'); all.onclick = () => playAll(list);
+  hh.append(all, el('small', null, `${list.length} cues, ${list.filter((c) => c.isNew).length} new`));
+  sec.append(hh);
+  for (const c of list) sec.append(card(c));
+  out.append(sec);
+  nav.append(Object.assign(el('a', null, cat), { href: '#' + sec.id }));
+}
+$('stats').textContent = `${CUES.length} cues (${CUES.filter((c) => c.isNew).length} new), ${SCENES.length} ambience scenes · rendering pictures…`;
+// render the pictures in order, a few at a time, so the page is usable at once
+(async () => {
+  let n = 0;
+  for (const j of jobs) { await j(); if (++n % 6 === 0) { $('stats').textContent = `${CUES.length} cues, ${SCENES.length} scenes · rendered ${n}/${jobs.length}`; await new Promise((r) => setTimeout(r, 0)); } }
+  $('stats').textContent = `${CUES.length} cues (${CUES.filter((c) => c.isNew).length} new), ${SCENES.length} ambience scenes · all rendered`;
+})();
+</script>
+</body></html>

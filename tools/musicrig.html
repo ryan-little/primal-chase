@@ -1,0 +1,27 @@
+<!doctype html><html><body><script type="module">
+// Headless rig for tools/musicrun.mjs: renders a scene with either engine and returns numbers and pictures.
+import { SCENES, renderScene, analyze, drawRoll, drawSpec, wav } from './musiclab.js';
+const v = Date.now();
+const engines = { before: (await import('./audio-before.js?v=' + v)).Audio, after: (await import('../js/audio.js?v=' + v)).Audio };
+window.scenes = SCENES.map((s) => s.id);
+window.run = async (eng, id, opts = {}) => {
+  const scene = typeof id === 'string' ? SCENES.find((s) => s.id === id) : id;
+  const r = await renderScene(engines[eng], scene, { old: eng === 'before', ...opts });
+  const A = analyze(r);
+  const out = { id: scene.id, eng, ms: r.ms, log: r.log, ...A };
+  if (opts.pics !== false) {
+    const c1 = document.createElement('canvas'), c2 = document.createElement('canvas');
+    drawRoll(c1, r); drawSpec(c2, r);
+    out.roll = c1.toDataURL('image/png'); out.spec = c2.toDataURL('image/png');
+  }
+  if (opts.wav) { const b = wav(r.buffer); let s = ''; for (let i = 0; i < b.length; i += 0x8000) s += String.fromCharCode.apply(null, b.subarray(i, i + 0x8000)); out.wav = btoa(s); }
+  if (opts.events) out.events = r.ev;
+  return out;
+};
+window.initCost = async () => {
+  const res = {};
+  for (const k in engines) { const off = new OfflineAudioContext(2, 44100, 44100); const t = performance.now(); const a = new engines[k](); a.init(off); res[k] = Math.round(performance.now() - t); }
+  return res;
+};
+window.ready = true;
+</script></body></html>

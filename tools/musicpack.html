@@ -1,0 +1,168 @@
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Primal Chase music pack: before and after</title>
+<style>
+  :root { --bg: #c2a64a; --ink: #1a110c; --panel: #f3ead2; --line: #cdbf96; --accent: #c2562e; }
+  * { box-sizing: border-box; }
+  body { margin: 0; background: #2b1d15; color: var(--ink); font: 13px/1.4 ui-monospace, Consolas, Menlo, monospace; }
+  header { position: sticky; top: 0; z-index: 5; background: #1a110c; color: #f3ead2; padding: 8px 14px; display: flex; flex-wrap: wrap; gap: 6px 14px; align-items: center; border-bottom: 2px solid var(--accent); }
+  header h1 { font-size: 15px; margin: 0 8px 0 0; letter-spacing: .5px; }
+  header label { display: inline-flex; align-items: center; gap: 5px; white-space: nowrap; }
+  button, select { font: inherit; background: #3a2618; color: #f3ead2; border: 1px solid #7a5434; border-radius: 3px; padding: 2px 7px; cursor: pointer; }
+  button.on { background: var(--accent); border-color: #ffb13b; }
+  button:disabled { opacity: .5; cursor: wait; }
+  nav { display: flex; flex-wrap: wrap; gap: 4px 10px; width: 100%; font-size: 12px; }
+  nav a { color: #ffe08a; text-decoration: none; } nav a:hover { text-decoration: underline; }
+  main { padding: 10px 14px 60px; }
+  .note { color: #e0bb84; font-size: 12px; margin: 4px 0 8px; max-width: 1100px; }
+  section > h2 { color: #ffe08a; font-size: 15px; margin: 22px 0 8px; border-bottom: 1px solid #7a5434; padding-bottom: 3px; }
+  .card { background: var(--panel); border: 1px solid var(--line); border-radius: 4px; margin: 0 0 12px; overflow: hidden; }
+  .card > h3 { margin: 0; padding: 5px 10px; font-size: 13px; background: #e4d7b0; border-bottom: 1px solid var(--line); display: flex; gap: 10px; align-items: baseline; }
+  .card > h3 small { font-weight: normal; color: #6e4a2c; }
+  .row { display: flex; border-bottom: 1px solid var(--line); }
+  .rowlab { writing-mode: vertical-rl; transform: rotate(180deg); font-size: 10px; color: #8a6e2a; text-transform: uppercase; letter-spacing: 1px; text-align: center; padding: 4px 2px; border-right: 1px solid var(--line); background: #ece0bc; }
+  .body { padding: 6px 8px 8px; flex: 1; min-width: 0; }
+  .ctl { display: flex; gap: 8px; align-items: center; margin-bottom: 5px; flex-wrap: wrap; }
+  .ctl button { background: #3a2618; }
+  .stats { color: #6e4a2c; font-size: 11px; }
+  .pics { display: flex; flex-direction: column; gap: 3px; }
+  .pics img, .pics canvas { width: 100%; max-width: 900px; display: block; border-radius: 2px; background: #14100c; }
+  .live { background: #1a110c; color: #f3ead2; border: 1px solid #7a5434; border-radius: 4px; padding: 8px 10px; margin: 10px 0; display: flex; flex-wrap: wrap; gap: 8px 14px; align-items: center; }
+  .live b { color: #ffe08a; }
+  .live .state { color: #e0bb84; font-size: 12px; width: 100%; }
+</style></head><body>
+<header>
+  <h1>PRIMAL CHASE · music pack</h1>
+  <label>volume <input id="vol" type="range" min="0" max="1.5" step="0.05" value="1"></label>
+  <button id="stopall">stop</button>
+  <nav id="nav"><a href="#live">live controls</a></nav>
+</header>
+<main>
+  <div class="note">BEFORE is the engine as it was (<code>tools/audio-before.js</code>); AFTER is the live <code>js/audio.js</code>. Each player renders the scene offline through the engine's real update loop (music bus only, ambience and sfx muted), then plays it; the piano roll and spectrogram beside it are redrawn from that same render. Renders are random each time, so press play again to hear another take. Images shown before you press play come from <code>node tools/musicrun.mjs</code>.</div>
+  <section id="live">
+    <h2>Live: force the state and hear the transitions</h2>
+    <div class="live">
+      <label>engine <select id="L-eng"><option value="after">after</option><option value="before">before</option></select></label>
+      <button id="L-go">start</button>
+      <label>screen <select id="L-menu"><option value="0">playing</option><option value="1">title</option><option value="2">dead (elegy)</option></select></label>
+      <label>biome <select id="L-biome"><option value="0">savanna</option><option value="1">woodland</option><option value="2">wetland</option><option value="3">desert</option><option value="4">highland</option><option value="5">volcanic</option><option value="6">coast</option></select></label>
+      <label>time <select id="L-night"><option value="0">day</option><option value="1">night</option></select></label>
+      <label>tension <select id="L-int"><option value="0">0 calm</option><option value="1">1 on your trail</option><option value="2">2 closing in</option><option value="3">3 sighted / chase</option></select></label>
+      <label>rain <input id="L-rain" type="range" min="0" max="1" step="0.1" value="0"></label>
+      <span>cues: <span id="L-cues"></span></span>
+      <div class="state" id="L-state">stopped</div>
+    </div>
+  </section>
+  <div id="out"></div>
+</main>
+<script type="module">
+import { SCENES, renderScene, analyze, drawRoll, drawSpec, oldCue } from './musiclab.js';
+const v = Date.now();
+const ENG = { before: (await import('./audio-before.js?v=' + v)).Audio, after: (await import('../js/audio.js?v=' + v)).Audio };
+const summary = await fetch('shots/music/summary.json?v=' + v).then((r) => (r.ok ? r.json() : {})).catch(() => ({}));
+const el = (tag, cls, text) => { const e = document.createElement(tag); if (cls) e.className = cls; if (text != null) e.textContent = text; return e; };
+
+// ---------- playback of offline renders ----------
+let actx = null, cur = null, vol = 1;
+const out = () => { if (!actx) { actx = new AudioContext(); actx.g = actx.createGain(); actx.g.connect(actx.destination); } actx.g.gain.value = vol; return actx; };
+function stopAll() { if (cur) { try { cur.src.stop(); } catch {} cur.btn.textContent = 'play'; cur.btn.classList.remove('on'); cur = null; } }
+document.getElementById('vol').oninput = (e) => { vol = +e.target.value; if (actx) actx.g.gain.value = vol; };
+document.getElementById('stopall').onclick = () => { stopAll(); stopLive(); };
+
+const statLine = (A) => A ? `rms ${A.rmsDb} dB · peak ${A.peakDb} dB · crest ${A.crestDb} · loudness ${A.loudMin}..${A.loudMax} · bands sub ${A.balance.sub}% low ${A.balance.low}% mid ${A.balance.mid}% pres ${A.balance.pres}% air ${A.balance.air}% · width ${A.width} · repeated bars ${A.repeatBarsPct}% · clip ${A.clip} · NaN ${A.nan}` : 'not measured yet';
+
+function sceneRow(scene, eng) {
+  const row = el('div', 'row');
+  row.appendChild(el('div', 'rowlab', eng));
+  const body = el('div', 'body');
+  const ctl = el('div', 'ctl');
+  const btn = el('button', null, 'play');
+  const st = el('span', 'stats', statLine(summary[`${scene.id}.${eng}`]));
+  ctl.append(btn, st);
+  const pics = el('div', 'pics');
+  for (const k of ['roll', 'spec']) { const im = new Image(); im.src = `shots/music/${scene.id}.${eng}.${k}.png?v=${v}`; im.onerror = () => im.remove(); pics.appendChild(im); }
+  body.append(ctl, pics);
+  row.appendChild(body);
+  btn.onclick = async () => {
+    if (cur && cur.btn === btn) { stopAll(); return; }
+    stopAll(); stopLive();
+    btn.disabled = true; btn.textContent = 'rendering…';
+    try {
+      const r = await renderScene(ENG[eng], scene, { old: eng === 'before', sr: 32000 });
+      const A = analyze(r);
+      st.textContent = statLine(A) + ` · log: ${r.log.slice(0, 6).join(' ')}`;
+      pics.textContent = '';
+      const c1 = el('canvas'), c2 = el('canvas');
+      drawRoll(c1, r); drawSpec(c2, r);
+      pics.append(c1, c2);
+      const ctx = out();
+      await ctx.resume();
+      const src = ctx.createBufferSource();
+      src.buffer = r.buffer; src.connect(ctx.g); src.start();
+      cur = { src, btn };
+      btn.textContent = 'stop'; btn.classList.add('on');
+      src.onended = () => { if (cur && cur.src === src) stopAll(); };
+    } catch (e) { st.textContent = 'render failed: ' + e.message; btn.textContent = 'play'; }
+    btn.disabled = false;
+  };
+  return row;
+}
+
+const groups = [...new Set(SCENES.map((s) => s.group))];
+const nav = document.getElementById('nav'), outEl = document.getElementById('out');
+for (const g of groups) {
+  const id = g.toLowerCase().replace(/\W+/g, '-');
+  const sec = el('section'); sec.id = id;
+  sec.appendChild(el('h2', null, g));
+  const a = el('a', null, g); a.href = '#' + id; nav.appendChild(a);
+  for (const s of SCENES.filter((x) => x.group === g)) {
+    const card = el('div', 'card');
+    const h = el('h3'); h.append(el('span', null, s.title), el('small', null, `${s.secs} s · ` + s.tl.map(([t, o]) => `${t}s ${JSON.stringify(o)}`).join(' → ') + (s.cues ? ' · cues ' + s.cues.map(([t, k]) => `${t}s ${k}`).join(', ') : '')));
+    card.appendChild(h);
+    card.append(sceneRow(s, 'before'), sceneRow(s, 'after'));
+    sec.appendChild(card);
+  }
+  outEl.appendChild(sec);
+}
+
+// ---------- live engine ----------
+let live = null;
+const $ = (id) => document.getElementById(id);
+function applyLive() {
+  if (!live) return;
+  const a = live.a, m = +$('L-menu').value;
+  a.menu = m === 1; a.over = m === 2; a.dead = m === 2 ? a.dead : false;
+  if (m !== 2) a.dead = false;
+  a.biome = +$('L-biome').value; a.night = +$('L-night').value; a.intensity = +$('L-int').value; a.rain = +$('L-rain').value;
+}
+function stopLive() { if (!live) return; cancelAnimationFrame(live.raf); live.a.ctx.close(); live = null; $('L-go').textContent = 'start'; $('L-go').classList.remove('on'); $('L-state').textContent = 'stopped'; }
+$('L-go').onclick = () => {
+  if (live) { stopLive(); return; }
+  stopAll();
+  const a = new ENG[$('L-eng').value]();
+  a.init();
+  a.musicVol = 0.8 * vol; a.applyVolumes();
+  live = { a, last: performance.now() };
+  applyLive();
+  $('L-go').textContent = 'stop'; $('L-go').classList.add('on');
+  const tick = (now) => {
+    if (!live) return;
+    const dt = Math.min(0.1, (now - live.last) / 1000); live.last = now;
+    applyLive();
+    a.update(dt);
+    const s = a.sec || {};
+    $('L-state').textContent = `theme ${a.theme} · section ${s.kind ?? 'v' + s.v} · lead ${s.lead} · tempo ${a.tempo.toFixed(1)} · key ${a.key >= 0 ? '+' : ''}${a.key}`;
+    live.raf = requestAnimationFrame(tick);
+  };
+  live.raf = requestAnimationFrame(tick);
+};
+for (const id of ['L-menu', 'L-biome', 'L-night', 'L-int', 'L-rain']) $(id).oninput = applyLive;
+$('L-eng').onchange = () => { if (live) { stopLive(); $('L-go').click(); } };
+for (const k of ['kill', 'dodge', 'secret', 'feat', 'perk', 'dawn', 'dusk', 'hurt', 'escape', 'death', 'start']) {
+  const b = el('button', null, k);
+  b.onclick = () => { if (!live) return; const a = live.a; if (a.cue) a.cue(k); else oldCue(a, k); if (k === 'death') $('L-menu').value = a.cue ? '2' : $('L-menu').value; if (k === 'start') $('L-menu').value = '0'; };
+  $('L-cues').appendChild(b);
+}
+</script>
+</body></html>
