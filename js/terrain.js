@@ -66,10 +66,10 @@ export class Terrain {
     this.seed = seed;
     const n = (k) => makeNoise(seed + k);
     this.nE = n(1); this.nM = n(2); this.nR = n(3); this.nW = n(4); this.nP = n(5); this.nD = n(6);
-    this.nA = n(7); this.nH = n(8); this.nV = n(9); this.nC = n(10); this.nRamp = n(11); this.nS = n(12);
+    this.nA = n(7); this.nH = n(8); this.nV = n(9); this.nC = n(10); this.nRamp = n(11); this.nS = n(12); this.nF = n(13);
     this.cache = new Map();
     this.coastR = 8800;
-    this.L = new Float32Array(5);
+    this.L = new Float32Array(6);
   }
 
   // ---- large-scale fields on an 8px grid, bilinear between ----
@@ -83,23 +83,24 @@ export class Terrain {
         let n = 0;
         for (const k of this.cache.keys()) { this.cache.delete(k); if (++n > 200) break; }
       }
-      blk = { v: new Float32Array(32 * 32 * 5), f: new Uint8Array(32 * 32) };
+      blk = { v: new Float32Array(32 * 32 * 6), f: new Uint8Array(32 * 32) };
       this.cache.set(key, blk);
     }
     const li = ((gy & 31) << 5) | (gx & 31);
-    const o = li * 5, v = blk.v;
+    const o = li * 6, v = blk.v;
     if (!blk.f[li]) {
       blk.f[li] = 1;
       const x = gx * GRID, y = gy * GRID;
       let A = this.nA.fbm(x / 5200, y / 5200, 2);
       let H = this.nH.fbm(x / 4200, y / 4200, 2);
       let V = this.nV.fbm(x / 3600, y / 3600, 2);
+      let F = this.nF.fbm(x / 3000, y / 3000, 2); // woodland: its own blobs, not a band of the moisture field
       const E = this.nE.fbm(x / 1000, y / 1000, 3);
       const d = Math.hypot(x, y);
       const coast = this.coastR + this.nC.fbm(x / 2600, y / 2600, 3) * 2000 - d;
       const k = clamp(1 - (d - 1300) / 1900, 0, 1);
-      A *= 1 - k; H = H * (1 - k) - k * 0.35; V = V * (1 - k) - k * 0.6;
-      v[o] = A; v[o + 1] = H; v[o + 2] = V; v[o + 3] = E; v[o + 4] = coast;
+      A *= 1 - k; H = H * (1 - k) - k * 0.35; V = V * (1 - k) - k * 0.6; F = F * (1 - k) - k * 0.3;
+      v[o] = A; v[o + 1] = H; v[o + 2] = V; v[o + 3] = E; v[o + 4] = coast; v[o + 5] = F;
     }
     this.tmpBlk = v;
     return o;
@@ -114,7 +115,7 @@ export class Terrain {
     const ob = this.largeAt(gx + 1, gy), vb = this.tmpBlk;
     const oc = this.largeAt(gx, gy + 1), vc = this.tmpBlk;
     const od = this.largeAt(gx + 1, gy + 1), vd = this.tmpBlk;
-    for (let i = 0; i < 5; i++) {
+    for (let i = 0; i < 6; i++) {
       const t = va[oa + i] + (vb[ob + i] - va[oa + i]) * u;
       L[i] = t + (vc[oc + i] + (vd[od + i] - vc[oc + i]) * u - t) * w;
     }
@@ -122,18 +123,22 @@ export class Terrain {
   }
 
   biomeOf(L, d) {
-    const [A, H, V, , coast] = L;
+    const [A, H, V, , coast, F] = L;
     if (coast < 260 + d * 90) return B.COAST;
     if (V > 0.3 + d * 0.03) return B.VOLCANIC;
     if (H > 0.2 + d * 0.03) return B.HIGHLAND;
     if (A > 0.18 + d * 0.03) return B.DESERT;
-    if (A < -0.25 + d * 0.03) return B.WETLAND;
-    if (A < -0.08 + d * 0.03) return B.WOODLAND;
+    if (A < -0.25 + d * 0.04) return B.WETLAND;
+    if (F > 0.03 + d * 0.04 && A < 0.1) return B.WOODLAND;
     return B.SAVANNA;
   }
 
+  // Edge wobble for every threshold: smooth (a 300px swell with a little 90px detail), so borders
+  // bend like coastlines instead of fraying into specks.
+  edge(x, y) { return this.nD(x / 300, y / 300) * 0.8 + this.nD(x / 90 + 71, y / 90) * 0.25; }
+
   biomeAt(x, y) {
-    return this.biomeOf(this.large(x, y), this.nD(x / 60, y / 60));
+    return this.biomeOf(this.large(x, y), this.edge(x, y));
   }
 
   // Terraces only exist in the highlands. Level 0 everywhere else.
@@ -158,7 +163,7 @@ export class Terrain {
       if (coast < 0) return G.SHALLOW;
       if (rv < rw * 0.8) return G.SHALLOW;
       if (coast < 170 + d * 60) return G.BEACH;
-      return this.nD(x / 90, y / 90) > 0.15 ? G.TALL : G.GRASS;
+      return this.nD.fbm(x / 240, y / 240, 2) > 0.15 ? G.TALL : G.GRASS;
     }
     if (biome === B.DESERT) {
       if (pond > 0.72) return G.SHALLOW; // rare oasis
@@ -166,12 +171,12 @@ export class Terrain {
       if (rv < rw) return G.SAND; // dry riverbed
       if (this.nS.fbm(x / 520, y / 520, 2) > 0.28 + d * 0.05) return G.SALT;
       if (E + d * 0.1 > 0.36) return G.ROCK;
-      return this.nD(x / 130 + 20, y / 130) > 0.28 ? G.SAND : G.DUNE;
+      return this.nD.fbm(x / 320 + 20, y / 320, 2) > 0.22 ? G.SAND : G.DUNE;
     }
     if (biome === B.VOLCANIC) {
       if (rv < rw * 0.55) return G.SHALLOW;
       if (E > 0.42) return G.ROCK;
-      return this.nD(x / 80, y / 80 + 30) > 0.12 ? G.ASH : G.BASALT;
+      return this.nD.fbm(x / 220, y / 220 + 30, 2) > 0.12 ? G.ASH : G.BASALT;
     }
     if (biome === B.WETLAND) {
       if (rv < rw * 0.7) return G.DEEP;
@@ -179,7 +184,7 @@ export class Terrain {
       if (pond > 0.52) return G.DEEP;
       if (pond > 0.38) return G.SHALLOW;
       if (pond > 0.32 || rv < rw * 2) return G.MUD;
-      return this.nD(x / 110 + 7, y / 110) > 0.02 ? G.TALL : G.LUSH;
+      return this.nD.fbm(x / 260 + 7, y / 260, 2) > 0.02 ? G.TALL : G.LUSH;
     }
     // savanna, woodland, highland share the river/pond skeleton
     const narrow = biome === B.HIGHLAND ? 0.6 : 1;
@@ -188,14 +193,14 @@ export class Terrain {
     if (pond > 0.6) return pond > 0.7 ? G.DEEP : G.SHALLOW;
     if (rv < rw * narrow + 0.012 || pond > 0.555) return G.MUD;
     if (biome === B.HIGHLAND) {
-      if (this.nD(x / 120, y / 120 + 60) + E * 0.5 > 0.02) return G.ROCK;
-      return this.nD(x / 150 + 50, y / 150) > 0.3 ? G.TALL : G.GRASS;
+      if (this.nD.fbm(x / 280, y / 280 + 60, 2) + E * 0.5 > 0.02) return G.ROCK;
+      return this.nD.fbm(x / 300 + 50, y / 300, 2) > 0.25 ? G.TALL : G.GRASS;
     }
     if (biome === B.WOODLAND) {
       if (E > 0.46) return G.ROCK;
       if (rv < rw + 0.05 || pond > 0.44) return G.LUSH;
-      if (this.nD(x / 90, y / 90 + 90) > 0.3) return G.LUSH;
-      if (this.nD(x / 150 + 50, y / 150) > 0.3) return G.TALL;
+      if (this.nD.fbm(x / 240, y / 240 + 90, 2) > 0.25) return G.LUSH;
+      if (this.nD.fbm(x / 300 + 50, y / 300, 2) > 0.25) return G.TALL;
       return G.LEAF;
     }
     // savanna
@@ -203,7 +208,7 @@ export class Terrain {
     if (rv < rw + 0.06 || pond > 0.42) return G.LUSH;
     if (m < -0.34 + d * 0.06) return G.CLAY;
     if (m < -0.16 + d * 0.06) return G.SAND;
-    if (m > 0.02 && this.nD(x / 150 + 50, y / 150) > 0.12) return G.TALL;
+    if (m > 0.02 && this.nD.fbm(x / 300 + 50, y / 300, 2) > 0.1) return G.TALL;
     return G.GRASS;
   }
 
@@ -211,7 +216,7 @@ export class Terrain {
   ground(x, y) {
     x = Math.floor(x); y = Math.floor(y);
     const L = this.large(x, y);
-    const d = this.nD(x / 60, y / 60);
+    const d = this.edge(x, y);
     const g = this.classify(x, y, L, this.biomeOf(L, d), d);
     if (isWaterType(g)) return g; // rivers cut clean through the terraces
     const lv = this.levelAt(x, y);
@@ -247,7 +252,7 @@ export class Terrain {
         const wx = ox + x, wy = oy + y, i = y * S + x;
         const L = this.large(wx, wy);
         const E = L[3];
-        const d = this.nD(wx / 60, wy / 60);
+        const d = this.edge(wx, wy);
         const bio = this.biomeOf(L, d);
         let g = this.classify(wx, wy, L, bio, d);
         const li = (y + FACE) * S + x;

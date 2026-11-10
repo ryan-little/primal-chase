@@ -1,0 +1,24 @@
+<!doctype html><html><body style="margin:0;background:#000"><canvas id="c"></canvas><script type="module">
+// World map for checking generation: ?mode=biome|ground&R=half-width&N=pixels&cx=&cy=&seed=
+// tools/worldshot.mjs screenshots it.
+import { Terrain } from '../js/terrain.js';
+import { P } from '../js/palette.js';
+const q = new URLSearchParams(location.search), num = (k, d) => +(q.get(k) ?? d);
+const seed = num('seed', 1), N = num('N', 700), R = num('R', 11200), cx = num('cx', 0), cy = num('cy', 0), mode = q.get('mode') || 'ground';
+const T = new Terrain(seed);
+const step = (2 * R) / N;
+const c = document.getElementById('c'); c.width = N; c.height = N; const x = c.getContext('2d');
+const gcol = { 0: P.grass2, 1: P.lush1, 2: P.tall2, 3: P.sand2, 4: P.clay1, 5: P.mud1, 6: P.rock2, 7: P.water1, 8: P.deep1, 9: P.ash2, 10: P.dune2, 11: P.salt2, 12: P.beach2, 13: P.sea1, 14: P.litter2, 15: P.basalt2, 16: '#000' };
+const bcol = ['#c9b24a', '#5f7d2e', '#3f8f86', '#c4623a', '#8a8a8a', '#3a2d33', '#e6d7a3'];
+const img = x.createImageData(N, N);
+const rgb = (h) => { const n = parseInt(h.slice(1), 16); return [n >> 16, (n >> 8) & 255, n & 255]; };
+const cache = {};
+for (let j = 0; j < N; j++) for (let i = 0; i < N; i++) {
+  const wx = cx - R + i * step, wy = cy - R + j * step;
+  const h = mode === 'biome' ? bcol[T.biomeAt(wx, wy)] : gcol[T.ground(wx, wy)];
+  const [r, g, b] = cache[h] || (cache[h] = rgb(h));
+  const o = (j * N + i) * 4; img.data[o] = r; img.data[o + 1] = g; img.data[o + 2] = b; img.data[o + 3] = 255;
+}
+x.putImageData(img, 0, 0);
+window.done = true;
+</script></body></html>
