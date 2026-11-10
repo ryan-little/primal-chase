@@ -206,54 +206,33 @@ function renderJournal() {
       : `<div class="jentry locked"><h3>${iconImg('secret')}???</h3><p>Somewhere out there.</p></div>`;
   }).join('');
 }
-// Secret lore cards. When nothing is hunting nearby the world holds still until the player
-// moves on. With danger close only a short card shows (name and gift) and play never stops;
-// the full story comes back once things are quiet, and it is always in the Journal.
-let loreT = 0, loreHold = false, loreGrace = 0, loreRest = false, lorePending = null, loreQuietT = 0;
-function loreSafe(g) {
-  const p = g.player, th = g.threat();
-  if (g.over || th.mode === 'chase' || th.d < 480 || th.dogD < 360 || g.spears.length || g.croc) return false;
-  return !g.runners.some((r) => !r.leaving && dist(r.x, r.y, p.x, p.y) < 450);
-}
+// Secret lore cards: the card comes up the moment the place is found and the world holds still
+// (hunters, spears and all) until the player moves on. A gift of an instinct is chosen after it.
+let loreT = 0, loreHold = false, loreGrace = 0, loreRest = false;
 function showLore(g, S, kicker) {
   $('lore-kicker').textContent = kicker;
   $('lore-title').textContent = S.name;
   $('lore-text').textContent = S.lore;
   $('lore-gift').textContent = S.gift;
   $('lore').style.setProperty('--lore-ic', `url("${icon(SECRET_ICON[SECRET_IDS.find((k) => SECRETS[k] === S)] || 'secret')}")`);
-  loreHold = loreSafe(g);
+  loreHold = true;
   loreGrace = 0.7;
   loreRest = false;
-  lorePending = loreHold ? null : { S, t: 90 };
-  loreQuietT = 0;
-  loreT = loreHold ? 1 : 5;
-  $('lore-more').innerHTML = loreHold
-    ? (input.usingTouch ? 'Tap here or move to go on' : 'Press <kbd>Space</kbd> or move to go on') + ' · kept in your Journal'
-    : 'The full story when you are safe. Always in your Journal.';
-  $('lore').classList.toggle('hold', loreHold);
-  $('lore').classList.toggle('brief', !loreHold);
-  $('hud').classList.toggle('lorehold', loreHold);
+  loreT = 1;
+  $('lore-more').innerHTML = (input.usingTouch ? 'Tap here or move to go on' : 'Press <kbd>Space</kbd> or move to go on') + ' · kept in your Journal';
+  $('lore').classList.add('hold');
+  $('hud').classList.add('lorehold');
   $('lore').classList.add('on');
   // a toast would land on top of the card; it waits until the card is gone
   $('toast').classList.remove('on');
 }
-function hideLore(all = false) {
+function hideLore() {
   loreT = 0; loreHold = false;
-  if (all) lorePending = null;
   $('lore').classList.remove('on', 'hold');
   $('hud').classList.remove('lorehold');
 }
 function updateLore(inp, dt) {
-  if (loreT <= 0) {
-    // the story found mid-chase returns after a few quiet seconds
-    if (!lorePending || !game || game.over) return;
-    lorePending.t -= dt;
-    loreQuietT = loreSafe(game) ? loreQuietT + dt : 0;
-    if (lorePending.t <= 0) lorePending = null;
-    else if (loreQuietT > 2.5) showLore(game, lorePending.S, 'Remembered');
-    return;
-  }
-  if (!loreHold) { loreT -= dt; if (loreT <= 0) hideLore(); return; }
+  if (loreT <= 0) return;
   // held: wait for a fresh push of the stick or keys (a held key from walking in does not count)
   loreGrace -= dt;
   const moving = Math.hypot(inp.x, inp.y) > 0.3;
@@ -563,7 +542,7 @@ function startRun(isDaily = daily) {
 }
 
 function finishRun() {
-  hideLore(true);
+  hideLore();
   $('toast').classList.remove('on');
   $('card').classList.remove('on');
   toastT = 0;
@@ -919,7 +898,7 @@ function frame(now) {
     if (inp.edges.has('Tab') || inp.edges.has('KeyN')) openMap();
     updateToasts(dt);
     if (cardT > 0) { cardT -= dt; if (cardT <= 0) $('card').classList.remove('on'); }
-    if (game.perkChoices > 0 && !game.over && cardT < 2.4 && state === 'playing') openPerks(...(game.lastPerkSource ? [game.lastPerkSource.title, game.lastPerkSource.kicker] : []));
+    if (game.perkChoices > 0 && !game.over && cardT < 2.4 && !loreHold && state === 'playing') openPerks(...(game.lastPerkSource ? [game.lastPerkSource.title, game.lastPerkSource.kicker] : []));
     if (game.over && !deathShown && game.time - game.deathTime > 0.9) {
       deathShown = true;
       state = 'dead';

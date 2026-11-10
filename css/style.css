@@ -404,8 +404,6 @@ kbd, #toast kbd, #lore-more kbd {
 #hud.lorehold::before { content: ''; position: absolute; inset: 0; background: rgba(14, 9, 6, .55); animation: fade .4s ease; }
 #lore.hold { bottom: auto; top: 50%; transform: translate(-50%, -46%); pointer-events: auto; cursor: pointer; }
 #lore.hold.on { transform: translate(-50%, -50%); }
-#lore.brief #lore-text { display: none; }
-#lore.brief { width: min(460px, calc(100vw - 24px)); }
 
 /* ---------- touch controls ---------- */
 #touch-ui { display: none; }
