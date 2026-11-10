@@ -119,8 +119,8 @@ const prideAhead = (d, off) => {
   // they stay on their kill for the shot: heads up, tails flicking, nobody charges
   g.updateLions = (dt) => { for (const L of g.lions) { L.anim = (L.anim + dt * 0.3) % 1; L.state = 'rest'; } };
 };
-// is there water (or a cliff) on the line ahead, where a fleeing animal would be turned back?
-const dryAhead = (d) => { const [ax, ay] = window.__away; window.__wet = false; for (let r = 0; r <= d; r += 12) for (const o of [-30, 0, 30]) { const t = W.typeAt(pl.x + ax * r - ay * o, pl.y + ay * r + ax * o); if (W.isWater(t) || t === 13 || t === 16) window.__wet = true; } };
+// is there water or a cliff on the line ahead (a fleeing animal is turned back), or tall grass (it hides the cat)?
+const dryAhead = (d) => { const [ax, ay] = window.__away; window.__wet = false; for (let r = 0; r <= d; r += 12) for (const o of [-30, 0, 30]) { const t = W.typeAt(pl.x + ax * r - ay * o, pl.y + ay * r + ax * o); if (W.isWater(t) || t === 2 || t === 13 || t === 16) window.__wet = true; } };
 const strikes = (list) => { window.__strikes = list.map(([t, dx]) => ({ t, dx })); };
 `;
 
