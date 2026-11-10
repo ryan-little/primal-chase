@@ -6,7 +6,9 @@ A real-time rebuild of Primal Chase. You are the big cat. The band behind you ar
 - **Your trail is the game.** Every step leaves prints they follow. Rock and water leave none, rain washes them out, a stampede tramples them flat. Break the trail and they have to stop and search.
 - **Drink, hunt, eat.** Stand still at water to drink. Stalk gazelles and hares (tall grass hides you), pounce, and stand over the kill to eat before the hyenas come.
 - **When they see you,** they run and throw spears. Every throw is telegraphed with a red line. Sidestep, or pounce through it; a pounce can also knock a hunter flat.
-- **It escalates.** Each dawn the band walks faster. Dogs join on day 2, more hunters on odd days, and a lone runner periodically cuts across to intercept you. Deep water hides crocodiles.
+- **It escalates.** Each dawn the band walks faster, and from day 4 they walk faster than you trot. Dogs join on day 2 and more follow, hunters join on days 3 and 5 to 8, and lone runners cut across to intercept you. Day 3: broken trails buy less time. Day 4: torches, so no slowing down at night. Day 6: fire drives, where they light the grass beyond you and let the wind push you back to them.
+- **You don't know where they are.** Out of sight and earshot, the tracker only says they're somewhere behind you. The hunters' Cold Camp secret shows you where they are for the rest of the day.
+- **Water is a rental.** It cools you and hides your prints, but swimming drains stamina, crocodiles come to anyone who lingers (in the shallows too, and faster the longer you stay), and a cat still in the water gets found.
 - **Don't run a straight line.** Hold one heading too long and the band reads your line: they speed up, then send interceptors ahead, then set ambushes.
 - **A whole continent.** Seven biomes (savanna, mopane woodland, wetlands, red desert, terraced highlands where you can leap down ledges that men must climb around, ashlands, and the coast that ends the world), each with its own ground, plants, animals and music.
 - **Secrets and instincts.** Ten kinds of secret place (painted caves, a hidden spring, the old baobab, a hunters' cold camp...) with lore and rewards, a journal across runs, and a perk choice every dawn.
@@ -21,7 +23,7 @@ No build step and no dependencies. Every sprite, sound and music cue is generate
 python -m http.server 8791   # then open http://127.0.0.1:8791
 ```
 
-Controls: WASD/arrows to move, Shift sprint, Space pounce, Tab map, P/Esc pause, M mute. Gamepad and touch (drag to move, push to the rim to sprint, POUNCE button) are supported.
+Controls: WASD to move, Shift sprint, Q stalk, Space pounce, Tab map, Esc pause, M mute. Gamepad and touch (drag to move, push to the rim to sprint, STALK toggle, POUNCE button) are supported.
 
 ## Layout
 

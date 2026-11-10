@@ -6,7 +6,7 @@ export class Input {
     this.edges = new Set();
     this.touch = { id: null, ox: 0, oy: 0, x: 0, y: 0, active: false };
     this.touchPounce = false;
-    this.touchSprint = false;
+    this.touchStalk = false;
     this.usingTouch = !!(window.matchMedia && matchMedia('(pointer: coarse)').matches);
     if (this.usingTouch) document.body.classList.add('touch');
     window.addEventListener('touchstart', () => { this.usingTouch = true; document.body.classList.add('touch'); }, { passive: true });
@@ -14,7 +14,7 @@ export class Input {
     this.lastDevice = 'keyboard';
 
     window.addEventListener('keydown', (e) => {
-      if (['ArrowUp', 'ArrowDown', 'ArrowLeft', 'ArrowRight', ' ', 'Space', 'Tab'].includes(e.key) || e.code === 'Space') e.preventDefault();
+      if (['ArrowUp', 'ArrowDown', ' ', 'Space', 'Tab'].includes(e.key) || e.code === 'Space') e.preventDefault();
       const k = e.code;
       if (!this.keys.has(k)) this.edges.add(k);
       this.keys.add(k);
@@ -73,10 +73,17 @@ export class Input {
     el.addEventListener('touchcancel', end);
 
     const pb = document.getElementById('btn-pounce');
-    const sb = document.getElementById('btn-sprint');
+    const sb = document.getElementById('btn-stalk');
+    this.stalkBtn = sb;
     pb.addEventListener('touchstart', (e) => { this.touchPounce = true; pb.classList.add('down'); e.preventDefault(); }, { passive: false });
     pb.addEventListener('touchend', () => pb.classList.remove('down'));
-    sb.addEventListener('touchstart', (e) => { this.touchSprint = !this.touchSprint; sb.classList.toggle('down', this.touchSprint); e.preventDefault(); }, { passive: false });
+    // stalk is a toggle on touch so the right thumb is free for POUNCE; a pounce ends it
+    sb.addEventListener('touchstart', (e) => { this.setTouchStalk(!this.touchStalk); e.preventDefault(); }, { passive: false });
+  }
+
+  setTouchStalk(on) {
+    this.touchStalk = on;
+    this.stalkBtn.classList.toggle('down', on);
   }
 
   pad() {
@@ -88,14 +95,14 @@ export class Input {
   read() {
     const K = this.keys;
     let x = 0, y = 0;
-    if (K.has('KeyA') || K.has('ArrowLeft')) x -= 1;
-    if (K.has('KeyD') || K.has('ArrowRight')) x += 1;
-    if (K.has('KeyW') || K.has('ArrowUp')) y -= 1;
-    if (K.has('KeyS') || K.has('ArrowDown')) y += 1;
+    if (K.has('KeyA')) x -= 1;
+    if (K.has('KeyD')) x += 1;
+    if (K.has('KeyW')) y -= 1;
+    if (K.has('KeyS')) y += 1;
     let sprint = K.has('ShiftLeft') || K.has('ShiftRight');
-    let stalk = K.has('KeyC');
+    let stalk = K.has('KeyQ');
     let pounce = this.edges.has('Space') || this.edges.has('KeyJ');
-    let pause = this.edges.has('Escape') || this.edges.has('KeyP');
+    let pause = this.edges.has('Escape');
     let confirm = this.edges.has('Enter') || this.edges.has('NumpadEnter');
 
     const gp = this.pad();
@@ -130,8 +137,8 @@ export class Input {
       // pushing the stick to its rim is a sprint
       if (l > 50) sprint = true;
     }
-    if (this.touchSprint) sprint = true;
-    if (this.touchPounce) { pounce = true; this.touchPounce = false; }
+    if (this.touchStalk) stalk = true;
+    if (this.touchPounce) { pounce = true; this.touchPounce = false; if (this.touchStalk) this.setTouchStalk(false); }
 
     const padConfirm = this.padConfirm; this.padConfirm = false;
     const edges = new Set(this.edges);

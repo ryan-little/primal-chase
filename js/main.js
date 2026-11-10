@@ -2,7 +2,7 @@
 
 import { buildArt, canvas } from './art.js';
 import { Audio } from './audio.js';
-import { Game, BITS } from './game.js';
+import { Game, BITS, HUNTER_DAYS, TRACKERS_DAY, TORCH_DAY, FIRE_DAY } from './game.js';
 import { SPECIES } from './fauna.js';
 import { PERK_BY_ID } from './perks.js';
 import { SECRETS, SECRET_IDS } from './secrets.js';
@@ -53,8 +53,19 @@ for (const [id, key] of [['v-health', 'health'], ['v-heat', 'heat'], ['v-water',
 {
   const f = canvas(32, 32), x = f.getContext('2d');
   x.imageSmoothingEnabled = false;
-  const fr = art.cat.run[1];
-  x.drawImage(fr, 20, 4, 38, 26, -2, 4, 38, 26);
+  // fit the cat's visible pixels, whatever the sprite's framing
+  const fr = canvas(art.cat.run[1].width, art.cat.run[1].height);
+  fr.getContext('2d').drawImage(art.cat.run[1], 0, 0); // frames may be atlas regions
+  const d = fr.getContext('2d').getImageData(0, 0, fr.width, fr.height).data;
+  let x0 = fr.width, y0 = fr.height, x1 = -1, y1 = -1;
+  for (let y = 0; y < fr.height; y++) for (let i = 0; i < fr.width; i++) {
+    if (d[(y * fr.width + i) * 4 + 3] > 20) { x0 = Math.min(x0, i); x1 = Math.max(x1, i); y0 = Math.min(y0, y); y1 = Math.max(y1, y); }
+  }
+  const h = y1 - y0 + 1, w = Math.min(x1 - x0 + 1, Math.round(h * 1.5)); // head and body; the tail trails off the left edge
+  x0 = x1 - w + 1;
+  const k = Math.min(32 / w, 32 / h);
+  const dw = Math.round(w * k), dh = Math.round(h * k);
+  x.drawImage(fr, x0, y0, w, h, (32 - dw) >> 1, (32 - dh) >> 1, dw, dh);
   $('favicon').href = f.toDataURL();
 }
 const silCache = new Map();
@@ -285,15 +296,26 @@ for (const [id, v] of [['set-cine-on', true], ['set-cine-off', false]]) $(id).on
 showCine();
 
 // first gesture unlocks audio
-const unlock = () => { audio.init(); };
+const unlock = () => { if (state !== 'paused') audio.init(); };
 window.addEventListener('pointerdown', unlock);
 window.addEventListener('keydown', unlock);
 window.addEventListener('resize', () => renderer.resize());
 document.addEventListener('visibilitychange', () => {
   if (document.hidden && state === 'playing') pause();
   // silence everything already scheduled while away; the sequencer skips ahead on return
-  if (audio.ctx) { if (document.hidden) audio.ctx.suspend(); else audio.ctx.resume(); }
+  if (audio.ctx && document.hidden) audio.ctx.suspend(); // the frame loop resumes it (unless paused)
 });
+// Paused or away, everything stops: music and sound, not just a muffle.
+function syncAudio() {
+  const c = audio.ctx;
+  if (!c) return;
+  const want = state !== 'paused' && !document.hidden;
+  if (!want && c.state === 'running') c.suspend();
+  else if (want && c.state === 'suspended') c.resume();
+}
+// The cursor hides while you play and comes back when the mouse moves.
+let mouseT = 0;
+window.addEventListener('mousemove', () => { mouseT = performance.now(); });
 
 function pause() {
   if (state !== 'playing') return;
@@ -412,14 +434,14 @@ const HINTS = {
   heat: 'You are overheating. Stop in <b>shade</b>, lie down, or wade into water.',
   overheat: 'Overheated! You can barely walk until you cool down.',
   water: 'Thirsty. Follow the <b style="color:#7fd6e0">blue arrow</b>, then stand still at the water to drink.',
-  food: () => `Hungry. Creep up on prey ${input.usingTouch ? '(ease the stick)' : input.lastDevice === 'pad' ? '(hold LT)' : '(hold <kbd>C</kbd>)'}, then ${input.usingTouch ? '<b>POUNCE</b>' : '<kbd>Space</kbd> to pounce'}. Stand over the kill to eat.`,
+  food: () => `Hungry. Creep up on prey ${input.usingTouch ? '(tap <b>STALK</b>)' : input.lastDevice === 'pad' ? '(hold LT)' : '(hold <kbd>Q</kbd>)'}, then ${input.usingTouch ? '<b>POUNCE</b>' : '<kbd>Space</kbd> to pounce'}. Stand over the kill to eat.`,
   sighted: 'They see you! Sprint, or lose them in <b>tall grass</b>.',
   spear: () => `Spear! Step off the <b style="color:#ff4a2e">red line</b>, or ${input.usingTouch ? 'POUNCE' : '<kbd>Space</kbd>'} through it.`,
   trail: 'Trail broken. They have to search for your tracks.',
   night: 'Night. Cooler and darker. Their torches show where they are.',
   rain: 'Rain! Your tracks are washing away.',
   dogs: 'Dogs run faster than you and follow scent over rock. Pounce to drive them off.',
-  croc: 'Something moves in the deep water. Get out!',
+  croc: 'Something moves in the water. The longer you stay, the more of them come. Get out!',
   hyenas: 'Hyenas are coming for your kill. Eat fast, or pounce to scatter them.',
   stampede: 'Stampede! Get clear, or pounce one for a big meal. The herd tramples your trail, and anyone in its way.',
   mult: 'Danger survived raises your <b>multiplier</b> (top right). Getting hurt halves it.',
@@ -449,12 +471,13 @@ function hint(key, force = false) {
   hintQ.push(key);
 }
 let toastLock = 0, laterQ = [];
-function toast(html, dur = 4.2) {
-  // a feat notice holds the slot; anything else waits its turn
-  if (toastLock > 0) { laterQ.push([html, dur]); return; }
+function toast(html, dur = 4.2, hold = false) {
+  // a feat notice (or any held toast) keeps the slot; anything else waits its turn
+  if (toastLock > 0) { laterQ.push([html, dur, hold]); return; }
   $('toast').innerHTML = html;
   $('toast').classList.add('on');
   toastT = dur;
+  if (hold) toastLock = dur;
 }
 function updateToasts(dt) {
   if (loreT > 0) return; // everything waits behind a lore card
@@ -643,8 +666,16 @@ function handleEvents(g) {
       case 'dawn':
         card(`Day ${e.day}`, BITS[(e.day * 3) % BITS.length], 3.8);
         audio.sting('dawn');
-        if (e.day === 2) toast('The band grows faster each dawn. Dogs have joined them.', 4.5);
-        else if ([3, 5, 7, 9].includes(e.day)) toast('Another hunter joins the band.', 3.5);
+        {
+          const news = [];
+          if (e.day === 2) news.push('The band grows faster each dawn. Dogs have joined them.');
+          if (e.day === TRACKERS_DAY) news.push('<b>They have learned how you hide.</b> Broken trails buy less time now.');
+          if (e.day === TORCH_DAY) news.push('<b>Torches.</b> They no longer slow down at night, and they see farther in the dark.');
+          if (e.day === FIRE_DAY) news.push('<b>Fire.</b> They will light the grass beyond you and let the wind drive you back to them.');
+          if (HUNTER_DAYS.includes(e.day)) news.push('Another hunter joins the band.');
+          if (e.day > 2 && e.day % 2 === 1) news.push('Another dog runs with them.');
+          if (news.length) toast(news.join('<br>'), 3 + news.length * 1.8, true);
+        }
         break;
       case 'dusk': audio.sting('dusk'); hint('night'); break;
       case 'rain': hint('rain', true); audio.play('thunder', { vol: 0.6 }); break;
@@ -676,6 +707,7 @@ function handleEvents(g) {
       }
       case 'strike': audio.play('thunder', { vol: 1 }); audio.play('snap', { vol: 0.6 }); renderer.shake(5); renderer.burst('spark', e.x, e.y, 16, { col: '#fffbe0' }); break;
       case 'wildfire': hint('fire', true); break;
+      case 'firedrive': toast('<b style="color:#ff9a4a">Fire drive!</b> They lit the grass beyond you. Get round the end of the line, or onto rock, water or bare ground.', 4.5, true); audio.play('shout', { vol: 0.6 }); renderer.shake(2); break;
       case 'mult': multBumpT = 0.25; audio.play('ui', { pitch: 84 + Math.min(12, Math.round(e.v * 3)) }); hint('mult'); break;
       case 'multloss': audio.play('multloss'); break;
       case 'drop': audio.play('drop', { vol: 0.8 }); break;
@@ -689,6 +721,7 @@ function handleEvents(g) {
 }
 
 // ---------------- HUD ----------------
+const SENSE_R = 450; // close enough to hear them coming
 let hudT = 0;
 let multBumpT = 0;
 function updateHUD(g, dt) {
@@ -708,11 +741,14 @@ function updateHUD(g, dt) {
   mEl.className = (g.mult >= 2.5 ? 'hotter' : g.mult >= 1.5 ? 'hot' : '') + (multBumpT > 0 ? ' bump' : '');
   const th = g.threat();
   const d = th.d;
-  $('band-dist').textContent = fmtDist(d / 10);
-  const fill = clamp(1 - (d - 40) / 900, 0.03, 1);
-  $('tracker-fill').style.width = (fill * 100).toFixed(1) + '%';
+  // You only know where they are when you can see or hear them, or learned it at their camp.
   const mode = g.band.mode;
-  $('band-state').textContent = mode === 'chase' ? 'They see you!' : g.lineP > 14 ? 'Reading your line' : mode === 'search' ? 'Searching for your trail' : d < 300 ? 'Close on your trail' : 'Following your tracks';
+  const known = mode === 'chase' || d < SENSE_R || g.intelDay === g.day;
+  $('band-dist').textContent = known ? fmtDist(d / 10) : '?';
+  const fill = known ? clamp(1 - (d - 40) / 900, 0.03, 1) : 0;
+  $('tracker-fill').style.width = (fill * 100).toFixed(1) + '%';
+  $('band-state').textContent = mode === 'chase' ? 'They see you!' : g.lineP > 14 ? 'Reading your line' :
+    !known ? 'Somewhere behind you' : mode === 'search' ? 'Searching for your trail' : d < 300 ? 'Close on your trail' : 'Following your tracks';
   $('hud').className = mode === 'chase' ? 'chase' : mode === 'search' ? 'search' : '';
   const set = (id, v, low, good) => {
     const el = $(id);
@@ -830,6 +866,8 @@ function frame(now) {
   if (inp.edges.has('KeyM')) { audio.muted = !audio.muted; audio.applyVolumes(); }
 
   menuNav(inp);
+  syncAudio();
+  document.body.classList.toggle('nocursor', state === 'playing' && now - mouseT > 1500);
   if (state === 'title') {
     logoT += dt;
     if (Math.floor(logoT * 20) !== Math.floor((logoT - dt) * 20)) drawLogo(logoT); // the silhouettes animate at 10-20 fps; no need to repaint every frame

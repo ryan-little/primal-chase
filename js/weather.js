@@ -6,6 +6,7 @@ import { lerp, clamp, dist, TAU } from './util.js';
 import { G } from './terrain.js';
 
 const FCELL = 8;
+export const FIRE_DAY = 6;
 const FLAMMABLE = new Set([G.GRASS, G.TALL, G.LUSH, G.LEAF]);
 export const WEATHER_NAMES = { clear: 'Clear', rain: 'Rain', storm: 'Thunderstorm', heat: 'Heatwave', dust: 'Dust storm', fog: 'Fog' };
 
@@ -66,6 +67,7 @@ export function installWeather(Game) {
         if (this.ignite(fx, fy)) this.emit('wildfire', { x: fx, y: fy });
       }
     }
+    this.updateFireDrive(dt);
     if (w.kind !== 'clear') {
       w.until -= dt;
       if (w.until <= 0) { w.kind = 'clear'; w.target = 0; }
@@ -109,6 +111,26 @@ export function installWeather(Game) {
     this.weatherSight = (1 - w.fog * 0.45) * (1 - w.dust * 0.5);
     this.weatherThirst = 1 + w.heat * 0.35;
     this.updateFire(dt);
+  };
+
+  // From FIRE_DAY the band sets the grass alight on the far side of you, upwind, so the
+  // fire runs you back toward them. Slip round the end of the line or find bare ground.
+  P.updateFireDrive = function (dt) {
+    const w = this.weather, p = this.player, b = this.band;
+    this.fireDriveT = (this.fireDriveT ?? this.r.range(30, 50)) - dt;
+    if (this.day < FIRE_DAY || this.fireDriveT > 0 || this.isNight || w.rain > 0.2 || this.over) return;
+    this.fireDriveT = 20; // try again soon if the wind or the ground won't have it
+    if (this.hunterDist() > 700) return;
+    const toBand = Math.atan2(b.y - p.y, b.x - p.x);
+    if (Math.cos(w.windA - toBand) < 0.2) return; // the wind has to blow you back to them
+    const wx = Math.cos(w.windA), wy = Math.sin(w.windA);
+    const cx = p.x - wx * 190, cy = p.y - wy * 190;
+    let lit = 0;
+    for (let s = -110; s <= 110; s += 12) if (this.ignite(cx - wy * s, cy + wx * s)) lit++;
+    if (lit < 6) return;
+    this.fireDriveT = this.r.range(75, 110);
+    this.stats.fireDrives = (this.stats.fireDrives || 0) + 1;
+    this.emit('firedrive', { x: cx, y: cy });
   };
 
   // Extra heat per second from the sky (added to the player's heat balance).

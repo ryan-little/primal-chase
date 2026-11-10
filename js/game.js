@@ -8,12 +8,13 @@ import { PERKS, PERK_BY_ID } from './perks.js';
 import { SECRETS } from './secrets.js';
 import { SPECIES, pickSpecies } from './fauna.js';
 import { B } from './terrain.js';
-import { installWeather } from './weather.js';
+import { installWeather, FIRE_DAY } from './weather.js';
+export { FIRE_DAY }; // from day 6 they burn the grass to drive you back to them
 
 export const DAY_LEN = 170; // seconds per full day/night cycle
 export const T = {
   trot: 66, sprint: 132, pounceSpeed: 340, pounceTime: 0.22,
-  hunterWalk: 47, hunterWalkPerDay: 6.5, hunterRun: 76, hunterRunPerDay: 5,
+  hunterWalk: 49, hunterWalkPerDay: 7.5, hunterWalkLate: 2.5, hunterRun: 78, hunterRunPerDay: 6,
   dogRun: 136, spearSpeed: 310,
 };
 
@@ -29,6 +30,11 @@ export const BITS = [
   'They run the way water runs. Without hurry. Without end.',
   'The sun is theirs. The dark is yours.',
 ];
+
+// Each dawn after the first teaches the band something new.
+export const HUNTER_DAYS = [3, 5, 6, 7, 8];
+export const TRACKERS_DAY = 3; // broken trails buy less time
+export const TORCH_DAY = 4; // no slowing down at night
 
 let UID = 1;
 
@@ -216,8 +222,8 @@ export class Game {
       this.emit('dawn', { day: this.day });
       this.grantPerkChoice();
       // escalation
-      if ([3, 5, 7, 9].includes(this.day)) this.addHunters(1);
-      const dogsWanted = this.day >= 2 ? Math.min(4, Math.floor(this.day / 2)) : 0;
+      if (HUNTER_DAYS.includes(this.day)) this.addHunters(1);
+      const dogsWanted = this.day >= 2 ? Math.min(5, Math.floor((this.day + 1) / 2)) : 0;
       while (this.dogs.filter((d) => !d.dead).length < dogsWanted) this.addDog();
       this.planDay();
     }
@@ -366,7 +372,8 @@ export class Game {
     // stamina
     const maxSt = p.food < 20 ? 55 : 100;
     if (p.sprinting) p.stamina -= 21 * this.perk('lungs', 0.85) * dt;
-    else p.stamina += (p.lying ? 26 : sp < 6 ? 20 : 13) * (1 + 0.2 * (this.perks.lungs || 0)) * (this.isNight && this.has('night') ? 1.5 : 1) * dt;
+    else if (g === G.DEEP) p.stamina -= 4 * dt; // swimming wears you down
+    else p.stamina += (p.lying ? 26 : sp < 6 ? 20 : 13) * (1 + 0.2 * (this.perks.lungs || 0)) * (this.isNight && this.has('night') ? 1.5 : 1) * (g === G.SHALLOW ? 0.5 : 1) * dt;
     p.stamina = clamp(p.stamina, 0, maxSt);
     if (p.stamina <= 1 && this.has('wind') && this.windUsedDay !== this.day) {
       this.windUsedDay = this.day;
@@ -554,7 +561,7 @@ export class Game {
   // ---------------- hunters ----------------
   sightRange() {
     const p = this.player;
-    let r = (this.isNight ? 125 : 240) * this.perk('ghost', 0.88) * (this.weatherSight || 1);
+    let r = (this.isNight ? (this.day >= TORCH_DAY ? 165 : 125) : 240) * this.perk('ghost', 0.88) * (this.weatherSight || 1);
     r *= 1 - this.weather.rain * 0.4;
     if (p.ground === G.TALL) r *= p.lying || p.still > 0.3 ? 0.35 : 0.62;
     else if (p.lying && p.inShade) r *= 0.75;
@@ -566,8 +573,9 @@ export class Game {
     const b = this.band, p = this.player;
     const day = this.day;
     const night = this.isNight;
-    let walk = Math.min(92, T.hunterWalk + T.hunterWalkPerDay * (day - 1)) * (night ? 0.85 : 1);
-    const run = Math.min(118, T.hunterRun + T.hunterRunPerDay * (day - 1)) * (night ? 0.88 : 1) * (day === 1 ? 0.93 : 1);
+    const torches = day >= TORCH_DAY;
+    let walk = Math.min(100, T.hunterWalk + T.hunterWalkPerDay * (day - 1) + T.hunterWalkLate * Math.max(0, day - 3)) * (night && !torches ? 0.85 : 1);
+    const run = Math.min(124, T.hunterRun + T.hunterRunPerDay * (day - 1)) * (night && !torches ? 0.88 : 1) * (day === 1 ? 0.93 : 1);
     const lead = this.hunters.filter((h) => h.down <= 0);
     const d = dist(b.x, b.y, p.x, p.y);
     // they read the land faster when far behind: persistence
@@ -657,7 +665,8 @@ export class Game {
       }
     } else if (b.mode === 'search') {
       b.searchT += dt;
-      b.searchR += dt * (28 + this.day * 4);
+      const learned = this.day >= TRACKERS_DAY;
+      b.searchR += dt * (28 + this.day * 4) * (learned ? 1.4 : 1);
       // find the next readable print ahead
       const tr = this.trail;
       let found = -1;
@@ -673,16 +682,20 @@ export class Game {
         this.emit('found', { x: b.x, y: b.y });
       }
       // fail-safe: after a long search they cut toward the last place they knew you were
-      if (b.searchT > 16) {
+      if (b.searchT > (learned ? 10 : 16)) {
         this.endSearch();
         b.mode = 'track';
         b.idx = Math.max(b.idx, tr.length - 60);
       }
-      // wander the search anchor slowly toward the trail direction (they guess well)
+      // wander the search anchor slowly toward the trail direction (they guess well).
+      // A cat still in the water hasn't gone anywhere: they walk the bank toward the ripples.
+      const inWater = p.ground === G.SHALLOW || p.ground === G.DEEP;
       const ahead = tr[Math.min(tr.length - 1, b.idx + 8)];
-      const a = Math.atan2(ahead.y - b.y, ahead.x - b.x);
-      b.x += Math.cos(a) * walk * 0.35 * dt;
-      b.y += Math.sin(a) * walk * 0.35 * dt;
+      const a = inWater && this.deepT > 4 ? Math.atan2(p.y - b.y, p.x - b.x) : Math.atan2(ahead.y - b.y, ahead.x - b.x);
+      const k = inWater && this.deepT > 4 ? 0.8 : learned ? 0.5 : 0.35;
+      b.x += Math.cos(a) * walk * k * dt;
+      b.y += Math.sin(a) * walk * k * dt;
+      if (inWater) { b.searchX = b.x; b.searchY = b.y; }
     }
 
     // ---- individual hunters ----
@@ -783,13 +796,18 @@ export class Game {
   // ---------------- the land's other dangers ----------------
   updateHazards(dt) {
     const p = this.player, W = this.world;
-    // --- crocodiles lurk in deep water: cooling off there is a gamble
-    if (p.ground === G.DEEP) this.deepT += dt; else this.deepT = Math.max(0, this.deepT - dt * 2);
-    if (!this.croc && this.day >= 2 && this.deepT > 1.6 && this.r() < dt * 0.5 * (this.has('river') ? 0.5 : 1) && !this.over) {
-      for (let k = 0; k < 16; k++) {
-        const a = this.r() * TAU, r = this.r.range(60, 90);
-        const x = p.x + Math.cos(a) * r, y = p.y + Math.sin(a) * r;
-        if (W.typeAt(x, y) === G.DEEP) { this.croc = { x, y, state: 'stalk', t: 0, face: 1, id: UID++ }; this.emit('croc', { x, y }); break; }
+    // --- crocodiles: water is a refuge you rent, not own. Deep water is theirs from the start;
+    // linger in the shallows and they find you there too, sooner the longer you stay.
+    const wet = p.ground === G.DEEP ? 2 : p.ground === G.SHALLOW ? 1 : 0;
+    if (wet) this.deepT += dt * wet; else this.deepT = Math.max(0, this.deepT - dt * 2);
+    this.crocCd = Math.max(0, (this.crocCd || 0) - dt);
+    const crocAfter = this.day === 1 ? 7 : 3;
+    if (!this.croc && wet && this.crocCd <= 0 && this.deepT > crocAfter && !this.over &&
+        this.r() < dt * 0.45 * (1 + this.deepT / 10) * (this.has('river') ? 0.5 : 1)) {
+      for (let k = 0; k < 20; k++) {
+        const a = this.r() * TAU, r = this.r.range(45, 90);
+        const x = p.x + Math.cos(a) * r, y = p.y + Math.sin(a) * r, g = W.typeAt(x, y);
+        if (g === G.DEEP || g === G.SHALLOW) { this.croc = { x, y, state: 'stalk', t: 0, face: 1, id: UID++ }; this.emit('croc', { x, y }); break; }
       }
     }
     const c = this.croc;
@@ -798,7 +816,8 @@ export class Game {
       const pd = dist(c.x, c.y, p.x, p.y);
       if (c.state === 'stalk') {
         const a = Math.atan2(p.y - c.y, p.x - c.x);
-        const nx = c.x + Math.cos(a) * 62 * dt, ny = c.y + Math.sin(a) * 62 * dt;
+        const csp = W.typeAt(c.x, c.y) === G.DEEP ? 78 : 58;
+        const nx = c.x + Math.cos(a) * csp * dt, ny = c.y + Math.sin(a) * csp * dt;
         if (W.isWater(W.typeAt(nx, ny))) { c.x = nx; c.y = ny; }
         c.face = Math.sign(Math.cos(a)) || 1;
         if (pd < 22) { c.state = 'snap'; c.t = 0; this.emit('crocsnap', { x: c.x, y: c.y }); }
@@ -807,10 +826,10 @@ export class Game {
         if (c.t > 0.32 && !c.bit) {
           c.bit = true;
           if (dist(c.x + c.face * 8, c.y, p.x, p.y) < 18) this.hurtPlayer(20, c.x, c.y, 'croc');
-          else { this.stats.dodges++; this.addScore(60, 'JAWS MISSED', p.x, p.y - 28, '#ffffff', 0.3); this.emit('dodge', { x: p.x, y: p.y, close: true }); }
+          else if (this.deepT < 16) { this.stats.dodges++; this.addScore(60, 'JAWS MISSED', p.x, p.y - 28, '#ffffff', 0.3); this.emit('dodge', { x: p.x, y: p.y, close: true }); }
         }
         if (c.t > 0.8) { c.state = 'sink'; c.t = 0; }
-      } else if (c.t > 1) this.croc = null;
+      } else if (c.t > 1) { this.croc = null; this.crocCd = this.r.range(2, 5); }
     }
 
     // --- hyenas smell a kill left too long
@@ -882,7 +901,12 @@ export class Game {
     for (const g of this.gnus) {
       g.life += dt;
       if (this.stampedeWarn > 1.2) continue; // the rumble comes before the herd
-      if (W.move(g, Math.cos(g.a) * g.sp * dt, Math.sin(g.a) * g.sp * dt) === 'blocked') g.a += 0.8 * dt * 3;
+      // a stampede goes up and over ledges, logs and rocks; only the sea turns it
+      const gdx = Math.cos(g.a) * g.sp * dt, gdy = Math.sin(g.a) * g.sp * dt;
+      if (W.move(g, gdx, gdy, { climb: true }) === 'blocked') {
+        if (W.typeAt(g.x + gdx * 4, g.y + gdy * 4) === G.SEA) g.a += 0.8 * dt * 3;
+        else { g.x += gdx; g.y += gdy; }
+      }
       g.anim = (g.anim + dt * 2.3) % 1;
       g.hitCd -= dt;
       // trample the trail
@@ -968,7 +992,7 @@ export class Game {
         this.runners.push(this.makeRunner(pos[0], pos[1], 26, this.day === 1 ? 2 : 3));
         this.emit('scout', { x: pos[0], y: pos[1] });
       }
-      this.scoutT = Math.max(38, this.r.range(60, 85) - this.day * 4);
+      this.scoutT = Math.max(30, this.r.range(55, 80) - this.day * 5);
     }
     this.runners = this.runners.filter((sc) => this.updateRunner(sc, dt));
   }
@@ -987,7 +1011,7 @@ export class Game {
     }
     if (sc.life <= 0 || pd > 520) sc.leaving = true;
     let tx, ty, sp;
-    const run = Math.min(120, T.hunterRun + 4 + T.hunterRunPerDay * (this.day - 1));
+    const run = Math.min(126, T.hunterRun + 4 + T.hunterRunPerDay * (this.day - 1));
     if (sc.leaving) {
       const a = Math.atan2(sc.y - p.y, sc.x - p.x);
       tx = sc.x + Math.cos(a) * 50; ty = sc.y + Math.sin(a) * 50; sp = run * 0.8;
