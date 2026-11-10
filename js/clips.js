@@ -3,7 +3,7 @@
 // Save-Data, reduced motion, a codec the device lacks). Clips come from tools/clips.mjs.
 
 const DIR = 'assets/clips/';
-export const CLIPS = ['dawn', 'band', 'heat', 'night', 'chase', 'hunt', 'stampede', 'storm', 'fire'];
+export const CLIPS = ['dawn', 'drink', 'band', 'heat', 'rest', 'camp', 'night', 'chase', 'hunt', 'feast', 'pride', 'stampede', 'secret', 'storm', 'fire'];
 
 export class ClipLayer {
   constructor(root) {
