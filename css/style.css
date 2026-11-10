@@ -532,6 +532,9 @@ kbd, #toast kbd, #lore-more kbd {
 #clips video { opacity: 0; transition: opacity 1.2s linear; z-index: 1; image-rendering: auto; }
 #clips video.top { z-index: 2; }
 #clips video.on { opacity: 1; }
+/* the opening starts from black (and waits there if autoplay is refused); the poster only stands in when video is off entirely */
+#clips img { transition: opacity .8s linear; }
+#clips.cine:not(.still) img { opacity: 0; }
 
 /* the opening: letterbox, a line at a time, then the title */
 #cine { position: fixed; inset: 0; z-index: 30; cursor: pointer; background: rgba(0, 0, 0, 0); transition: background .9s ease, opacity 1.8s ease; }

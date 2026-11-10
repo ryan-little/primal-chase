@@ -16,6 +16,7 @@ export class ClipLayer {
     const conn = navigator.connection;
     const reduce = window.matchMedia && matchMedia('(prefers-reduced-motion: reduce)').matches;
     this.enabled = !(conn && conn.saveData) && !reduce && !!document.createElement('video').canPlayType('video/mp4; codecs="avc1.640028"');
+    root.classList.toggle('still', !this.enabled); // no video at all: the poster is all there is to show
     for (const v of this.vids) {
       v.muted = true; v.defaultMuted = true; v.playsInline = true; v.loop = false;
       v.setAttribute('muted', ''); v.setAttribute('playsinline', ''); v.setAttribute('webkit-playsinline', '');

@@ -94,6 +94,7 @@ export class Cinematic {
 
   start() {
     this.el.classList.remove('hidden');
+    this.layer.root.classList.add('cine'); // the opening comes up out of black, not out of the title's poster
     this.layer.show();
     this.layer.prime?.(SHOTS[0][1]);
   }
@@ -212,6 +213,7 @@ export class Cinematic {
     hush();
     clearTimeout(this.lineT);
     this.el.classList.add('out');
+    this.layer.root.classList.remove('cine');
     setTimeout(() => this.el.classList.add('hidden'), 1900); // the title comes up out of the black
     this.onDone();
   }
