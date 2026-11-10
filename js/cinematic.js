@@ -2,22 +2,25 @@
 // Driven by the main loop's clock; a key press (a tap on touch screens, or a pad button) skips it.
 // A mouse click doesn't, so clicking into the tab never cuts it short.
 
-// [start second, clip, seconds into the clip, line, how it cuts in]. A null line keeps the one already up.
-// Cuts: 'cut' a quick dissolve, 'mix' a slower one, 'dip' a short fade through black, 'wipe' a soft black edge sweeping across.
-const SHOTS = [
+// [start second, clip, seconds into the clip, line, how it comes in]. A null line keeps the one already up.
+// The footage is one film, cut by tools/opening.mjs from this table: every shot dissolves into the
+// next ('dip' fades through black instead), and the film fades out to black at BLACK.
+// Change a time here, then rebuild assets/clips/opening.mp4.
+export const SHOTS = [
   [0, 'dawn', 0.4, 'Before the fields and the walls there was the grass, and everything that moved in it.'],
-  [6.2, 'hunt', 0, 'You were the fastest thing in it. You still are.', 'mix'],
-  [11.0, 'stampede', 1.6, 'The land had its own herds, and its own teeth.', 'dip'],
-  [14.0, 'pride', 1.2, null, 'cut'],
-  [17.0, 'storm', 1.4, 'It had its storms, and its fires.', 'dip'],
-  [20.0, 'fire', 1.6, null, 'cut'],
+  [6.2, 'hunt', 0, 'You were the fastest thing in it. You still are.'],
+  [11.0, 'stampede', 1.6, 'The land had its own herds, and its own teeth.'],
+  [14.0, 'pride', 1.2, null],
+  [17.0, 'storm', 1.4, 'It had its storms, and its fires.'],
+  [20.0, 'fire', 1.6, null],
   [23.0, 'camp', 0.6, 'Then they came. Thin, and slow, and upright. They carry water. They carry fire.', 'dip'],
-  [29.6, 'heat', 0.5, 'You can outrun them. You cannot outlast them. They keep coming, all through the heat of the day.', 'mix'],
-  [36.4, 'secret', 0.8, 'But the land is older than they are, and it keeps places only you can find.', 'mix'],
-  [42.2, 'night', 0.3, 'They follow your tracks into the dark. They sing to keep awake.', 'mix'],
-  [47.8, 'chase', 1.5, 'Every runner tires. They are counting on it.', 'cut'],
+  [29.6, 'heat', 0.5, 'You can outrun them. You cannot outlast them. They keep coming, all through the heat of the day.'],
+  [36.4, 'secret', 0.8, 'But the land is older than they are, and it keeps places only you can find.'],
+  [42.2, 'night', 0.3, 'They follow your tracks into the dark. They sing to keep awake.'],
+  [47.8, 'chase', 1.5, 'Every runner tires. They are counting on it.'],
 ];
-const BLACK = 52.4; // footage fades out
+export const MIX = 0.8, DIP = 1.2, FADE_IN = 1.2, FADE_OUT = 0.6; // seconds, for the film's build
+export const BLACK = 52.4; // footage fades out
 const CATCH = 53.0; // "They always catch you."
 const LOGO = 56.4; // title reveal
 const END = 60.0;
@@ -78,10 +81,6 @@ export class Cinematic {
     this.t = 0;
     this.shot = -1;
     this.done = false;
-    // a black veil some cuts pass behind (see cut())
-    this.dip = document.createElement('div');
-    this.dip.className = 'dip';
-    this.el.insertBefore(this.dip, this.el.firstChild);
     this.needGesture = els.needGesture || null; // () => true while the browser is holding sound back for a first press
     this.voice = els.voice !== false;
     this.song = els.song || null; // (level) => the hunters' night song, under the night shot
@@ -97,7 +96,25 @@ export class Cinematic {
     this.el.classList.remove('hidden');
     this.layer.root.classList.add('cine'); // the opening comes up out of black, not out of the title's poster
     this.layer.show();
-    this.layer.prime?.(SHOTS[0][1]);
+    // the footage: one film (tools/opening.mjs), held on its first, black, frame until the start
+    if (this.layer.enabled) {
+      const v = (this.film = document.createElement('video'));
+      v.className = 'film';
+      v.muted = true; v.defaultMuted = true; v.playsInline = true; v.preload = 'auto';
+      v.setAttribute('muted', ''); v.setAttribute('playsinline', ''); v.disableRemotePlayback = true;
+      v.src = 'assets/clips/opening.mp4';
+      v.addEventListener('error', () => { this.film = null; v.remove(); }); // no film: the poster and the lines carry it
+      this.layer.root.appendChild(v);
+      this.roll();
+    }
+  }
+
+  // Start (or restart, after a press) the film; autoplay refused leaves it waiting at the start.
+  roll() {
+    const v = this.film;
+    if (!v) return;
+    this.blocked = false;
+    v.play().catch((err) => { if (err && err.name === 'NotAllowedError') this.blocked = true; });
   }
 
   setLine(text, cls = '') {
@@ -128,9 +145,10 @@ export class Cinematic {
     this.wait = (this.wait || 0) + dt;
     const mute = this.t < 1.5 && !this.begun && this.needGesture && this.needGesture() && this.wait > 0.35;
     if (this.gated && this.muteGate && !this.needGesture()) { this.gated = false; this.muteGate = false; this.skipEl.classList.remove('gate'); } // it came on by itself
-    if (this.layer.blocked || this.gated || mute) {
+    if (this.blocked || this.gated || mute) {
       if (!this.gated) {
-        this.muteGate = !this.layer.blocked;
+        this.muteGate = !this.blocked;
+        if (this.film) { this.film.pause(); this.film.currentTime = 0; }
         this.gated = true;
         const touch = window.matchMedia && matchMedia('(pointer: coarse)').matches;
         this.skipEl.textContent = touch ? 'Tap to begin' : 'Press any key to begin';
@@ -138,8 +156,8 @@ export class Cinematic {
       }
       if (!pressed) return;
       this.gated = false; this.skipAsked = false; this.begun = true;
-      this.layer.blocked = false;
       this.t = 0; this.shot = -1;
+      this.roll();
       const touch = window.matchMedia && matchMedia('(pointer: coarse)').matches;
       this.skipEl.textContent = touch ? 'Tap to skip' : 'Press any key to skip';
       this.skipEl.classList.remove('gate');
@@ -147,67 +165,29 @@ export class Cinematic {
     }
     if (pressed) { this.finish(); return; }
     if (this.needGesture && !this.begun && this.wait < 0.45) return; // settle whether sound is allowed before the first line starts
-    this.t += dt;
+    // the film is the clock while it runs, so the lines stay on their pictures even if it stalls to buffer
+    const v = this.film;
+    if (v && !v.ended && !v.error && v.readyState >= 2 && v.currentTime < BLACK) this.t = v.currentTime;
+    else if (!v || v.ended || v.error || this.t >= BLACK) this.t += dt;
     const t = this.t;
 
     let i = -1;
     for (let k = 0; k < SHOTS.length; k++) if (t >= SHOTS[k][0]) i = k;
     if (i !== this.shot && t < BLACK) {
       this.shot = i;
-      const [, clip, from, text] = SHOTS[i];
+      const [, clip, , text] = SHOTS[i];
       if (text !== null && this.voice) speak(SHOTS.slice(0, i).filter((x) => x[3] !== null).length, text, this.voiceVol);
-      if (i === 0) this.layer.play(clip, from, 1.6);
-      else this.cut(i, clip, from, SHOTS[i][4]);
-      if (SHOTS[i + 1]) setTimeout(() => this.layer.prime(SHOTS[i + 1][1]), 1200);
       if (text !== null) this.setLine(text);
       // "They sing to keep awake": the band's song rises under the night shot and fades as the chase begins
       if (this.song) this.song(clip === 'night' ? 0.45 : 0);
     }
-    if (t >= BLACK) { this.el.classList.add('black'); this.veil(0, 0); }
+    if (t >= BLACK) this.el.classList.add('black');
     if (t >= BLACK && t < CATCH) this.setLine('');
     if (t >= CATCH && t < LOGO) { if (this.voice && !this.saidCatch) { this.saidCatch = true; speak(SPOKEN, 'They always catch you.', this.voiceVol); } this.setLine('They always catch you.', 'big'); }
     this.logoSoon = t > LOGO - 1.4;
     if (t >= LOGO) { if (this.voice && !this.saidTag) { this.saidTag = true; speak(SPOKEN + 1, 'How long can you run?', this.voiceVol); } this.setLine('How long can you run?', 'tag'); this.logo.classList.add('on'); }
     this.skipEl.classList.toggle('on', t > 1 && t < LOGO);
     if (t >= END) this.finish();
-  }
-
-  // The black veil over the footage: fade it to opacity `to` over `ms`, or sweep it across ('in' covers
-  // from the left, 'out' uncovers to the right). Reduced motion makes every move instant.
-  veil(to, ms, sweep = null) {
-    const calm = document.body.classList.contains('calm') || (window.matchMedia && matchMedia('(prefers-reduced-motion: reduce)').matches);
-    const d = this.dip;
-    if (this.veilA) this.veilA.cancel();
-    const from = { opacity: d.style.opacity || '0', clipPath: d.style.clipPath || 'inset(0 0 0 0)' };
-    const end = sweep === 'in' ? { opacity: '1', clipPath: 'inset(0 0 0 0)' } : sweep === 'out' ? { opacity: '1', clipPath: 'inset(0 0 0 100%)' } : { opacity: String(to), clipPath: 'inset(0 0 0 0)' };
-    if (sweep === 'in') from.opacity = '1', from.clipPath = 'inset(0 100% 0 0)';
-    else if (!sweep && /100%/.test(from.clipPath)) from.opacity = '0', from.clipPath = 'inset(0 0 0 0)'; // swept off already: fade from clear
-    d.style.opacity = end.opacity; d.style.clipPath = end.clipPath;
-    if (calm || !ms || !d.animate) return;
-    this.veilA = d.animate([from, end], { duration: ms, easing: sweep ? 'cubic-bezier(.6,0,.4,1)' : 'ease-in-out' });
-  }
-
-  // Bring shot i in with its own kind of cut. A clip that is slow to start never leaves the veil up.
-  cut(i, clip, from, kind = 'dip') {
-    clearTimeout(this.dipT); clearTimeout(this.liftT);
-    if (kind === 'cut' || kind === 'mix') {
-      this.veil(0, 0);
-      this.layer.play(clip, from, kind === 'mix' ? 0.9 : 0.35); // even a 'cut' is a quick dissolve: hard cuts read as jolts
-      return;
-    }
-    const cover = kind === 'wipe' ? 380 : 320, uncover = kind === 'wipe' ? 460 : 420;
-    if (kind === 'wipe') this.veil(1, cover, 'in'); else this.veil(1, cover);
-    this.dipT = setTimeout(() => {
-      if (this.done || this.shot !== i) return;
-      let lifted = false;
-      const lift = () => {
-        if (lifted || this.done || this.shot !== i) return;
-        lifted = true;
-        if (kind === 'wipe') this.veil(0, uncover, 'out'); else this.veil(0, uncover);
-      };
-      this.layer.play(clip, from, 0.02, lift);
-      this.liftT = setTimeout(lift, 600);
-    }, cover + 20);
   }
 
   finish() {
@@ -218,6 +198,8 @@ export class Cinematic {
     clearTimeout(this.lineT);
     this.el.classList.add('out');
     this.layer.root.classList.remove('cine');
+    const v = this.film;
+    if (v) { this.film = null; v.style.transition = 'opacity 1.2s ease-in-out'; v.style.opacity = '0'; setTimeout(() => { v.pause(); v.remove(); }, 1900); } // a skip lets the title's clips come up through it
     setTimeout(() => this.el.classList.add('hidden'), 1900); // the title comes up out of the black
     this.onDone();
   }

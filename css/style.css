@@ -535,11 +535,12 @@ kbd, #toast kbd, #lore-more kbd {
 /* the opening starts from black (and waits there if autoplay is refused); the poster only stands in when video is off entirely */
 #clips img { transition: opacity .8s linear; }
 #clips.cine:not(.still) img { opacity: 0; }
+/* the opening's film, over the title's clips */
+#clips video.film { opacity: 1; z-index: 3; transition: none; }
 
 /* the opening: letterbox, a line at a time, then the title */
 #cine { position: fixed; inset: 0; z-index: 30; cursor: pointer; background: rgba(0, 0, 0, 0); transition: background .9s ease, opacity 1.8s ease; }
 #cine.black { background: #000; }
-#cine .dip { position: absolute; inset: 0; background: #000; opacity: 0; pointer-events: none; }
 #cine.out { opacity: 0; pointer-events: none; }
 #cine .bar { position: absolute; left: 0; right: 0; height: min(10vh, 96px); background: #000; }
 #cine .bar.top { top: 0; }

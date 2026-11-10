@@ -32,12 +32,12 @@ fs.mkdirSync(TMP, { recursive: true });
 
 // Each scene: where and when, what to set up, how the cat moves, what the camera frames.
 const SCENES = [
-  { name: 'dawn', biome: 0, clock: 0.035, secs: 6, pre: 90, setup: `g.weather.fogDawn = true; g.weather.fog = 0.85; clearBand(); level(); gazelles(95, 3);`, input: `trot(0.6, 9)`, aim: `pair(nearPrey(150), 0.35)` },
+  { name: 'dawn', biome: 0, clock: 0.035, secs: 9, pre: 90, setup: `g.weather.fogDawn = true; g.weather.fog = 0.85; clearBand(); level(); gazelles(95, 3);`, input: `trot(0.6, 9)`, aim: `pair(nearPrey(150), 0.35)` },
   // a flat-out sprint at grazing gazelles on open ground, ending on the catch
   { name: 'hunt', avoid: [2], tries: 40, catchAt: [1.3, 2.4], post: `openAt(g.carcasses[0])`, biome: 0, clock: 0.16, secs: 6, pre: 8, check: `!g.stats.prey && !window.__wet`, setup: `clearBand(); pl.food = 18; level(); dryAhead(400); gazelles(125, 1);`, input: `sprint()`, aim: `pair(nearPrey(140) || (g.carcasses[0] && [g.carcasses[0].x, g.carcasses[0].y - 6]), 0.45)` },
   { name: 'band', crf: 29, biome: 0, clock: 0.22, secs: 6, pre: 150, setup: `level(); bandBehind(420); g.sightRange = () => 0;`, quiet: true, input: `keep(380, 460)`, aim: `pair(bandAt(), 1)` },
-  { name: 'heat', avoid: [6, 7, 8], biome: 3, clock: 0.36, secs: 7, pre: 150, setup: `g.weather.heatDay = true; g.weather.heat = 1; level(); bandBehind(420); pl.heat = 40; g.sightRange = () => 0;`, quiet: true, input: `keep(380, 460)`, aim: `pair(bandAt(), 1)`, heatCap: 76 },
-  { name: 'night', avoid: [6, 7, 8, 2], biome: 0, salt: 'n', clock: 0.8, secs: 6, pre: 150, setup: `g.day = 5; level(); bandBehind(420); g.sightRange = () => 0;`, quiet: true, input: `keep(380, 460)`, aim: `pair(bandAt(), 1)` },
+  { name: 'heat', avoid: [6, 7, 8], biome: 3, clock: 0.36, secs: 9, pre: 150, setup: `g.weather.heatDay = true; g.weather.heat = 1; level(); bandBehind(420); pl.heat = 40; g.sightRange = () => 0;`, quiet: true, input: `keep(380, 460)`, aim: `pair(bandAt(), 1)`, heatCap: 76 },
+  { name: 'night', avoid: [6, 7, 8, 2], biome: 0, salt: 'n', clock: 0.8, secs: 9, pre: 150, setup: `g.day = 5; level(); bandBehind(420); g.sightRange = () => 0;`, quiet: true, input: `keep(380, 460)`, aim: `pair(bandAt(), 1)` },
   { name: 'chase', crf: 29, biome: 2, clock: 0.5, secs: 7, pre: 120, setup: `level(); bandBehind(85, true);`, input: `keep(60, 95, 0.45)`, aim: `pair(nearHunter(), 0.5)` },
   { name: 'stampede', avoid: [2], biome: 0, salt: 'b', clock: 0.3, secs: 6, pre: 30, setup: `clearBand(); level(); herd();`, input: `aside(96)`, aim: `pair(nearGnus(), 0.3)` },
   { name: 'storm', crf: 29, biome: 2, salt: 'b', clock: 0.45, secs: 6, pre: 90, setup: `clearBand(); level(); g.startWeather('storm', 60); g.weather.rain = 1; g.weather.strikeT = 99; strikes([[2.2, 55], [5.2, -60]]);`, input: `trot(0.45, 7)`, aim: `pair(nearFire(120), 0.4)` },
@@ -47,11 +47,11 @@ const SCENES = [
   { name: 'feast', avoid: [2], biome: 0, clock: 0.42, secs: 7, pre: 20, check: `window.__open`, setup: `clearBand(); level(); pl.food = 20; carcassAhead(75);`, input: `feast()`, aim: `pair(null, 0)`, still: true },
   { name: 'rest', avoid: [2], biome: 0, clock: 0.52, secs: 7, pre: 20, check: `!!window.__shade`, setup: `clearBand(); level(); pl.heat = 55; shadeAhead(60, 150); gazelles(140, 4);`, input: `rest()`, aim: `pair(null, 0)`, still: true },
   // the band at home: sat around their fire while the cat watches from the grass
-  { name: 'camp', biome: 0, landmark: 'camp', clock: 0.6, secs: 7, pre: 40, check: `!!window.__lm`, setup: `level(); bandAtCamp();`, input: `watch(150)`, aim: `pair([window.__lm.x + 6, window.__lm.y - 12], 0.62)`, still: true },
+  { name: 'camp', biome: 0, landmark: 'camp', clock: 0.6, secs: 9, pre: 40, check: `!!window.__lm`, setup: `level(); bandAtCamp();`, input: `watch(150)`, aim: `pair([window.__lm.x + 6, window.__lm.y - 12], 0.62)`, still: true },
   // a pride on its kill: the cat gives it a wide berth, and one of them sees it off
   { name: 'pride', avoid: [2], biome: 0, clock: 0.3, secs: 6, pre: 30, setup: `clearBand(); level(); prideAhead(150, 84);`, input: `trot(0.42, 9)`, aim: `pair(nearLion(), 0.5)` },
   // a secret place, not yet found
-  { name: 'secret', biome: 4, salt: 'c', avoid: [2], landmark: 'painted', clock: 0.3, secs: 7, pre: 30, check: `!!window.__lm`, setup: `clearBand(); level();`, input: `visit(34)`, aim: `pair([window.__lm.x, window.__lm.y - 26], 0.5)`, still: true },
+  { name: 'secret', biome: 4, salt: 'c', avoid: [2], landmark: 'painted', clock: 0.3, secs: 9, pre: 30, check: `!!window.__lm`, setup: `clearBand(); level();`, input: `visit(34)`, aim: `pair([window.__lm.x, window.__lm.y - 26], 0.5)`, still: true },
 ].filter((s) => !only.length || only.includes(s.name));
 
 // Page-side helpers, evaluated once per scene with g = the running game.
