@@ -12,7 +12,7 @@ LINES = [
     'The land had its own herds... and its own teeth.',
     'It had its storms, and its fires.',
     'Then they came. Thin, and slow, and upright. They carry water. They carry fire.',
-    'They do not run you down. They walk you down... through the heat of the day.',
+    'They do not run you down. They walk you down, through the heat of the day.',
     'But the land is older than they are, and it keeps places only you can find.',
     'They follow your tracks into the dark. They sing, to keep awake.',
     'Every runner tires. They are counting on it.',

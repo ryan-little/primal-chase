@@ -48,7 +48,7 @@ export class ClipLayer {
   }
 
   // Cut (with a dissolve of `fade` seconds) to clip `name`, starting `from` seconds in.
-  play(name, from = 0, fade = this.fade) {
+  play(name, from = 0, fade = this.fade, onShown = null) {
     if (!this.enabled) return;
     this.want = [name, from, fade];
     const tok = ++this.token;
@@ -71,6 +71,7 @@ export class ClipLayer {
             setTimeout(() => { if (tok === this.token && old !== this.cur) { old.classList.remove('on'); old.pause(); } }, fade * 1000 + 60);
           }
           this.root.classList.add('live');
+          if (onShown) onShown();
         };
         // wait for a real frame so the dissolve never fades in a blank
         if (v.requestVideoFrameCallback) v.requestVideoFrameCallback(show); else show();

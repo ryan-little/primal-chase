@@ -77,6 +77,10 @@ export class Cinematic {
     this.t = 0;
     this.shot = -1;
     this.done = false;
+    // a black veil the shots cut behind: dip out, change clip unseen, come back up on the new one
+    this.dip = document.createElement('div');
+    this.dip.className = 'dip';
+    this.el.insertBefore(this.dip, this.el.firstChild);
     this.needGesture = els.needGesture || null; // () => true while the browser is holding sound back for a first press
     this.voice = els.voice !== false;
     this.voiceVol = els.voiceVol ?? 1; // narration spoken aloud (settings can turn it off)
@@ -149,11 +153,23 @@ export class Cinematic {
       this.shot = i;
       const [, clip, from, text] = SHOTS[i];
       if (text !== null && this.voice) speak(SHOTS.slice(0, i).filter((x) => x[3] !== null).length, text, this.voiceVol);
-      this.layer.play(clip, from, i === 0 ? 1.6 : 0.8);
+      if (i === 0) this.layer.play(clip, from, 1.6);
+      else {
+        const shot = i;
+        this.dip.classList.add('on');
+        clearTimeout(this.dipT);
+        this.dipT = setTimeout(() => {
+          if (this.done || this.shot !== shot) return;
+          let lifted = false;
+          const lift = () => { if (lifted) return; lifted = true; setTimeout(() => this.dip.classList.remove('on'), 120); };
+          this.layer.play(clip, from, 0.05, lift);
+          setTimeout(lift, 900); // never sit in the dark if the clip is slow to start
+        }, 340);
+      }
       if (SHOTS[i + 1]) setTimeout(() => this.layer.prime(SHOTS[i + 1][1]), 1200);
       if (text !== null) this.setLine(text);
     }
-    if (t >= BLACK) this.el.classList.add('black');
+    if (t >= BLACK) { this.el.classList.add('black'); this.dip.classList.remove('on'); }
     if (t >= BLACK && t < CATCH) this.setLine('');
     if (t >= CATCH && t < LOGO) { if (this.voice && !this.saidCatch) { this.saidCatch = true; speak(SPOKEN, 'They always catch you.', this.voiceVol); } this.setLine('They always catch you.', 'big'); }
     this.logoSoon = t > LOGO - 1.4;
