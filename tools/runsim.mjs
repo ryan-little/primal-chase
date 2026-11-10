@@ -1,4 +1,4 @@
-import { chromium } from '../../Primal-Chase-Fable/node_modules/playwright/index.mjs';
+import { chromium } from '../../../tools/pw/node_modules/playwright-core/index.mjs';
 const [,, n='6', skill='1', maxMin='25'] = process.argv;
 const b = await chromium.launch({ channel: 'msedge' });
 const p = await b.newPage();

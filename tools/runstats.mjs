@@ -1,4 +1,4 @@
-import { chromium } from '../../Primal-Chase-Fable/node_modules/playwright/index.mjs';
+import { chromium } from '../../../tools/pw/node_modules/playwright-core/index.mjs';
 const b = await chromium.launch({ channel: 'msedge' }); const p = await b.newPage();
 p.on('pageerror', e => console.log('ERR', e.stack));
 await p.goto('http://127.0.0.1:8791/tools/stats.html'); await p.waitForFunction(() => window.ready);

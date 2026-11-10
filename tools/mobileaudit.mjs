@@ -2,7 +2,7 @@
 // node tools/mobileaudit.mjs <port> <label> [viewportName...]
 // Writes tools/shots/mobile-<label>-<viewport>-<screen>.png and prints layout problems
 // (horizontal overflow, overlapping HUD pieces, small tap targets, panels clipped off screen).
-import { chromium } from 'file:///C:/Users/ryan/Projects/Primal-Chase-Fable/node_modules/playwright/index.mjs';
+import { chromium } from 'file:///C:/Users/ryan/tools/pw/node_modules/playwright-core/index.mjs';
 const port = process.argv[2] || 8791, label = process.argv[3] || 'x';
 const VPS = { p390: [390, 844], p360: [360, 740], l844: [844, 390], t820: [820, 1180], d1280: [1280, 720] };
 const only = process.argv.slice(4);

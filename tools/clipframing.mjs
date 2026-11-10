@@ -1,7 +1,7 @@
 // Screenshots of the title reel and the opening over the recorded clips, at desktop, portrait
 // phone and landscape phone sizes, to check the action sits clear of the logo, menu and lines.
 //   node tools/clipframing.mjs [port]      -> tools/shots/clipframing/
-import { chromium } from 'file:///C:/Users/ryan/Projects/Primal-Chase-Fable/node_modules/playwright/index.mjs';
+import { chromium } from 'file:///C:/Users/ryan/tools/pw/node_modules/playwright-core/index.mjs';
 import fs from 'node:fs';
 const port = +(process.argv[2] || 8791);
 const out = 'tools/shots/clipframing';

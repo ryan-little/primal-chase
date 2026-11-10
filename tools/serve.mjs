@@ -4,7 +4,8 @@ const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 const port = +(process.argv[2] || 8791);
 const T = { '.html': 'text/html', '.js': 'text/javascript', '.mjs': 'text/javascript', '.css': 'text/css', '.png': 'image/png', '.json': 'application/json', '.woff2': 'font/woff2', '.svg': 'image/svg+xml' };
 http.createServer((q, s) => {
-  const f = path.join(root, decodeURIComponent(q.url.split('?')[0]));
+  let f = path.join(root, decodeURIComponent(q.url.split('?')[0]));
+  if (f.endsWith(path.sep)) f = path.join(f, 'index.html');
   fs.readFile(f, (e, d) => {
     if (e) { s.writeHead(404); s.end(); return; }
     s.writeHead(200, { 'content-type': T[path.extname(f)] || 'application/octet-stream', 'cache-control': 'no-store' });

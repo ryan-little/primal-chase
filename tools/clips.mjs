@@ -13,7 +13,7 @@
 // by the cat's velocity just enough to cancel the easing lag. The cat's input keeps that action
 // close and mostly level with it, so everything stays inside the frame's center, which is
 // what the title's logo and menu and a portrait phone's center crop leave visible.
-import { chromium } from 'file:///C:/Users/ryan/Projects/Primal-Chase-Fable/node_modules/playwright/index.mjs';
+import { chromium } from 'file:///C:/Users/ryan/tools/pw/node_modules/playwright-core/index.mjs';
 import fs from 'node:fs';
 import path from 'node:path';
 import { execFileSync, spawn } from 'node:child_process';

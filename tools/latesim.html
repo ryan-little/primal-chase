@@ -1,0 +1,29 @@
+<!doctype html><html><body><script type="module">
+// Late-game balance: start a run already on day N with N-1 instincts, as a player who got there would be.
+import { buildArt } from '../js/art.js';
+import { Game } from '../js/game.js';
+import { makeBot } from './bot.js';
+const art = buildArt();
+const audio = { play(){}, sting(){} };
+window.runLate = (n, skill, startDay, maxMin = 15) => {
+  const res = [];
+  for (let i = 0; i < n; i++) {
+    const g = new Game(2000 + i * 17, art, audio, { headless: true });
+    const bot = makeBot(skill);
+    g.clock = 0.995; g.day = startDay - 1; // the next tick is dawn of startDay
+    for (let k = 1; k < startDay - 1; k++) { const o = g.offerPerks(1); if (o.length) g.takePerk(o[0].id); }
+    g.addHunters(window.newSchedule ? { 3: 0, 4: 1, 5: 1, 6: 2, 7: 3 }[startDay] ?? 0 : ({ 3: 0, 4: 1, 5: 1, 6: 2, 7: 2 }[startDay] ?? 0));
+    if (window.force) g.fireDriveT = 0;
+    const dt = 1 / 30; let t = 0, fd = 0; const causes = {};
+    while (!g.over && t < maxMin * 60) {
+      if (g.perkChoices > 0) { const o = g.offerPerks(1); if (o.length) g.takePerk(o[0].id); else g.perkChoices = 0; }
+      g.update(dt, bot(g));
+      for (const e of g.events) { if (e.type === 'hurt') causes[e.kind] = (causes[e.kind] || 0) + 1; if (e.type === 'firedrive') fd++; }
+      g.events.length = 0; t += dt;
+    }
+    res.push({ t: Math.round(t), day: g.day, fd, causes, cause: g.cause || 'alive' });
+  }
+  return res;
+};
+window.ready = true;
+</script></body></html>

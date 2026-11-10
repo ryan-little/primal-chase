@@ -1,4 +1,4 @@
-import { chromium } from '../../Primal-Chase-Fable/node_modules/playwright/index.mjs';
+import { chromium } from '../../../tools/pw/node_modules/playwright-core/index.mjs';
 const seed = process.argv[2] || 1;
 const b = await chromium.launch({ channel: 'msedge' }); const p = await b.newPage({ viewport: { width: 560, height: 560 } });
 p.on('pageerror', e => console.log('ERR', e.stack));

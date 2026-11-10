@@ -1,6 +1,6 @@
 // In-game shots of the densest tree stands in a few biomes. Needs tools/serve.mjs running.
 // node tools/treebiomes.mjs [port] [biome,biome,...]
-import { chromium } from 'file:///C:/Users/ryan/Projects/Primal-Chase-Fable/node_modules/playwright/index.mjs';
+import { chromium } from 'file:///C:/Users/ryan/tools/pw/node_modules/playwright-core/index.mjs';
 const [,, port = '8791', list = '0,1,3'] = process.argv;
 const TREES = ['acacia', 'umbrella', 'baobab', 'mopane', 'marula', 'fig', 'quiver', 'candelabra', 'mangrove', 'fever', 'palm', 'deadtree', 'charred'];
 const b = await chromium.launch({ channel: 'msedge' });

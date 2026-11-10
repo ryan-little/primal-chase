@@ -2,7 +2,7 @@ import http from 'node:http';
 import fs from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
-import { chromium } from '../../Primal-Chase-Fable/node_modules/playwright/index.mjs';
+import { chromium } from '../../../tools/pw/node_modules/playwright-core/index.mjs';
 
 const ROOT = path.dirname(path.dirname(fileURLToPath(import.meta.url))); // repo root
 const MIME = { '.html': 'text/html', '.js': 'text/javascript', '.mjs': 'text/javascript', '.png': 'image/png', '.css': 'text/css' };

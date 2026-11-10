@@ -1,4 +1,4 @@
-import { chromium } from '../../Primal-Chase-Fable/node_modules/playwright/index.mjs';
+import { chromium } from '../../../tools/pw/node_modules/playwright-core/index.mjs';
 const b = await chromium.launch({ channel: 'msedge', headless: false, args: ['--autoplay-policy=no-user-gesture-required', '--disable-frame-rate-limit', '--disable-gpu-vsync', '--ignore-gpu-blocklist', '--use-angle=d3d11'] });
 const ctx = await b.newContext({ viewport: { width: 1920, height: 1080 }, deviceScaleFactor: 2 });
 const p = await ctx.newPage();

@@ -1,4 +1,4 @@
-import { chromium, devices } from '../../Primal-Chase-Fable/node_modules/playwright/index.mjs';
+import { chromium, devices } from '../../../tools/pw/node_modules/playwright-core/index.mjs';
 const b = await chromium.launch({ channel: 'msedge' });
 for (const [name, vp] of [['landscape', { width: 844, height: 390 }], ['portrait', { width: 390, height: 844 }]]) {
   const ctx = await b.newContext({ viewport: vp, hasTouch: true, isMobile: true, deviceScaleFactor: 3 });

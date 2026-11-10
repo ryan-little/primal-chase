@@ -1,4 +1,4 @@
-import { chromium } from '../../Primal-Chase-Fable/node_modules/playwright/index.mjs';
+import { chromium } from '../../../tools/pw/node_modules/playwright-core/index.mjs';
 const b = await chromium.launch({ channel: 'msedge' });
 for (const [w, h, dsf] of [[1000, 548, 2], [1600, 900, 1]]) {
   const ctx = await b.newContext({ viewport: { width: w, height: h }, deviceScaleFactor: dsf });

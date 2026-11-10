@@ -1,6 +1,6 @@
 // Tree/prop variant sheet + clipping report. Needs tools/serve.mjs running.
 // node tools/treeshot.mjs [port] [out.png] [kind,kind,...]
-import { chromium } from 'file:///C:/Users/ryan/Projects/Primal-Chase-Fable/node_modules/playwright/index.mjs';
+import { chromium } from 'file:///C:/Users/ryan/tools/pw/node_modules/playwright-core/index.mjs';
 const [,, port = '8791', out = 'tools/shots/trees-sheet.png', kinds = ''] = process.argv;
 const b = await chromium.launch({ channel: 'msedge' });
 const p = await b.newPage({ viewport: { width: 1600, height: 2400 } });

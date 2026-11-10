@@ -1,5 +1,5 @@
 // Drives the real game with the bot and screenshots interesting moments.
-import { chromium } from '../../Primal-Chase-Fable/node_modules/playwright/index.mjs';
+import { chromium } from '../../../tools/pw/node_modules/playwright-core/index.mjs';
 const out = process.argv[2] || 'tools/shots/tour';
 const W = +(process.argv[3]||1280), H = +(process.argv[4]||720), secs = +(process.argv[5]||150);
 import fs from 'fs'; fs.mkdirSync(out, { recursive: true });

@@ -1,6 +1,6 @@
 // Screenshots of the clip-backed title, the opening cinematic and its setting.
 //   node tools/titleclips.mjs [port] [cine|title|all]
-import { chromium } from 'file:///C:/Users/ryan/Projects/Primal-Chase-Fable/node_modules/playwright/index.mjs';
+import { chromium } from 'file:///C:/Users/ryan/tools/pw/node_modules/playwright-core/index.mjs';
 import fs from 'node:fs';
 const port = +(process.argv[2] || 8791);
 const what = process.argv[3] || 'all';

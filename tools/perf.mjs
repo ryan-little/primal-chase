@@ -1,4 +1,4 @@
-import { chromium } from '../../Primal-Chase-Fable/node_modules/playwright/index.mjs';
+import { chromium } from '../../../tools/pw/node_modules/playwright-core/index.mjs';
 const b = await chromium.launch({ channel: 'msedge', args: ['--disable-gpu-vsync'] });
 const p = await b.newPage({ viewport: { width: 1920, height: 1080 } });
 await p.goto('http://127.0.0.1:8791/index.html'); await p.waitForTimeout(1000);

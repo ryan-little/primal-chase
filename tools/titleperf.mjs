@@ -1,6 +1,6 @@
 // CPU cost of sitting on the title screen: main-thread busy time and frame pacing over 10 s.
 //   node tools/titleperf.mjs [port]
-import { chromium } from 'file:///C:/Users/ryan/Projects/Primal-Chase-Fable/node_modules/playwright/index.mjs';
+import { chromium } from 'file:///C:/Users/ryan/tools/pw/node_modules/playwright-core/index.mjs';
 const port = +(process.argv[2] || 8791);
 const b = await chromium.launch({ channel: 'msedge', args: ['--autoplay-policy=no-user-gesture-required'] });
 const p = await b.newPage({ viewport: { width: 1600, height: 900 } });

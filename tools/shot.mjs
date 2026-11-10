@@ -1,4 +1,4 @@
-import { chromium } from '../../Primal-Chase-Fable/node_modules/playwright/index.mjs';
+import { chromium } from '../../../tools/pw/node_modules/playwright-core/index.mjs';
 const [,, url, out, w='1400', h='1000', wait='500'] = process.argv;
 const b = await chromium.launch({ channel: 'msedge', args:['--autoplay-policy=no-user-gesture-required'] });
 const p = await b.newPage({ viewport: { width: +w, height: +h } });

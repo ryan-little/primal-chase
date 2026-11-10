@@ -4,7 +4,7 @@ import fs from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath, pathToFileURL } from 'node:url';
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
-const PW = process.env.PW || path.resolve(root, '../Primal-Chase-Fable/node_modules/playwright/index.mjs');
+const PW = process.env.PW || path.resolve(root, '../../../tools/pw/node_modules/playwright-core/index.mjs');
 const alt = 'C:/Users/ryan/Projects/Primal-Chase-Fable/node_modules/playwright/index.mjs';
 const { chromium } = await import(pathToFileURL(fs.existsSync(PW) ? PW : alt).href);
 const types = { '.js': 'text/javascript', '.mjs': 'text/javascript', '.html': 'text/html' };
