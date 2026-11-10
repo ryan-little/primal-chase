@@ -270,6 +270,20 @@ const SONGS = {
 SONGS.elegy.tune = SONGS.title.tune;
 // night mode by land: the dry and burnt country stays phrygian
 const NIGHT_MODE = ['dorian', 'dorian', 'dorian', 'phrygian', 'aeolian', 'phrygian', 'dorian'];
+// The band's night song (see songPhrase): [beat, minor-pentatonic degree above a low tonic, beats].
+// The leader sits between the fifth and the third above the octave; the answer comes down to the tonic.
+const BS_GAIN = 1.5; // the song's fader at full level
+const BS_CALL = [
+  { len: 4, n: [[0, 5, 1.5], [1.5, 6, 0.5], [2, 5, 1], [3, 4, 1]] },
+  { len: 4, n: [[0, 3, 1], [1, 4, 0.5], [1.5, 5, 1.5], [3, 4, 1]] },
+  { len: 4, n: [[0, 6, 1], [1, 5, 1], [2, 4, 0.5], [2.5, 5, 1.5]] },
+  { len: 5, n: [[0, 5, 2.5], [2.5, 4, 0.5], [3, 3, 2]] },
+];
+const BS_RESP = [
+  { len: 5, n: [[0, 3, 1], [1, 2, 1], [2, 1, 0.5], [2.5, 0, 2.5]] },
+  { len: 5, n: [[0, 1, 1], [1, 2, 1], [2, 0, 3]] },
+  { len: 5, n: [[0, 2, 0.5], [0.5, 1, 1], [1.5, 1, 0.5], [2, 0, 3]] },
+];
 
 // Ways to develop a two-bar phrase on its repeat (see develop()).
 const DEVS = [
@@ -1886,7 +1900,7 @@ export class Audio {
       }
       S.fire = g.fireNear ? (g.fireNear(p.x, p.y, 60) ? 1 : g.fireNear(p.x, p.y, 140) ? 0.6 : g.fireNear(p.x, p.y, 260) ? 0.3 : 0) : 0;
     }
-    if (g.over) { S.torch = S.herd = 0; return; }
+    if (g.over) { S.torch = S.herd = S.song = 0; return; }
     // the cat: lying down and getting up, and breath that quickens with heat
     if (p.state === 'lie' && S.pst !== 'lie') this.play('settle');
     else if (S.pst === 'lie' && p.state !== 'lie') this.play('rise');
@@ -1912,6 +1926,10 @@ export class Audio {
     }
     S.torch = night && g.day >= 5 && hd < 320 ? 1 - hd / 320 : 0; // TORCH_DAY in game.js
     S.torchPan = side(hx);
+    // they sing on the trail in the dark, heard before they are seen; not at a run, not on a chase
+    // (walking pace passes 60 from day 5, so the band's mode says whether they run, not hrun)
+    S.song = night && hd < 450 && (!g.band || g.band.mode === 'track') && this.intensity < 3 ? c01((1 - hd / 450) * 1.5) : 0;
+    S.songPan = side(hx) * 0.8;
     for (const d of g.dogs) if (!d.dead && d.state === 'return' && Math.random() < dt * 0.15) { const k = c01(1 - D(d) / 450); this.fx('dog_whine', t, 0.08 * k, { pan: side(d.x), dist: 1 - k }); }
     // prey: hooves drumming away, and grazers calling among themselves
     let fn = 0, fx = 0, fd = 1e9, fk = null, calm = null, cd = 1e9;
@@ -2141,6 +2159,7 @@ export class Audio {
       osc.start(s); vib.start(s); osc.stop(end); vib.stop(end);
     }
     g.connect(o.dest || this.bandOut());
+    if (o.dry) return; // the caller feeds the room itself
     const send = ctx.createGain(); send.gain.value = 0.5;
     g.connect(send).connect(this.verbIn);
   }
@@ -2151,9 +2170,103 @@ export class Audio {
     this.sing(D3 + 7, t + 0.02, dur, vel * 0.6, 2, { vowel: 'oa' });
   }
 
+  // ---------------- the band's night song ----------------
+  // The hunters sing to keep awake on the trail: one man leads a short phrase, the rest answer
+  // low, a stick taps the walking pace. It keeps its own loose time, apart from the score, and
+  // stays on the minor pentatonic of the night's tonic (common to dorian, aeolian and phrygian).
+  //
+  // audio.bandSong(level, pan): level 0..1 is how loud (and near) the song is, pan -1..1 where it
+  // comes from. It fades toward the target; bandSong(0) fades it out. Works in the menu and
+  // before the context exists. In a run, scene() drives the same fader from the nearest hunter.
+  bandSong(level = 0, pan = 0) {
+    this.bsApi = Math.max(0, Math.min(1, +level || 0));
+    this.bsApiPan = Math.max(-1, Math.min(1, +pan || 0));
+  }
+
+  // The song's own bus: voices in, a low-pass for distance, a pan, then the fader; the room is
+  // fed after the fader so the tail fades with it.
+  songBus() {
+    if (this.bsBus && this.bsBus.ctx === this.ctx) return this.bsBus;
+    const ctx = this.ctx;
+    const inp = ctx.createGain(), lp = ctx.createBiquadFilter(), g = ctx.createGain(), send = ctx.createGain();
+    lp.type = 'lowpass'; lp.frequency.value = 900; lp.Q.value = 0.5;
+    g.gain.value = 0; send.gain.value = 0.5;
+    let out = inp.connect(lp), pan = null;
+    if (ctx.createStereoPanner) { pan = ctx.createStereoPanner(); out = out.connect(pan); }
+    out.connect(g);
+    g.connect(this.bandOut());
+    g.connect(send).connect(this.verbIn);
+    return (this.bsBus = { ctx, inp, lp, pan, g, send });
+  }
+
+  // Every frame: move the fader, and write the next phrase a little before it is due.
+  songTick(dt) {
+    const S = (!this.menu && this.sc) || {};
+    const api = this.bsApi || 0, game = S.song || 0, want = Math.max(api, game);
+    const was = this.bsLvl || 0;
+    const lvl = (this.bsLvl = was + (want - was) * Math.min(1, dt * (want > was ? 1.2 : 2)));
+    const ctx = this.ctx, t = ctx.currentTime;
+    if (lvl < 0.004 && want <= 0) { // silent: build nothing, hold the fader shut
+      this.bsLvl = 0;
+      if (this.bsOn) { this.bsOn = false; this.songBus().g.gain.setTargetAtTime(0, t, 0.15); }
+      return;
+    }
+    const B = this.songBus();
+    this.bsOn = true;
+    B.g.gain.setTargetAtTime(lvl * (0.35 + 0.65 * lvl) * BS_GAIN, t, 0.12);
+    B.lp.frequency.setTargetAtTime(700 + 3600 * lvl * lvl, t, 0.3); // far off, only the low of it carries
+    B.send.gain.setTargetAtTime(0.75 - 0.4 * lvl, t, 0.3);
+    if (B.pan) B.pan.pan.setTargetAtTime(api >= game ? this.bsApiPan || 0 : S.songPan || 0, t, 0.4);
+    if (want < 0.03) return; // fading out: let what is sung ring, write no more
+    const st = (this.bs ||= { next: 0, turn: 0, n: 0 });
+    if (st.next < t - 0.5) { st.next = t + 0.12; st.turn = 0; } // starting, or back from silence
+    if (st.next > t + 0.3) return;
+    this.songPhrase(st, Math.max(st.next, t + 0.05));
+  }
+
+  // One phrase: the leader's call, or the others' answer. Times in walking beats.
+  songPhrase(st, t0) {
+    const dest = this.songBus().inp, P = MODE.minpent;
+    if (st.turn === 0) { // a new pair: take the key the night is in, and a pace for this pair
+      let T = this.menu ? SONGS.title.tonic : this.song('night').tonic;
+      while (T > 55) T -= 12;
+      while (T < 44) T += 12;
+      st.T = T; st.beat = rnd(0.8, 0.92);
+      st.i = this.rr('bsCall', BS_CALL.length);
+    }
+    const b = st.beat, T = st.T, m = (d) => T + deg(P, d);
+    const tap = (at, v) => { const k = this.mk.clap; this.playBuf(k[this.rr('bsTap', k.length)], at, v, { dest, rate: rnd(1.7, 1.9), verb: 0 }); };
+    let len;
+    if (st.turn === 0) {
+      const ph = BS_CALL[st.i];
+      len = ph.len;
+      const vow = pick(['ea', 'oa', 'a', 'eo']);
+      for (const [at, d, du] of ph.n) this.sing(m(d), t0 + at * b + rnd(0, 0.07), du * b * 0.92, rnd(0.8, 1), 1, { dest, dry: true, pan: -0.25, vowel: vow, fall: at + du >= len - 0.6 });
+    } else {
+      const ph = BS_RESP[(st.i + (st.n % 2)) % BS_RESP.length];
+      len = ph.len;
+      const vow = pick(['o', 'ou', 'oa']);
+      ph.n.forEach(([at, d, du], i) => {
+        const last = i === ph.n.length - 1, at0 = t0 + at * b;
+        // the body of the band, then the ones who come in when they come in
+        this.sing(m(d), at0 + rnd(0, 0.04), du * b * 0.95, 0.9, 3, { dest, dry: true, vowel: vow, fall: last });
+        this.sing(m(d), at0 + rnd(0.05, 0.14), du * b * 0.9, 0.4, 1, { dest, dry: true, pan: 0.5, vowel: 'o', fall: last });
+        if (last || Math.random() < 0.3) this.sing(m(d) - 12, at0 + rnd(0.02, 0.18), du * b, 0.45, 1, { dest, dry: true, pan: -0.5, vowel: 'u' });
+        if (last && Math.random() < 0.5) this.sing(m(d + 3), at0 + rnd(0.1, 0.25), du * b * 0.8, 0.3, 1, { dest, dry: true, pan: 0.2, vowel: 'o', fall: true }); // someone takes the fifth
+      });
+      len += pick([1, 1, 2, 3]); // a breath, some walking, before the leader starts again
+      st.n++;
+    }
+    // the stick: every step, sometimes missed, never on the dot
+    for (let k = 0; k < len; k++) if (Math.random() < 0.85) tap(t0 + k * b + rnd(0, 0.05), k % 2 ? 0.05 : 0.08);
+    st.turn ^= 1;
+    st.next = t0 + len * b;
+  }
+
   // ---------------- sequencer ----------------
   update(dt) {
     if (!this.ctx || !this.playing) return;
+    this.songTick(dt);
     const ctx = this.ctx;
     if (!this.warmed) { this.warmed = true; this.warmMore(); }
     if (this.warm.length && dt < 0.02) { const [i, m] = this.warm.shift(); this.note(i, m); }

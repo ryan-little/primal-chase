@@ -3,17 +3,17 @@
 // A mouse click doesn't, so clicking into the tab never cuts it short.
 
 // [start second, clip, seconds into the clip, line, how it cuts in]. A null line keeps the one already up.
-// Cuts: 'cut' a hard cut, 'mix' a quick dissolve, 'dip' a short blink through black, 'wipe' a black edge sweeping across.
+// Cuts: 'cut' a quick dissolve, 'mix' a slower one, 'dip' a short fade through black, 'wipe' a soft black edge sweeping across.
 const SHOTS = [
   [0, 'dawn', 0.4, 'Before the fields and the walls there was the grass, and everything that moved in it.'],
   [6.2, 'hunt', 0, 'You were the fastest thing in it. You still are.', 'mix'],
-  [11.0, 'stampede', 1.6, 'The land had its own herds, and its own teeth.', 'wipe'],
+  [11.0, 'stampede', 1.6, 'The land had its own herds, and its own teeth.', 'dip'],
   [14.0, 'pride', 1.2, null, 'cut'],
   [17.0, 'storm', 1.4, 'It had its storms, and its fires.', 'dip'],
   [20.0, 'fire', 1.6, null, 'cut'],
   [23.0, 'camp', 0.6, 'Then they came. Thin, and slow, and upright. They carry water. They carry fire.', 'dip'],
-  [29.6, 'heat', 0.5, 'They do not run you down. They walk you down, through the heat of the day.', 'mix'],
-  [36.0, 'secret', 0.8, 'But the land is older than they are, and it keeps places only you can find.', 'wipe'],
+  [29.6, 'heat', 0.5, 'You can outrun them. You cannot outlast them. They keep coming, all through the heat of the day.', 'mix'],
+  [36.4, 'secret', 0.8, 'But the land is older than they are, and it keeps places only you can find.', 'mix'],
   [42.2, 'night', 0.3, 'They follow your tracks into the dark. They sing to keep awake.', 'mix'],
   [47.8, 'chase', 1.5, 'Every runner tires. They are counting on it.', 'cut'],
 ];
@@ -84,6 +84,7 @@ export class Cinematic {
     this.el.insertBefore(this.dip, this.el.firstChild);
     this.needGesture = els.needGesture || null; // () => true while the browser is holding sound back for a first press
     this.voice = els.voice !== false;
+    this.song = els.song || null; // (level) => the hunters' night song, under the night shot
     this.voiceVol = els.voiceVol ?? 1; // narration spoken aloud (settings can turn it off)
     this.padHeld = true; // a button already down at load doesn't count until it's released
     this.skipAsked = false;
@@ -159,6 +160,8 @@ export class Cinematic {
       else this.cut(i, clip, from, SHOTS[i][4]);
       if (SHOTS[i + 1]) setTimeout(() => this.layer.prime(SHOTS[i + 1][1]), 1200);
       if (text !== null) this.setLine(text);
+      // "They sing to keep awake": the band's song rises under the night shot and fades as the chase begins
+      if (this.song) this.song(clip === 'night' ? 0.45 : 0);
     }
     if (t >= BLACK) { this.el.classList.add('black'); this.veil(0, 0); }
     if (t >= BLACK && t < CATCH) this.setLine('');
@@ -189,10 +192,10 @@ export class Cinematic {
     clearTimeout(this.dipT); clearTimeout(this.liftT);
     if (kind === 'cut' || kind === 'mix') {
       this.veil(0, 0);
-      this.layer.play(clip, from, kind === 'mix' ? 0.45 : 0.04);
+      this.layer.play(clip, from, kind === 'mix' ? 0.9 : 0.35); // even a 'cut' is a quick dissolve: hard cuts read as jolts
       return;
     }
-    const cover = kind === 'wipe' ? 200 : 150, uncover = kind === 'wipe' ? 220 : 170;
+    const cover = kind === 'wipe' ? 380 : 320, uncover = kind === 'wipe' ? 460 : 420;
     if (kind === 'wipe') this.veil(1, cover, 'in'); else this.veil(1, cover);
     this.dipT = setTimeout(() => {
       if (this.done || this.shot !== i) return;
@@ -211,6 +214,7 @@ export class Cinematic {
     if (this.done) return;
     this.done = true;
     hush();
+    if (this.song) this.song(0);
     clearTimeout(this.lineT);
     this.el.classList.add('out');
     this.layer.root.classList.remove('cine');

@@ -154,6 +154,7 @@ function toTitle() {
   $('hud').classList.add('hidden');
   $('best-title').textContent = bestLine();
   audio.menu = true;
+  audio.bandSong(0); // the opening may have left the band singing
   audio.intensity = 0;
   audio.night = 0;
   audio.rain = 0;
@@ -168,7 +169,7 @@ function startCinematic() {
   state = 'cine';
   show(null);
   cine = new Cinematic(clipLayer, { root: $('cine'), line: $('cine-line'), logo: $('cine-logo'), skip: $('cine-skip'), voice: settings.sfx > 0, voiceVol: settings.sfx,
-    needGesture: () => !!audio.ctx && audio.ctx.state !== 'running' }, () => { cine = null; toTitle(); });
+    needGesture: () => !!audio.ctx && audio.ctx.state !== 'running', song: (lv) => audio.bandSong(lv * settings.sfx) }, () => { cine = null; toTitle(); });
   audio.init(); // so we can tell whether the browser lets sound start before a press
   cine.start();
 }
@@ -527,6 +528,7 @@ function todayKey() {
 let daily = false;
 function startRun(isDaily = daily) {
   audio.init();
+  audio.bandSong(0);
   reel.stop();
   if (game) game.world.destroy();
   audio.menu = false;

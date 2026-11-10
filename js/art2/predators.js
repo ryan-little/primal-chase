@@ -414,8 +414,58 @@ const LIONH = {
     '.BBBLWWrWWd..',
     '..BBdWWWWd...',
   ],
+  // feeding: muzzle buried in the kill, eye narrowed
+  gnaw: [
+    '...BBB......',
+    '..BBBBBB....',
+    '.BBdddBBB...',
+    'BBBBBBBBBB..',
+    'BBBBkdBBLL..',
+    'BBBBBBLLLLL.',
+    'BBBBBLLLLLL.',
+    '.BBBLWWWWWn.',
+    '..BBdWWWrWn.',
+    '....ddrrr...',
+  ],
+  // jaws working: the lower jaw drops, red in the mouth
+  chew: [
+    '...BBB......',
+    '..BBBBBB....',
+    '.BBdddBBB...',
+    'BBBBBBBBBB..',
+    'BBBBkdBBLL..',
+    'BBBBBBLLLLL.',
+    'BBBBBLLLLLn.',
+    '.BBBLWWtWWn.',
+    '..BBdrrrrr..',
+    '....dWWWrr..',
+    '.....dddr...',
+  ],
+  // the tear: head wrenched up, teeth clamped on a strip of meat
+  tear: [
+    '...BBB.......',
+    '..BBBBBB.....',
+    '.BBdddBBBB...',
+    'BBBBddBBBBBnn',
+    'BBBBBBBLLLLLn',
+    'BBBBBLLLLLLL.',
+    'BBBBLWWtWtWr.',
+    '.BBBLrrrrrrr.',
+    '..BBdWWtWWr..',
+    '....dWWWd....',
+  ],
 };
 const LIONL = { B: 'lion1', L: 'lion2', W: 'lion3', d: 'lion0', k: 'ink', n: 'maneD', t: 'bone1', r: 'blood' };
+// feed frames: [shoulder dx, dy (above the lie), head x past the shoulder, head y, face, strand]
+// gnaw, chew, clamp, wrench back and up, tear free, settle
+const LION_FEED = [
+  [0.0, -5.0, 12.4, -9.0, 'gnaw', 0],
+  [0.5, -4.6, 13.0, -8.4, 'chew', 0],
+  [-0.2, -5.2, 12.0, -9.2, 'gnaw', 0],
+  [-1.6, -6.6, 10.2, -12.6, 'tear', 1],
+  [-3.0, -7.6, 8.0, -16.0, 'tear', 2],
+  [-1.0, -5.6, 11.0, -10.6, 'chew', 0],
+];
 
 function lionSpec() {
   const spec = {
@@ -442,10 +492,12 @@ function lionSpec() {
     tail(g, J, pose) {
       const gt = pose.gait;
       const run = gt === 'run' || gt === 'pounce';
-      const low = gt === 'lie' || gt === 'dead';
+      // pose.kill, not gt === 'feed': a custom pose built on restPose reports its gait as 'idle'
+      const feed = !!pose.kill, low = gt === 'lie' || gt === 'dead' || feed;
       const w = Math.sin(pose.p * TAU), w2 = Math.sin(pose.p * TAU - 1.2);
       let ang;
       if (run) ang = (t) => 0.25 - J.flex * 0.2 * (1 - t) - 0.4 * t * t + (w * (1 - t) + w2 * t) * 0.14;
+      else if (feed) ang = (t) => 1.15 - 1.1 * t - (t > 0.6 ? (t - 0.6) * (0.8 + pose.strand * 1.4) : 0); // laid out behind, the tip lashing on the tear
       else if (low) ang = (t) => 0.4 - 0.4 * t - (t > 0.6 ? (t - 0.6) * (1.6 + w * 1.2) : 0);
       else ang = (t) => 1.15 - 0.5 * t - 1.0 * t * t * t + w2 * 0.2 * t * t; // hangs, curls up at the end
       const n = 8, pts = tailPts(J.tail, n, 2.3, ang);
@@ -470,6 +522,7 @@ function lionSpec() {
       if (gt === 'dead') rows = LIONH.dead;
       else if (pose.roar) rows = LIONH.roar;
       else if (pose.mouth) rows = LIONH.snarl;
+      else if (pose.face) rows = LIONH[pose.face];
       else if (pose.headDown) rows = LIONH.down;
       else if (pose.blink) rows = LIONH.blink;
       g.stamp(x, y, rows, LIONL, { ax: 3, ay });
@@ -488,11 +541,46 @@ function lionSpec() {
         P.blink = p < 0.1;
         return P;
       },
+      // feeding lies down, like a cat: haunches folded, forelegs out either side of the kill, the
+      // forequarters propped just clear of the ground. Gnaws, clamps, then wrenches a strip free.
+      feed(sp, p) {
+        const P = POSES.lie(sp, 0);
+        const K = LION_FEED[Math.round(p * LION_FEED.length) % LION_FEED.length];
+        P.sh = [P.sh[0] + K[0], P.sh[1] + K[1]];
+        P.hip = [P.hip[0] + K[0] * 0.25, P.hip[1]];
+        P.breath = 0; P.blink = false; P.ear = false;
+        P.headAbs = [sp.sh[0] + K[2], K[3], 0];
+        P.headDown = true;
+        P.face = K[4];
+        P.strand = K[5];
+        // where the meat is: just past the muzzle when the head is down
+        P.kill = [sp.sh[0] + 21, -4.5];
+        P.paw = sp.sh[0] + 17.5;
+        return P;
+      },
+    },
+    draw: {
+      // drawn over the head: the planted forepaw, and the strip of meat stretched between the jaws and the kill
+      front(g, J, pose) {
+        if (!pose.kill) return;
+        const [kx, ky] = pose.kill;
+        // the near forepaw stays planted on the kill, out past the mane, while the head works
+        const fx = pose.paw;
+        g.limb(fx - 6.5, -1.7, fx - 1, -1.5, 2.8, 2.6, 'lion1');
+        g.ell(fx, -1.35, 2.0, 1.3, 'lion2');
+        g.flush();
+        if (pose.strand) {
+          const mx = J.head[0] + 7.5, my = J.head[1] + 3.5;
+          g.pline(mx, my, kx, ky, 'blood');
+          g.pline(mx - 1, my, kx - 1, ky, pose.strand > 1 ? 'bloodD' : 'blood1');
+          if (pose.strand > 1) g.px(lerp(mx, kx, 0.45) + 1, lerp(my, ky, 0.45) + 2, 'blood');
+        }
+      },
     },
   };
   return spec;
 }
-const LION_SETS = [['idle', 6], ['walk', 8], ['run', 8], ['lie', 6], ['pounce', 5], ['roar', 6], ['dead', 1]];
+const LION_SETS = [['idle', 6], ['walk', 8], ['run', 8], ['lie', 6], ['feed', 6], ['pounce', 5], ['roar', 6], ['dead', 1]];
 
 // ================= ROCK HYRAX =================
 addColors({ hyx0: '#4b3b2c', hyx1: '#6e5843', hyx2: '#8e765a', hyx3: '#ad9674', hyx4: '#cab592' });

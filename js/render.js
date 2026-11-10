@@ -428,7 +428,7 @@ export class Renderer {
       } else if (it.k === 10) {
         const S = A.lion;
         const pick = (arr) => arr[Math.floor(o.anim * arr.length) % arr.length];
-        const fr = o.state === 'rest' ? pick(S.lie) : o.state === 'charge' ? pick(S.run) : pick(S.walk);
+        const fr = o.state === 'feed' ? S.feed[Math.floor(t * 4.5 + o.id * 1.7) % S.feed.length] : o.state === 'rest' ? pick(S.lie) : o.state === 'charge' ? pick(S.run) : pick(S.walk);
         shadow(o.x, o.y, 11, 3);
         spr(fr, o.x, o.y, S.ox, S.oy, o.face < 0);
       } else if (it.k === 9) {

@@ -110,14 +110,15 @@ const bandAtCamp = () => {
   g.hunters.forEach((h, i) => { const s = spots[i % spots.length]; h.x = lm.x + s[0]; h.y = lm.y + s[1]; h.vx = 0; h.vy = 0; h.state = 'walk'; h.windup = 0; h.face = s[0] > 17 ? -1 : 1; });
   g.dogs.forEach((d) => { d.x += 9000; });
 };
-// lions resting on a kill, ahead and a little to one side of the cat's line
+// lions tearing at a gazelle, ahead and a little to one side of the cat's line
 const prideAhead = (d, off) => {
   const [ax, ay] = window.__away, cx = pl.x + ax * d - ay * off, cy = pl.y + ay * d + ax * off;
-  g.carcasses.push({ id: 8e6 + 1, x: cx, y: cy, meat: 60, max: 90, kind: 'zebra', face: 1, t: 0, lions: true, hyenas: true });
-  for (let i = 0; i < 3; i++) { const a = i / 3 * 6.283; g.lions.push({ id: 9e6 + i, x: cx + Math.cos(a) * 22, y: cy + Math.sin(a) * 12, hx: cx + Math.cos(a) * 22, hy: cy + Math.sin(a) * 12, vx: 0, vy: 0, face: Math.cos(a) > 0 ? -1 : 1, anim: Math.random(), state: 'rest', t: 0, target: null, bite: 0, life: 110 }); }
+  g.carcasses.push({ id: 8e6 + 1, x: cx, y: cy, meat: 60, max: 60, kind: 'gazelle', face: 1, t: 0, lions: true });
+  // muzzles on the kill: one from each side, one reaching in over it
+  [[-38, 2, 1], [46, 5, -1], [24, -7, -1]].forEach(([dx, dy, f], i) => g.lions.push({ id: 9e6 + i, x: cx + dx, y: cy + dy, hx: cx + dx, hy: cy + dy, vx: 0, vy: 0, face: f, anim: Math.random(), state: 'feed', t: 0, target: null, bite: 0, life: 110 }));
   g.prideT = 1e9;
-  // they stay on their kill for the shot: heads up, tails flicking, nobody charges
-  g.updateLions = (dt) => { for (const L of g.lions) { L.anim = (L.anim + dt * 0.3) % 1; L.state = 'rest'; } };
+  // they stay on their kill for the shot, feeding; nobody charges
+  g.updateLions = (dt) => { for (const L of g.lions) { L.anim = (L.anim + dt * 0.3) % 1; L.state = 'feed'; } };
 };
 // is there water or a cliff on the line ahead (a fleeing animal is turned back), or tall grass (it hides the cat)?
 const dryAhead = (d) => { const [ax, ay] = window.__away; window.__wet = false; for (let r = 0; r <= d; r += 12) for (const o of [-30, 0, 30]) { const t = W.typeAt(pl.x + ax * r - ay * o, pl.y + ay * r + ax * o); if (W.isWater(t) || t === 2 || t === 13 || t === 16) window.__wet = true; } };

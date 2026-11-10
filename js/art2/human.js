@@ -163,8 +163,7 @@ const POSES = {
     P.spear = { pts: [bx, by, tx, ty] };
     P.arms.n = to(lerp(bx, tx, 0.62), lerp(by, ty, 0.62) + s * 0.2);
     P.arms.f = fk(-0.08 + 0.03 * s, 0.25);
-    const turn = p >= 0.45 && p < 0.8;
-    P.head = { dx: 0, dy: -0.2 * s, look: 'fwd', flip: turn };
+    P.head = { dx: 0, dy: -0.2 * s, look: 'fwd' }; // eyes front: a head flicking round every second read as twitching
     return P;
   },
   walk(p) {
@@ -206,7 +205,7 @@ const POSES = {
     P.spear = { pts: [bx, by, bx - Math.sin(a) * SPEAR, by - Math.cos(a) * SPEAR], behind: true };
     P.arms.f = to(bx - Math.sin(a) * 7, by - Math.cos(a) * 7);
     const k = Math.floor(p * 6);
-    P.head = { dx: [0, 0.4, 0.7, 0.2, -0.3, -0.3][k], dy: 0.4, look: 'down', flip: k === 3 || k === 4 };
+    P.head = { dx: [0, 0.4, 0.7, 0.2, -0.3, -0.3][k], dy: 0.4, look: 'down' };
     return P;
   },
 };
