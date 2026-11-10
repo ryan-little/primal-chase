@@ -144,7 +144,7 @@ export class Cinematic {
     // so the music and the narration begin with the pictures instead of joining late.
     this.wait = (this.wait || 0) + dt;
     const mute = this.t < 1.5 && !this.begun && this.needGesture && this.needGesture() && this.wait > 0.35;
-    if (this.gated && this.muteGate && !this.needGesture()) { this.gated = false; this.muteGate = false; this.skipEl.classList.remove('gate'); } // it came on by itself
+    if (this.gated && this.muteGate && !this.needGesture()) { this.gated = false; this.muteGate = false; this.skipEl.classList.remove('gate'); this.skipEl.textContent = this.skipEl.textContent.replace('begin', 'skip'); this.roll(); } // it came on by itself
     if (this.blocked || this.gated || mute) {
       if (!this.gated) {
         this.muteGate = !this.blocked;
@@ -166,9 +166,16 @@ export class Cinematic {
     if (pressed) { this.finish(); return; }
     if (this.needGesture && !this.begun && this.wait < 0.45) return; // settle whether sound is allowed before the first line starts
     // the film is the clock while it runs, so the lines stay on their pictures even if it stalls to buffer
-    const v = this.film;
-    if (v && !v.ended && !v.error && v.readyState >= 2 && v.currentTime < BLACK) this.t = v.currentTime;
-    else if (!v || v.ended || v.error || this.t >= BLACK) this.t += dt;
+    // A film that won't run (stalled, or paused by the browser) never holds the opening on black: nudge it,
+    // and after 2.5 s with no progress drop it and carry on with the lines alone.
+    let v = this.film;
+    if (v && !v.ended && this.t < BLACK) {
+      if (v.currentTime > (this.lastFT ?? -1)) { this.lastFT = v.currentTime; this.stuck = 0; }
+      else if ((this.stuck = (this.stuck || 0) + dt) > 2.5) { this.film = null; v.remove(); v = null; }
+      else if (v.paused && !this.blocked && (this.nudgeT = (this.nudgeT || 0) - dt) <= 0) { this.nudgeT = 0.5; this.roll(); }
+    }
+    if (v && !v.ended && !v.error && !v.paused && v.readyState >= 2 && v.currentTime < BLACK) this.t = Math.max(v.currentTime, this.t - 0.1);
+    else this.t += dt;
     const t = this.t;
 
     let i = -1;
