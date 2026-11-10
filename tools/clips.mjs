@@ -33,7 +33,8 @@ fs.mkdirSync(TMP, { recursive: true });
 // Each scene: where and when, what to set up, how the cat moves, what the camera frames.
 const SCENES = [
   { name: 'dawn', biome: 0, clock: 0.035, secs: 6, pre: 90, setup: `g.weather.fogDawn = true; g.weather.fog = 0.85; clearBand(); level(); gazelles(95, 3);`, input: `trot(0.6, 9)`, aim: `pair(nearPrey(150), 0.35)` },
-  { name: 'hunt', avoid: [2], biome: 0, clock: 0.16, secs: 6, pre: 20, setup: `clearBand(); pl.food = 18; level(); gazelles(105, 4);`, input: `hunt()`, aim: `pair(g.stats.prey ? null : nearPrey(110), 0.5)` },
+  // a flat-out sprint at grazing gazelles on open ground, ending on the catch
+  { name: 'hunt', avoid: [2], tries: 20, catchAt: [1.3, 2.4], biome: 0, clock: 0.16, secs: 6, pre: 8, check: `!g.stats.prey && !window.__wet`, setup: `clearBand(); pl.food = 18; level(); dryAhead(400); gazelles(125, 1);`, input: `sprint()`, aim: `pair(nearPrey(140) || (g.carcasses[0] && [g.carcasses[0].x, g.carcasses[0].y - 6]), 0.45)` },
   { name: 'band', crf: 29, biome: 0, clock: 0.22, secs: 6, pre: 150, setup: `level(); bandBehind(85);`, input: `keep(55, 85)`, aim: `pair(nearHunter(), 0.5)` },
   { name: 'heat', avoid: [6, 7, 8], biome: 3, clock: 0.36, secs: 7, pre: 150, setup: `g.weather.heatDay = true; g.weather.heat = 1; level(); bandBehind(80); pl.heat = 40; g.sightRange = () => 0;`, quiet: true, input: `keep(58, 84)`, aim: `pair(nearHunter(), 0.5)`, heatCap: 76 },
   { name: 'night', avoid: [6, 7, 8, 2], biome: 0, clock: 0.8, secs: 6, pre: 150, setup: `g.day = 5; level(); bandBehind(80); g.sightRange = () => 0;`, quiet: true, input: `keep(58, 84)`, aim: `pair(nearHunter(), 0.5)` },
@@ -118,6 +119,8 @@ const prideAhead = (d, off) => {
   // they stay on their kill for the shot: heads up, tails flicking, nobody charges
   g.updateLions = (dt) => { for (const L of g.lions) { L.anim = (L.anim + dt * 0.3) % 1; L.state = 'rest'; } };
 };
+// is there water (or a cliff) on the line ahead, where a fleeing animal would be turned back?
+const dryAhead = (d) => { const [ax, ay] = window.__away; window.__wet = false; for (let r = 0; r <= d; r += 12) for (const o of [-30, 0, 30]) { const t = W.typeAt(pl.x + ax * r - ay * o, pl.y + ay * r + ax * o); if (W.isWater(t) || t === 13 || t === 16) window.__wet = true; } };
 const strikes = (list) => { window.__strikes = list.map(([t, dx]) => ({ t, dx })); };
 `;
 
@@ -217,6 +220,10 @@ window.__mk = {
   aside: (gap) => (g) => { const q = g.player, H = window.__herd; if (!H) return { x: 0, y: 0 }; const nx = -H.ay, ny = H.ax, lat = (q.x - H.x) * nx + (q.y - H.y) * ny, sd = lat >= 0 ? 1 : -1; if (Math.abs(lat) >= gap) { q.face = Math.sign(-nx * sd) || q.face; return { x: 0, y: 0 }; } const m = Math.abs(lat) < gap - 30 ? 1 : 0.6; return { x: nx * sd * m - H.ax * 0.25, y: ny * sd * m - H.ay * 0.25, sprint: Math.abs(lat) < 55 }; },
   // trot at the herd, pounce the first wildebeest that comes close, then stay on the kill
   gnu: () => (g) => { const q = g.player, [ax, ay] = window.__away; if (q.eating || g.stats.prey) return { x: 0, y: 0 }; const h = near(g.gnus); if (h && h.d < 34 && q.stamina > 25) return { x: (h.x - q.x) / h.d, y: (h.y - q.y) / h.d, pounce: true }; return { x: ax * 0.4, y: ay * 0.4, sprint: false, stalk: false, pounce: false }; },
+  // charge the nearest gazelle at full speed and pounce once in reach; then stay on the kill
+  // (staged: the gazelles flee at their cruising pace, skipping the opening burst that outruns a cat,
+  // so the cat visibly closes the gap inside the shot)
+  sprint: () => (g) => { for (const k of g.prey) if (k.state === 'flee' && k.fleeT < 2.3) k.fleeT = 2.3; const q = g.player; if (q.eating || g.stats.prey) return { x: 0, y: 0 }; const b = near(g.prey); if (!b) return { x: 0, y: 0 }; return { x: (b.x - q.x) / b.d, y: (b.y - q.y) / b.d, sprint: true, stalk: false, pounce: b.d < 52 }; },
   hunt: () => (g) => { const q = g.player; if (q.eating || g.stats.prey) return { x: 0, y: 0 }; let b = null, bd = 1e9; for (const k of g.prey) { const d = Math.hypot(k.x - q.x, k.y - q.y); if (d < bd) { bd = d; b = k; } } if (!b) return { x: 0, y: 0 }; const dx = b.x - q.x, dy = b.y - q.y; return { x: dx / bd, y: dy / bd, stalk: bd > 40, sprint: false, pounce: bd < 40 && q.stamina > 20 }; },
 };
 `;
@@ -319,7 +326,7 @@ async function record(sc, framed, tries = 0) {
   await p.evaluate(() => { window.__t0 = window.__pc.game.time; });
   for (let i = 0; i < (sc.pre ?? 30); i++) { await p.evaluate(() => window.__advance(1000 / 60)); if (i % 4 === 0) await p.waitForTimeout(10); }
   // the scene didn't take (say, the fire found nothing to burn): somewhere else
-  if (sc.check && tries < 6 && !(await p.evaluate('(() => { const g = window.__pc.game; return ' + sc.check + '; })()'))) {
+  if (sc.check && tries < (sc.tries || 6) && !(await p.evaluate('(() => { const g = window.__pc.game; return ' + sc.check + '; })()'))) {
     console.log(tag, 'retry', tries + 1);
     await ctx.close();
     return record({ ...sc, salt: (sc.salt || '') + 'r' }, framed, tries + 1);
@@ -346,6 +353,15 @@ async function record(sc, framed, tries = 0) {
       console.log(tag, 'cat stalled for', worst, 'frames; retry', tries + 1);
       await ctx.close();
       return record({ ...sc, salt: (sc.salt || '') + 's' }, framed, tries + 1);
+    }
+  }
+  // a hunt that ends too soon (prey pinned) or never: somewhere else
+  if (sc.catchAt && tries < (sc.tries || 6)) {
+    const k = log.findIndex((m) => m.prey) / FPS;
+    if (k < sc.catchAt[0] || k > sc.catchAt[1]) {
+      console.log(tag, 'catch at', k < 0 ? 'never' : k.toFixed(2) + 's', '; retry', tries + 1);
+      await ctx.close();
+      return record({ ...sc, salt: (sc.salt || '') + 'k' }, framed, tries + 1);
     }
   }
   const info = await p.evaluate(() => { const g = window.__pc.game; return { biome: g.world.biomeAt(g.player.x, g.player.y), clock: +g.clock.toFixed(2), mode: g.band.mode, prey: g.stats.prey, fire: g.fire.size, gnus: g.gnus.length, state: window.__pc.state, S: window.__pc.renderer.S }; });

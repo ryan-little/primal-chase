@@ -2,19 +2,20 @@
 // Driven by the main loop's clock; a key press (a tap on touch screens, or a pad button) skips it.
 // A mouse click doesn't, so clicking into the tab never cuts it short.
 
-// [start second, clip, seconds into the clip, line]. A null line keeps the one already up.
+// [start second, clip, seconds into the clip, line, how it cuts in]. A null line keeps the one already up.
+// Cuts: 'cut' a hard cut, 'mix' a quick dissolve, 'dip' a short blink through black, 'wipe' a black edge sweeping across.
 const SHOTS = [
   [0, 'dawn', 0.4, 'Before the fields and the walls there was the grass, and everything that moved in it.'],
-  [6.2, 'hunt', 0.2, 'You were the fastest thing in it. You still are.'],
-  [11.0, 'stampede', 1.6, 'The land had its own herds, and its own teeth.'],
-  [14.0, 'pride', 1.2, null],
-  [17.0, 'storm', 1.4, 'It had its storms, and its fires.'],
-  [20.0, 'fire', 1.6, null],
-  [23.0, 'camp', 0.6, 'Then they came. Thin, and slow, and upright. They carry water. They carry fire.'],
-  [29.6, 'heat', 0.5, 'They do not run you down. They walk you down, through the heat of the day.'],
-  [36.0, 'secret', 0.8, 'But the land is older than they are, and it keeps places only you can find.'],
-  [42.2, 'night', 0.3, 'They follow your tracks into the dark. They sing to keep awake.'],
-  [47.8, 'chase', 1.5, 'Every runner tires. They are counting on it.'],
+  [6.2, 'hunt', 0, 'You were the fastest thing in it. You still are.', 'mix'],
+  [11.0, 'stampede', 1.6, 'The land had its own herds, and its own teeth.', 'wipe'],
+  [14.0, 'pride', 1.2, null, 'cut'],
+  [17.0, 'storm', 1.4, 'It had its storms, and its fires.', 'dip'],
+  [20.0, 'fire', 1.6, null, 'cut'],
+  [23.0, 'camp', 0.6, 'Then they came. Thin, and slow, and upright. They carry water. They carry fire.', 'dip'],
+  [29.6, 'heat', 0.5, 'They do not run you down. They walk you down, through the heat of the day.', 'mix'],
+  [36.0, 'secret', 0.8, 'But the land is older than they are, and it keeps places only you can find.', 'wipe'],
+  [42.2, 'night', 0.3, 'They follow your tracks into the dark. They sing to keep awake.', 'mix'],
+  [47.8, 'chase', 1.5, 'Every runner tires. They are counting on it.', 'cut'],
 ];
 const BLACK = 52.4; // footage fades out
 const CATCH = 53.0; // "They always catch you."
@@ -77,7 +78,7 @@ export class Cinematic {
     this.t = 0;
     this.shot = -1;
     this.done = false;
-    // a black veil the shots cut behind: dip out, change clip unseen, come back up on the new one
+    // a black veil some cuts pass behind (see cut())
     this.dip = document.createElement('div');
     this.dip.className = 'dip';
     this.el.insertBefore(this.dip, this.el.firstChild);
@@ -154,28 +155,55 @@ export class Cinematic {
       const [, clip, from, text] = SHOTS[i];
       if (text !== null && this.voice) speak(SHOTS.slice(0, i).filter((x) => x[3] !== null).length, text, this.voiceVol);
       if (i === 0) this.layer.play(clip, from, 1.6);
-      else {
-        const shot = i;
-        this.dip.classList.add('on');
-        clearTimeout(this.dipT);
-        this.dipT = setTimeout(() => {
-          if (this.done || this.shot !== shot) return;
-          let lifted = false;
-          const lift = () => { if (lifted) return; lifted = true; setTimeout(() => this.dip.classList.remove('on'), 120); };
-          this.layer.play(clip, from, 0.05, lift);
-          setTimeout(lift, 900); // never sit in the dark if the clip is slow to start
-        }, 340);
-      }
+      else this.cut(i, clip, from, SHOTS[i][4]);
       if (SHOTS[i + 1]) setTimeout(() => this.layer.prime(SHOTS[i + 1][1]), 1200);
       if (text !== null) this.setLine(text);
     }
-    if (t >= BLACK) { this.el.classList.add('black'); this.dip.classList.remove('on'); }
+    if (t >= BLACK) { this.el.classList.add('black'); this.veil(0, 0); }
     if (t >= BLACK && t < CATCH) this.setLine('');
     if (t >= CATCH && t < LOGO) { if (this.voice && !this.saidCatch) { this.saidCatch = true; speak(SPOKEN, 'They always catch you.', this.voiceVol); } this.setLine('They always catch you.', 'big'); }
     this.logoSoon = t > LOGO - 1.4;
     if (t >= LOGO) { if (this.voice && !this.saidTag) { this.saidTag = true; speak(SPOKEN + 1, 'How long can you run?', this.voiceVol); } this.setLine('How long can you run?', 'tag'); this.logo.classList.add('on'); }
     this.skipEl.classList.toggle('on', t > 1 && t < LOGO);
     if (t >= END) this.finish();
+  }
+
+  // The black veil over the footage: fade it to opacity `to` over `ms`, or sweep it across ('in' covers
+  // from the left, 'out' uncovers to the right). Reduced motion makes every move instant.
+  veil(to, ms, sweep = null) {
+    const calm = document.body.classList.contains('calm') || (window.matchMedia && matchMedia('(prefers-reduced-motion: reduce)').matches);
+    const d = this.dip;
+    if (this.veilA) this.veilA.cancel();
+    const from = { opacity: d.style.opacity || '0', clipPath: d.style.clipPath || 'inset(0 0 0 0)' };
+    const end = sweep === 'in' ? { opacity: '1', clipPath: 'inset(0 0 0 0)' } : sweep === 'out' ? { opacity: '1', clipPath: 'inset(0 0 0 100%)' } : { opacity: String(to), clipPath: 'inset(0 0 0 0)' };
+    if (sweep === 'in') from.opacity = '1', from.clipPath = 'inset(0 100% 0 0)';
+    else if (!sweep && /100%/.test(from.clipPath)) from.opacity = '0', from.clipPath = 'inset(0 0 0 0)'; // swept off already: fade from clear
+    d.style.opacity = end.opacity; d.style.clipPath = end.clipPath;
+    if (calm || !ms || !d.animate) return;
+    this.veilA = d.animate([from, end], { duration: ms, easing: sweep ? 'cubic-bezier(.6,0,.4,1)' : 'ease-in-out' });
+  }
+
+  // Bring shot i in with its own kind of cut. A clip that is slow to start never leaves the veil up.
+  cut(i, clip, from, kind = 'dip') {
+    clearTimeout(this.dipT); clearTimeout(this.liftT);
+    if (kind === 'cut' || kind === 'mix') {
+      this.veil(0, 0);
+      this.layer.play(clip, from, kind === 'mix' ? 0.45 : 0.04);
+      return;
+    }
+    const cover = kind === 'wipe' ? 200 : 150, uncover = kind === 'wipe' ? 220 : 170;
+    if (kind === 'wipe') this.veil(1, cover, 'in'); else this.veil(1, cover);
+    this.dipT = setTimeout(() => {
+      if (this.done || this.shot !== i) return;
+      let lifted = false;
+      const lift = () => {
+        if (lifted || this.done || this.shot !== i) return;
+        lifted = true;
+        if (kind === 'wipe') this.veil(0, uncover, 'out'); else this.veil(0, uncover);
+      };
+      this.layer.play(clip, from, 0.02, lift);
+      this.liftT = setTimeout(lift, 600);
+    }, cover + 20);
   }
 
   finish() {

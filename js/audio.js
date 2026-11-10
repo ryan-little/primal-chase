@@ -2291,7 +2291,8 @@ export class Audio {
 
   // Before each step: a chase cuts in on the next beat; a bar line builds the bar's plan.
   prep(t) {
-    if (this.pos == null) { this.pos = 0; this.grid = 16; this.barN = 0; this.themeBar = 0; this.secBar = 0; this.secLen = 0; }
+    // keyed on barN, not pos: a scheduler that fell behind before the first bar has already set pos to 0
+    if (this.barN == null) { this.pos = 0; this.grid = 16; this.barN = 0; this.themeBar = 0; this.secBar = 0; this.secLen = 0; }
     if (this.cut && this.pos % (this.grid === 12 ? 3 : 4) === 0) { this.cut = false; this.pos = 0; }
     if (this.pos === 0 && this.barT !== t) this.barStart(t);
   }
