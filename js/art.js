@@ -863,7 +863,7 @@ function patchDrawImage() {
   };
 }
 
-function packAtlases(root) {
+export function packAtlases(root) {
   patchDrawImage();
   const found = new Map(); // canvas -> list of [parent, key]
   const walk = (o) => {

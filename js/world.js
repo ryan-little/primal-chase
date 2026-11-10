@@ -268,7 +268,7 @@ export class World {
         const wx = ox + gx, wy = oy + gy;
         const jx = wx + Math.floor(hash2(wx, wy, this.seed + 71) * 7), jy = wy + Math.floor(hash2(wx, wy, this.seed + 72) * 7);
         if (this.typeAt(jx, jy) !== G.TALL) continue;
-        grass.push({ x: jx, y: jy, v: TG[Math.floor(hash2(wx, wy, this.seed + 73) * TG.length)], ph: hash2(wx, wy, this.seed + 74) * 6 });
+        grass.push({ x: jx, y: jy, v: TG.clumps[Math.floor(hash2(wx, wy, this.seed + 73) * TG.clumps.length)], ph: hash2(wx, wy, this.seed + 74) * 6 });
       }
     }
     c = { cx, cy, props, waterPts, grass };

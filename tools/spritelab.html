@@ -1,0 +1,66 @@
+<!doctype html>
+<html><head><meta charset="utf-8"><title>sprite lab</title>
+<style>
+  body { margin: 8px; background: #c2a64a; font: 11px/1.3 monospace; color: #1a110c; }
+  canvas { image-rendering: pixelated; vertical-align: bottom; }
+  .row { display: flex; flex-wrap: wrap; align-items: flex-end; gap: 6px; margin: 2px 0 10px; }
+  .lab { width: 100%; font-weight: bold; }
+  .anim { outline: 1px dashed rgba(0,0,0,.35); }
+  .bg1 { background: #76843a; } .bg2 { background: #cfa36b; } .bg3 { background: #34302d; color: #ddd; }
+</style></head><body>
+<!-- Dev preview for the redrawn sprites.
+     ?m=cat          module in js/art2 to load (its build() result is shown)
+     &z=5            zoom
+     &k=cat.run      only keys whose path contains this (comma separated)
+     &bg=1|2|3       green / sand / ash background
+     &fps=10 -->
+<div id="out"></div>
+<script type="module">
+const q = new URLSearchParams(location.search);
+const Z = +(q.get('z') || 5), FPS = +(q.get('fps') || 10);
+const only = (q.get('k') || '').split(',').filter(Boolean);
+if (q.get('bg')) document.body.className = 'bg' + q.get('bg');
+const out = document.getElementById('out');
+const anims = [];
+const t0 = performance.now();
+const mod = await import('../js/art2/' + (q.get('m') || 'cat') + '.js');
+const A = mod.build();
+const buildMs = performance.now() - t0;
+const isC = (v) => v instanceof HTMLCanvasElement;
+function show(img, cls) {
+  const c = document.createElement('canvas');
+  c.width = img.width; c.height = img.height;
+  c.style.width = img.width * Z + 'px'; c.style.height = img.height * Z + 'px';
+  c.getContext('2d').drawImage(img, 0, 0);
+  if (cls) c.className = cls;
+  return c;
+}
+function strip(label, frames, meta = '') {
+  if (only.length && !only.some((k) => label.includes(k))) return;
+  const row = document.createElement('div'); row.className = 'row';
+  const lab = document.createElement('div'); lab.className = 'lab';
+  lab.textContent = `${label}  ${frames.length}f  ${frames[0].width}x${frames[0].height} ${meta}`;
+  row.appendChild(lab);
+  if (frames.length > 1) { const a = show(frames[0], 'anim'); row.appendChild(a); anims.push([a, frames]); }
+  for (const f of frames) row.appendChild(show(f));
+  out.appendChild(row);
+}
+function walk(v, path) {
+  if (!v) return;
+  if (isC(v)) return strip(path, [v]);
+  if (Array.isArray(v)) {
+    if (v.length && v.every(isC)) return strip(path, v);
+    if (v.length && v.every((o) => o && isC(o.img) && !o.frames)) return strip(path, v.map((o) => o.img), 'variants');
+    return v.forEach((o, i) => walk(o, `${path}[${i}]`));
+  }
+  if (typeof v === 'object') {
+    if (isC(v.img)) return strip(path, v.frames || [v.img], `anchor ${v.ox},${v.oy}`);
+    for (const k of Object.keys(v)) if (typeof v[k] === 'object') walk(v[k], path ? `${path}.${k}` : k);
+  }
+}
+walk(A, '');
+let n = 0;
+setInterval(() => { n++; for (const [c, fr] of anims) { const x = c.getContext('2d'); x.clearRect(0, 0, c.width, c.height); x.drawImage(fr[n % fr.length], 0, 0); } }, 1000 / FPS);
+window.info = { buildMs: Math.round(buildMs) };
+window.done = true;
+</script></body></html>

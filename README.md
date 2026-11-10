@@ -33,7 +33,8 @@ Controls: WASD to move, Shift sprint, Q stalk, Space pounce, Tab map, Esc pause,
 | `js/terrain.js` | Pure terrain math: biomes, terraces, coast; runs on the main thread and in `terrain-worker.js`, which paints chunks off-thread |
 | `js/world.js` | Chunks, props, landmarks, and the movement rules for cliffs, water, fire and the sea |
 | `js/weather.js`, `perks.js`, `secrets.js`, `fauna.js`, `minimap.js`, `bot.js` | Weather and fire, instincts, secret places, species, remembered map, and the bot that plays the title demo |
-| `js/art*.js` | Procedural pixel art: a rigged quadruped/biped renderer, 9 prey species, lions, props per biome, landmarks, icons, all crisped to one palette |
+| `js/art2/` | Procedural pixel art, drawn in code at load: a supersampled pixel surface (`pix.js`), a skeletal quadruped rig with planted feet (`quad.js`), the cat, hunters, predators, prey and birds, trees and plants as 8-frame wind loops (`flora.js`), rocks, landmarks, icons. `build.js` assembles it for the game |
+| `js/art*.js` | The original art, kept for the before/after page (`tools/spritepack.html`); `art.js` still supplies the atlas packer |
 | `js/audio.js` | WebAudio: pre-rendered kora/marimba/mbira/drum samples, a theme per biome, title and chase music, footsteps per ground, ambience |
 | `js/render.js` | Pixel-art renderer at device resolution (smooth camera), light map, weather and fire, particles, instinct arrows |
 | `js/main.js` | Screens, HUD, hints, feats, persistence, the frame loop |

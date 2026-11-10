@@ -1,6 +1,7 @@
 // Boot, screens, the frame loop, and the glue between simulation, sound, pixels and HUD.
 
-import { buildArt, canvas } from './art.js';
+import { canvas } from './art.js';
+import { buildArt } from './art2/build.js';
 import { Audio } from './audio.js';
 import { Game, BITS, HUNTER_DAYS, TRACKERS_DAY, TORCH_DAY, FIRE_DAY } from './game.js';
 import { SPECIES } from './fauna.js';
@@ -122,7 +123,7 @@ function drawLogo(t = 0, c = $('logo')) {
     x.restore();
   };
   sil(cat, 184, 78);
-  for (let i = 0; i < 3; i++) sil(art.hunter[i % 2].d.run[Math.floor(t * 8 + i * 3) % 8], 62 + i * 20, 67 + (i % 2));
+  for (let i = 0; i < 3; i++) sil(art.hunter[i % art.hunter.length].d.run[Math.floor(t * 8 + i * 3) % 8], 62 + i * 20, 67 + (i % 2));
 }
 
 // ---------------- screens ----------------

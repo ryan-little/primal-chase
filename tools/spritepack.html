@@ -1,0 +1,340 @@
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Primal Chase sprite pack: before and after</title>
+<style>
+  :root { --z: 3; --bg: #c2a64a; --ink: #1a110c; --panel: #f3ead2; --line: #cdbf96; --accent: #c2562e; }
+  * { box-sizing: border-box; }
+  body { margin: 0; background: #2b1d15; color: var(--ink); font: 13px/1.4 ui-monospace, Consolas, Menlo, monospace; }
+  header { position: sticky; top: 0; z-index: 5; background: #1a110c; color: #f3ead2; padding: 8px 14px; display: flex; flex-wrap: wrap; gap: 6px 18px; align-items: center; border-bottom: 2px solid var(--accent); }
+  header h1 { font-size: 15px; margin: 0 8px 0 0; letter-spacing: .5px; }
+  header label { display: inline-flex; align-items: center; gap: 5px; white-space: nowrap; }
+  header button, header select { font: inherit; background: #3a2618; color: #f3ead2; border: 1px solid #7a5434; border-radius: 3px; padding: 2px 7px; cursor: pointer; }
+  header button.on { background: var(--accent); border-color: #ffb13b; }
+  .sw { width: 18px; height: 18px; border: 2px solid #7a5434; border-radius: 3px; padding: 0; }
+  .sw.on { border-color: #ffe08a; }
+  nav { display: flex; flex-wrap: wrap; gap: 4px 10px; width: 100%; font-size: 12px; }
+  nav a { color: #ffe08a; text-decoration: none; } nav a:hover { text-decoration: underline; }
+  main { padding: 10px 14px 60px; }
+  .stats { color: #e0bb84; margin: 4px 0 2px; font-size: 12px; }
+  section > h2 { color: #ffe08a; font-size: 15px; margin: 22px 0 8px; border-bottom: 1px solid #7a5434; padding-bottom: 3px; }
+  .card { background: var(--panel); border: 1px solid var(--line); border-radius: 4px; margin: 0 0 12px; overflow: hidden; }
+  .card > h3 { margin: 0; padding: 5px 10px; font-size: 13px; background: #e4d7b0; border-bottom: 1px solid var(--line); display: flex; gap: 10px; align-items: baseline; }
+  .card > h3 small { font-weight: normal; color: #6e4a2c; }
+  .grid { display: flex; flex-wrap: wrap; gap: 0; }
+  .cell { border-right: 1px solid var(--line); border-bottom: 1px solid var(--line); padding: 6px 8px 8px; }
+  .cell .lab { font-size: 11px; color: #6e4a2c; margin-bottom: 4px; display: flex; gap: 6px; align-items: center; }
+  .new { background: var(--accent); color: #fff; border-radius: 2px; padding: 0 4px; font-size: 10px; }
+  .pair { display: flex; gap: 8px; align-items: flex-end; }
+  .side { text-align: center; }
+  .side .cap { font-size: 10px; color: #8a6e2a; text-transform: uppercase; letter-spacing: .5px; }
+  .stage { background: var(--bg); border-radius: 3px; padding: calc(var(--z) * 1px); display: inline-block; line-height: 0; }
+  .stage.none { background: repeating-linear-gradient(45deg, #e4d7b0, #e4d7b0 4px, #d9caa0 4px, #d9caa0 8px); }
+  canvas.sp { image-rendering: pixelated; image-rendering: crisp-edges; }
+  .rowlab { writing-mode: vertical-rl; transform: rotate(180deg); font-size: 10px; color: #8a6e2a; text-transform: uppercase; letter-spacing: 1px; text-align: center; padding: 4px 2px; border-right: 1px solid var(--line); background: #ece0bc; }
+  .vrow { display: flex; border-bottom: 1px solid var(--line); }
+  .vrow .items { display: flex; flex-wrap: wrap; gap: 8px; padding: 8px; align-items: flex-end; }
+  .strips { display: none; padding: 4px 0 0; }
+  body.frames .strips { display: block; }
+  .strips .stage { margin-top: 3px; max-width: 100%; overflow-x: auto; }
+  .note { color: #e0bb84; font-size: 12px; margin: -2px 0 8px; }
+  .miss { color: #ff8a6a; }
+</style></head><body>
+<header>
+  <h1>PRIMAL CHASE · sprite pack</h1>
+  <label>zoom <select id="zoom"><option>2</option><option selected>3</option><option>4</option><option>5</option><option>6</option><option>8</option></select></label>
+  <label>speed <select id="speed"><option value="0.5">half</option><option value="1" selected>normal</option><option value="1.5">fast</option></select></label>
+  <label>ground <span id="swatches"></span></label>
+  <button id="pause">pause</button>
+  <button id="frames">show every frame</button>
+  <nav id="nav"></nav>
+</header>
+<main>
+  <div class="stats" id="stats">building sprites…</div>
+  <div id="out"></div>
+</main>
+
+<script>
+// ---------- viewer (works from live art or from an exported, self-contained copy) ----------
+// Model: { stats, sections: [{ id, title, note, cards: [{ title, note, kind: 'sets' | 'variants', rows }] }] }
+//   sets card:     rows = [{ label, isNew, before: anim | null, after: anim | null }]
+//   variants card: rows = { before: [anim], after: [anim] }
+//   anim = { src: canvas | dataURL, n, w, h, ox, oy, fps, hold, seq }  (src is a horizontal strip of n frames)
+const GROUNDS = [['savanna', '#c2a64a'], ['lush', '#76843a'], ['dry', '#a8903f'], ['sand', '#cfa36b'], ['dune', '#c47236'], ['ash', '#46403b'], ['salt', '#d6cebd'], ['water', '#2f8295'], ['night', '#2a2f3d']];
+const players = [];
+let paused = false, speed = 1;
+
+function el(tag, cls, text) { const e = document.createElement(tag); if (cls) e.className = cls; if (text != null) e.textContent = text; return e; }
+
+function loadSrc(a) {
+  if (typeof a.src !== 'string') return Promise.resolve();
+  return new Promise((res) => { const im = new Image(); im.onload = () => { a.src = im; res(); }; im.onerror = res; im.src = a.src; });
+}
+function eachAnim(model, fn) {
+  for (const s of model.sections) for (const c of s.cards) {
+    if (c.kind === 'sets') for (const r of c.rows) { if (r.before) fn(r.before); if (r.after) fn(r.after); }
+    else { c.rows.before.forEach(fn); c.rows.after.forEach(fn); }
+  }
+}
+// A canvas showing one anim inside a shared box so before and after sit on the same baseline.
+function player(a, box) {
+  const wrap = el('span', 'stage' + (a ? '' : ' none'));
+  const c = el('canvas', 'sp');
+  c.width = box.w; c.height = box.h;
+  c.style.width = `calc(${box.w}px * var(--z))`; c.style.height = `calc(${box.h}px * var(--z))`;
+  wrap.appendChild(c);
+  if (a) {
+    const p = { a, c, x: c.getContext('2d'), dx: box.ax - a.ox, dy: box.ay - a.oy, t: Math.random() * 0.2, last: -1 };
+    players.push(p);
+    drawFrame(p, 0);
+  }
+  return wrap;
+}
+function drawFrame(p, i) {
+  const { a, x, c } = p;
+  x.clearRect(0, 0, c.width, c.height);
+  x.drawImage(a.src, i * a.w, 0, a.w, a.h, p.dx, p.dy, a.w, a.h);
+}
+function boxOf(list) {
+  let ax = 0, ay = 0, r = 0, b = 0;
+  for (const a of list) if (a) { ax = Math.max(ax, a.ox); ay = Math.max(ay, a.oy); r = Math.max(r, a.w - a.ox); b = Math.max(b, a.h - a.oy); }
+  return { ax, ay, w: Math.max(1, ax + r), h: Math.max(1, ay + b) };
+}
+function strip(a) {
+  const wrap = el('div', 'stage');
+  const c = el('canvas', 'sp');
+  c.width = a.n * (a.w + 1); c.height = a.h;
+  const x = c.getContext('2d');
+  for (let i = 0; i < a.n; i++) x.drawImage(a.src, i * a.w, 0, a.w, a.h, i * (a.w + 1), 0, a.w, a.h);
+  c.style.width = `calc(${c.width}px * var(--z))`; c.style.height = `calc(${c.height}px * var(--z))`;
+  wrap.appendChild(c);
+  return wrap;
+}
+function side(cap, a, box) {
+  const s = el('div', 'side');
+  s.appendChild(player(a, box));
+  s.appendChild(el('div', 'cap', a ? `${cap} · ${a.n}f` : cap + ' · none'));
+  return s;
+}
+
+function renderPack(model) {
+  const out = document.getElementById('out'), nav = document.getElementById('nav');
+  out.textContent = '';
+  document.getElementById('stats').innerHTML = model.stats;
+  for (const s of model.sections) {
+    const sec = el('section'); sec.id = s.id;
+    sec.appendChild(el('h2', null, s.title));
+    if (s.note) sec.appendChild(el('div', 'note', s.note));
+    const link = el('a', null, s.title); link.href = '#' + s.id; nav.appendChild(link);
+    for (const c of s.cards) {
+      const card = el('div', 'card');
+      const h = el('h3'); h.appendChild(el('span', null, c.title)); if (c.note) h.appendChild(el('small', null, c.note));
+      card.appendChild(h);
+      if (c.kind === 'sets') {
+        const all = []; for (const r of c.rows) { all.push(r.before, r.after); }
+        const box = boxOf(all);
+        const grid = el('div', 'grid');
+        for (const r of c.rows) {
+          const cell = el('div', 'cell');
+          const lab = el('div', 'lab'); lab.appendChild(el('span', null, r.label)); if (r.isNew) lab.appendChild(el('span', 'new', 'new'));
+          cell.appendChild(lab);
+          const pair = el('div', 'pair');
+          if (!r.isNew) pair.appendChild(side('before', r.before, box));
+          pair.appendChild(side('after', r.after, box));
+          cell.appendChild(pair);
+          const st = el('div', 'strips');
+          if (r.before) st.appendChild(strip(r.before));
+          if (r.after) st.appendChild(strip(r.after));
+          cell.appendChild(st);
+          grid.appendChild(cell);
+        }
+        card.appendChild(grid);
+      } else {
+        for (const [cap, list] of [['before', c.rows.before], ['after', c.rows.after]]) {
+          const row = el('div', 'vrow');
+          row.appendChild(el('div', 'rowlab', cap));
+          const items = el('div', 'items');
+          if (!list.length) items.appendChild(el('span', 'cap', 'none'));
+          for (const a of list) {
+            const it = el('div');
+            it.appendChild(player(a, boxOf([a])));
+            if (a.n > 1) { const st = el('div', 'strips'); st.appendChild(strip(a)); it.appendChild(st); }
+            items.appendChild(it);
+          }
+          row.appendChild(items);
+          card.appendChild(row);
+        }
+      }
+      sec.appendChild(card);
+    }
+    out.appendChild(sec);
+  }
+}
+
+let prev = performance.now();
+function tick(now) {
+  const dt = Math.min(0.1, (now - prev) / 1000); prev = now;
+  if (!paused) for (const p of players) {
+    const a = p.a;
+    if (a.n < 2) continue;
+    p.t += dt * speed * (a.fps || 8);
+    const seq = a.seq, len = (seq ? seq.length : a.n) + (a.hold || 0);
+    let k = Math.floor(p.t) % len;
+    if (k >= len - (a.hold || 0)) k = len - (a.hold || 0) - 1; // a one-shot rests on its last frame
+    const f = seq ? seq[k] : k;
+    if (f !== p.last) { p.last = f; drawFrame(p, f); }
+  }
+  requestAnimationFrame(tick);
+}
+
+function controls() {
+  const sw = document.getElementById('swatches');
+  GROUNDS.forEach(([name, col], i) => {
+    const b = el('button', 'sw' + (i === 0 ? ' on' : '')); b.title = name; b.style.background = col;
+    b.onclick = () => { document.documentElement.style.setProperty('--bg', col); sw.querySelectorAll('.sw').forEach((o) => o.classList.remove('on')); b.classList.add('on'); };
+    sw.appendChild(b);
+  });
+  document.getElementById('zoom').onchange = (e) => document.documentElement.style.setProperty('--z', e.target.value);
+  document.getElementById('speed').onchange = (e) => { speed = +e.target.value; };
+  document.getElementById('pause').onclick = (e) => { paused = !paused; e.target.classList.toggle('on', paused); e.target.textContent = paused ? 'play' : 'pause'; };
+  document.getElementById('frames').onclick = (e) => { document.body.classList.toggle('frames'); e.target.classList.toggle('on'); };
+}
+
+async function startPack(model) {
+  const jobs = []; eachAnim(model, (a) => jobs.push(loadSrc(a)));
+  await Promise.all(jobs);
+  renderPack(model);
+  requestAnimationFrame(tick);
+  window.done = true;
+}
+controls();
+</script>
+<!--PACK_DATA-->
+<script type="module" id="live">
+// ---------- live build: old art from js/art.js beside new art from js/art2 ----------
+if (window.PACK_DATA) startPack(window.PACK_DATA);
+else {
+  const { buildArt } = await import('../js/art.js');
+  const { buildArt2 } = await import('../js/art2/index.js');
+  const t0 = performance.now();
+  const O = buildArt();
+  const tOld = Math.round(performance.now() - t0);
+  const { art: N, timings, missing } = await buildArt2();
+  const tNew = Object.values(timings).reduce((a, b) => a + b, 0);
+
+  const FPS = { idle: 5, lie: 4, walk: 9, trot: 10, run: 14, stalk: 7, drink: 6, eat: 6, graze: 5, peck: 7, feed: 6, pounce: 9, dead: 1, fly: 12, flap: 9, soar: 6, search: 6, windup: 8, throw: 12, down: 8, cheer: 8, lurk: 5, snap: 12, sink: 7, stot: 10, roar: 7, bark: 8 };
+  const ONE_SHOT = new Set(['pounce', 'windup', 'throw', 'down', 'snap', 'sink']);
+  const ORDER = ['idle', 'walk', 'trot', 'run', 'stalk', 'lie', 'drink', 'eat', 'graze', 'peck', 'feed', 'fly', 'soar', 'flap', 'search', 'windup', 'throw', 'down', 'pounce', 'stot', 'roar', 'bark', 'cheer', 'lurk', 'snap', 'sink', 'dead'];
+  let nOldF = 0, nNewF = 0, nOldS = 0, nNewS = 0;
+
+  // frames (canvases or atlas regions, all one size) -> strip anim
+  function anim(frames, ox, oy, opts = {}, isNew = true) {
+    frames = (frames || []).filter(Boolean);
+    if (!frames.length) return null;
+    const w = Math.max(...frames.map((f) => f.width)), h = Math.max(...frames.map((f) => f.height));
+    const c = document.createElement('canvas'); c.width = w * frames.length; c.height = h;
+    const x = c.getContext('2d');
+    frames.forEach((f, i) => x.drawImage(f, i * w, 0));
+    if (isNew) { nNewF += frames.length; nNewS++; } else { nOldF += frames.length; nOldS++; }
+    return { src: c, n: frames.length, w, h, ox: ox ?? Math.round(w / 2), oy: oy ?? h - 1, ...opts };
+  }
+  const setOpts = (name) => ({ fps: FPS[name] || 8, hold: ONE_SHOT.has(name) ? 5 : 0 });
+  const setsOf = (o) => (o ? Object.keys(o).filter((k) => Array.isArray(o[k]) && o[k].length && typeof o[k][0] === 'object' && 'width' in o[k][0]) : []);
+
+  function creature(title, o, n, note) {
+    const names = [...new Set([...setsOf(o), ...setsOf(n)])].sort((a, b) => (ORDER.indexOf(a) + 100) % 100 - (ORDER.indexOf(b) + 100) % 100);
+    const rows = names.map((k) => {
+      const before = anim(o && o[k], o && o.ox, o && o.oy, setOpts(k), false);
+      const after = anim(n && n[k], n && n.ox, n && n.oy, setOpts(k), true);
+      return { label: k, isNew: !before && !!after, before, after };
+    });
+    return { title, note, kind: 'sets', rows };
+  }
+  const still = (v, ox, oy, isNew) => (v ? anim(v.frames || [v.img || v], v.ox ?? ox, v.oy ?? oy, { fps: 7 }, isNew) : null);
+  function variants(title, o, n, note) {
+    return { title, note: note || `${(o || []).length} → ${(n || []).length} variants`, kind: 'variants', rows: { before: (o || []).map((v) => still(v, null, null, false)).filter(Boolean), after: (n || []).map((v) => still(v, null, null, true)).filter(Boolean) } };
+  }
+  function item(label, o, n, oox, ooy) {
+    const before = o ? anim([o], oox, ooy, {}, false) : null;
+    const after = n ? still(n, null, null, true) : null;
+    return { label, isNew: !before && !!after, before, after };
+  }
+
+  const S = [];
+  const P = (k) => (N.props && N.props[k]) || null, OP = (k) => O.props[k] || null;
+  const have = (...keys) => keys.some((k) => N[k]);
+
+  S.push({ id: 'cat', title: 'The cat', note: 'The player. Skeleton with planted feet, a two-flight gallop, a five-frame pounce; stalk and eat are new sets.', cards: [creature('big cat', O.cat, N.cat)] });
+
+  if (N.hunter || O.hunter) {
+    const cards = [];
+    const nh = N.hunter || [];
+    for (let v = 0; v < Math.max(nh.length, O.hunter.length); v++) {
+      const o = O.hunter[v], n = nh[v];
+      const od = o && { ...o.d, ox: o.ox, oy: o.oy }, nd = n && { ...n.d, ox: n.ox, oy: n.oy };
+      cards.push(creature(`hunter ${v + 1}` + (o ? '' : ' (new individual)'), od, nd, 'day'));
+      const on = o && { walk: o.n.walk, run: o.n.run, ox: o.ox, oy: o.oy }, nn = n && n.n && { walk: n.n.walk, run: n.n.run, idle: n.n.idle, ox: n.ox, oy: n.oy };
+      cards.push(creature(`hunter ${v + 1}, night`, on, nn, 'carrying a torch; the game draws the flame'));
+    }
+    S.push({ id: 'hunters', title: 'Hunters', cards });
+  }
+
+  S.push({ id: 'predators', title: 'Dogs, hyenas, lions, crocodile', cards: [
+    creature('hunting dog', O.dog, N.dog),
+    creature('hyena', O.hyena, N.hyena),
+    creature('lion', O.lion, N.lion),
+    creature('crocodile', { lurk: [O.croc[0]], snap: [O.croc[1]], ox: 12, oy: 11 }, N.croc, 'only ever seen in water'),
+  ] });
+  S.push({ id: 'prey', title: 'Prey', cards: [
+    creature('gazelle', O.gazelle, N.gazelle),
+    creature('golden gazelle', O.golden, N.golden, 'rare'),
+    creature('zebra', O.zebra, N.zebra),
+    creature('wildebeest', O.gnu, N.gnu, 'stampedes'),
+    creature('warthog', O.warthog, N.warthog),
+    creature('hyrax', O.hyrax, N.hyrax),
+    creature('hare', O.hare, N.hare),
+  ] });
+  S.push({ id: 'birds', title: 'Birds', cards: [
+    creature('ostrich', { idle: O.ostrich.idle, run: O.ostrich.run, ox: O.ostrich.ox, oy: O.ostrich.oy }, N.ostrich),
+    creature('guineafowl', { idle: O.fowl.idle, run: O.fowl.run, fly: O.fowl.fly, ox: O.fowl.ox, oy: O.fowl.oy }, N.fowl),
+    creature('flamingo', { idle: O.flamingo.idle, run: O.flamingo.run, fly: O.flamingo.fly, ox: O.flamingo.ox, oy: O.flamingo.oy }, N.flamingo),
+    creature('vulture', { soar: O.vulture, ox: 11, oy: 6 }, N.vulture, 'circling, seen from above'),
+  ] });
+
+  const treeKinds = ['acacia', 'umbrella', 'mopane', 'marula', 'fig', 'baobab', 'fever', 'mangrove', 'palm', 'quiver', 'candelabra', 'charred', 'deadtree'];
+  const plantKinds = ['bush', 'thorn', 'sage', 'heath', 'thornbush', 'fern', 'euphorbia', 'aloe', 'papyrus', 'reeds', 'lily'];
+  const rockKinds = ['boulder', 'kopje', 'termite', 'bones', 'log', 'basalt', 'vent', 'driftwood'];
+  S.push({ id: 'trees', title: 'Trees', note: 'Every tree is now an 8-frame wind loop: wood holds still, crowns lean and flutter.', cards: treeKinds.map((k) => variants(k, OP(k), P(k))) });
+  const plantCards = plantKinds.map((k) => variants(k, OP(k), P(k)));
+  {
+    const ng = N.tallgrass;
+    const before = O.tallgrass.map((fr) => anim(fr, 13, 21, { fps: 5, seq: [1, 2, 1, 0] }, false));
+    const after = ng ? ng.clumps.map((fr) => anim(fr, ng.ox, ng.oy, { fps: 8, seq: [3, 4, 5, 6, 5, 4, 3, 2, 1, 0, 1, 2] }, true)) : [];
+    plantCards.push({ title: 'tall grass', note: 'frames ordered by lean so gusts can roll across a field', kind: 'variants', rows: { before, after } });
+  }
+  S.push({ id: 'plants', title: 'Bushes, succulents, reeds and grass', cards: plantCards });
+  S.push({ id: 'rocks', title: 'Rocks and ground props', cards: rockKinds.map((k) => variants(k, OP(k), P(k))) });
+  S.push({ id: 'landmarks', title: 'Landmarks (the secret places)', cards: Object.keys(O.landmarks).map((k) => variants(k, [O.landmarks[k]], N.landmarks && N.landmarks[k] ? [N.landmarks[k]] : [], ' ')) });
+
+  // icons were data URLs in the old build
+  const oldIcons = {};
+  await Promise.all(Object.entries(O.icons).map(([k, url]) => new Promise((res) => { const im = new Image(); im.onload = () => { const c = document.createElement('canvas'); c.width = im.width; c.height = im.height; c.getContext('2d').drawImage(im, 0, 0); oldIcons[k] = c; res(); }; im.src = url; })));
+  S.push({ id: 'items', title: 'Kills, spear, HUD icons', cards: [
+    { title: 'on the ground', kind: 'sets', rows: [
+      item('carcass', O.carcass, N.carcass, 15, 11), item('picked clean', O.carcassBones, N.carcassBones, 15, 11),
+      item('small kill', O.smallCarcass, N.smallCarcass, 8, 7), item('stuck spear', O.spearStuck, N.spearStuck, 4, 17),
+    ] },
+    { title: 'HUD icons', kind: 'sets', rows: Object.keys(oldIcons).map((k) => item(k, oldIcons[k], N.icons && N.icons[k] ? { img: N.icons[k] } : null, 7, 13)) },
+  ] });
+
+  const miss = missing.length ? `<div class="miss">not built: ${missing.map((m) => m.split(':')[0] + (m.includes('Failed to fetch') ? '' : ' (' + m.split(': ').slice(1).join(': ') + ')')).join(' · ')}</div>` : '';
+  const stats = `before: ${nOldS} sprites / ${nOldF} frames, built in ${tOld} ms &nbsp;→&nbsp; after: ${nNewS} sprites / ${nNewF} frames, built in ${tNew} ms. Same palette family, same world scale, still generated in code at load.${miss}`;
+  void have;
+  window.info = { timings, missing, nOldF, nNewF, nOldS, nNewS };
+  const model = { stats, sections: S };
+  // Self-contained copy: every strip as a PNG data URL.
+  window.exportPack = () => JSON.stringify(model, (k, v) => (v instanceof HTMLCanvasElement ? v.toDataURL('image/png') : v));
+  startPack(model);
+}
+</script>
+</body></html>

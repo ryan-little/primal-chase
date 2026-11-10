@@ -215,12 +215,19 @@ export class Renderer {
     // shadows
     ctx.fillStyle = 'rgba(30,18,10,0.28)';
     const props = [];
+    // plants sway: each prop runs its wind loop offset by where it stands, so gusts roll across the land
+    const frameOf = (pr) => {
+      const f = pr.def.frames;
+      if (!f) return pr.def.img;
+      const n = f.length;
+      return f[((Math.floor(t * 6 + pr.x * 0.021 + pr.y * 0.013) % n) + n) % n];
+    };
     for (const pr of W.propsNear(cx + w / 2, cy + h / 2, Math.max(w, h) / 2 + 80)) {
       const img = pr.def.img;
       if (pr.x - pr.def.ox > cx + w + 4 || pr.x + img.width - pr.def.ox < cx - 4) continue;
       if (pr.y - pr.def.oy > cy + h + 4 || pr.y + 10 < cy) continue;
       if (pr.flat) {
-        ctx.drawImage(img, Q(pr.x - pr.def.ox - cx), Q(pr.y - pr.def.oy - cy));
+        ctx.drawImage(frameOf(pr), Q(pr.x - pr.def.ox - cx), Q(pr.y - pr.def.oy - cy));
         if (pr.def.vent && Math.random() < dt * 3) this.burst('steam', pr.x, pr.y, 1);
         continue;
       }
@@ -333,14 +340,15 @@ export class Renderer {
         let alpha = 1;
         if (TALL_PROPS.has(o.kind) && p.y < o.y - 3 && p.y > o.y - o.def.oy + 6 && Math.abs(p.x - o.x) < o.def.img.width / 2 - 4) alpha = 0.5;
         if (o.kind === 'landmark' && !game.found.has(o.lm.key) && Math.random() < dt * 5) this.burst('spark', o.x + (Math.random() - 0.5) * o.def.img.width * 0.7, o.y - Math.random() * o.def.oy * 0.8, 1, { col: '#ffe08a' });
-        spr(o.def.img, o.x, o.y, o.def.ox, o.def.oy, o.flip, alpha);
+        spr(frameOf(o), o.x, o.y, o.def.ox, o.def.oy, o.flip, alpha);
       } else if (it.k === 1) {
         shadow(o.x, o.y, 9, 3);
-        if (o.small) spr(o.meat > 0 ? A.smallCarcass : A.carcassBones, o.x, o.y, 8, 7, o.face < 0);
-        else spr(o.meat > 0 ? A.carcass : A.carcassBones, o.x, o.y, 15, 11, o.face < 0);
+        const cs = o.meat > 0 ? (o.small ? A.smallCarcass : A.carcass) : A.carcassBones;
+        spr(cs.img, o.x, o.y, cs.ox, cs.oy, o.face < 0);
       } else if (it.k === 2) {
         const a = o.t > 20 ? 1 - (o.t - 20) / 5 : 1;
-        spr(A.spearStuck, o.x, o.y, 4, 17, o.face < 0, a);
+        const sf = A.spearStuck.frames; // quivers as it lands, then holds
+        spr(sf[Math.min(sf.length - 1, Math.floor(o.t * 14))], o.x, o.y, A.spearStuck.ox, A.spearStuck.oy, o.face < 0, a);
       } else if (it.k === 3) {
         const S = A[o.kind] || A.gazelle;
         const spd = Math.hypot(o.vx, o.vy);
@@ -350,7 +358,11 @@ export class Renderer {
         if (z > 2 && S.fly) fr = pick(S.fly);
         else if (spd > 60 && S.run) fr = pick(S.run);
         else if (spd > 5 && (S.walk || S.run)) fr = pick(S.walk || S.run);
-        else fr = pick(S.idle);
+        else {
+          // a calm animal alternates between standing and feeding
+          const feed = S.graze || S.peck || S.feed;
+          fr = pick(feed && o.state === 'graze' && (t * 0.11 + o.id * 0.37) % 1 < 0.55 ? feed : S.idle);
+        }
         const small = o.kind === 'hare' || o.kind === 'fowl' || o.kind === 'hyrax';
         const sb = z > 2 ? 0 : depth(o.x, o.y, small ? 6 : 9, small ? 3 : 5);
         if (!sb) shadow(o.x, o.y, small ? 4 : 8, small ? 1.5 : 2.5, z > 2 ? 0.15 : 0.28);
@@ -359,26 +371,34 @@ export class Renderer {
       } else if (it.k === 4) {
         const S = A.dog;
         const spd = Math.hypot(o.vx, o.vy);
-        const fr = spd > 70 ? S.run[Math.floor(o.anim * 8) % 8] : spd > 5 ? S.walk[Math.floor(o.anim * 8) % 8] : S.idle[0];
+        const dpick = (arr) => arr[Math.floor(o.anim * arr.length) % arr.length];
+        const fr = o.dead ? S.dead[0] : spd > 70 ? dpick(S.run) : spd > 5 ? dpick(S.walk) : S.idle[Math.floor(t * 4 + o.id) % S.idle.length];
         const sb = depth(o.x, o.y, 7, 4);
         if (!sb) shadow(o.x, o.y, 7, 2.5);
         spr(fr, o.x, o.y, S.ox, S.oy, o.face < 0, o.dead ? 0.8 : 1, sb);
       } else if (it.k === 5) {
-        const set = A.hunter[o.variant][night ? 'n' : 'd'];
-        let fr;
+        const H = A.hunter[o.variant % A.hunter.length];
+        const set = H[night ? 'n' : 'd'];
         const st = o.state;
-        if (st === 'down') fr = set.down[0];
-        else if (st === 'windup') fr = set.windup[0];
-        else if (st === 'throw') fr = set.throw[0];
-        else if (st === 'search') fr = set.search[Math.floor(o.anim * 4) % 4];
-        else if (st === 'run') fr = set.run[Math.floor(o.anim * 8) % 8];
-        else fr = set.walk[Math.floor(o.anim * 8) % 8];
+        // one-shots run on the game's own timers and rest on their last frame
+        let name, i;
+        if (st === 'down') { name = 'down'; i = Math.min(set.down.length - 1, Math.floor((o.downT = (o.downT || 0) + dt) * 10)); }
+        else if (st === 'windup') { name = 'windup'; i = Math.min(set.windup.length - 1, Math.floor((1 - o.windup / 0.8) * set.windup.length + 1)); }
+        else if (st === 'throw') { name = 'throw'; i = Math.min(set.throw.length - 1, Math.floor((1 - (o.throwT || 0) / 0.35) * set.throw.length)); }
+        else if (st === 'search') { name = 'search'; i = Math.floor(o.anim * set.search.length) % set.search.length; }
+        else if (st === 'run') { name = 'run'; i = Math.floor(o.anim * set.run.length) % set.run.length; }
+        else if (Math.hypot(o.vx || 0, o.vy || 0) < 4 && set.idle) { name = 'idle'; i = Math.floor(t * 5 + o.id) % set.idle.length; }
+        else { name = 'walk'; i = Math.floor(o.anim * set.walk.length) % set.walk.length; }
+        if (st !== 'down') o.downT = 0;
+        i = Math.max(0, i);
+        const fr = set[name][i];
         const sb = st === 'down' ? 0 : depth(o.x, o.y, 12, 6);
         if (!sb) shadow(o.x, o.y, 6, 2);
-        spr(fr, o.x, o.y, A.hunter[o.variant].ox, A.hunter[o.variant].oy, o.face < 0, 1, sb);
-        if (night && st !== 'down' && st !== 'windup') {
-          const fx = o.x - o.face * 4, fy = o.y - 39;
-          if (Math.random() < dt * 30) this.burst('ember', fx, o.y, 1, { z: 38 });
+        spr(fr, o.x, o.y, H.ox, H.oy, o.face < 0, 1, sb);
+        const tp = night && H.torchAt && H.torchAt[name] ? H.torchAt[name][i] : null;
+        if (tp) {
+          const fx = o.x + o.face * tp[0], fy = o.y + tp[1];
+          if (Math.random() < dt * 30) this.burst('ember', fx, o.y, 1, { z: -tp[1] });
           ctx.fillStyle = P.fire1;
           ctx.fillRect(Q(fx - cx) - 1, Q(fy - cy) - 1 - (Math.random() < 0.5 ? 1 : 0), 3, 3);
           ctx.fillStyle = P.fire2;
@@ -391,19 +411,20 @@ export class Renderer {
       } else if (it.k === 7) {
         const S = A.hyena;
         const spd = Math.hypot(o.vx, o.vy);
-        const fr = o.state === 'eat' ? S.drink[Math.floor(t * 3) % 2] : spd > 60 ? S.run[Math.floor(o.anim * 8) % 8] : spd > 4 ? S.walk[Math.floor(o.anim * 8) % 8] : S.idle[0];
+        const hpick = (arr) => arr[Math.floor(o.anim * arr.length) % arr.length];
+        const fr = o.state === 'eat' ? S.drink[Math.floor(t * 6) % S.drink.length] : spd > 60 ? hpick(S.run) : spd > 4 ? hpick(S.walk) : S.idle[Math.floor(t * 4 + o.id) % S.idle.length];
         shadow(o.x, o.y, 8, 2.5);
         spr(fr, o.x, o.y, S.ox, S.oy, o.face < 0);
       } else if (it.k === 8) {
         if (game.stampedeWarn > 1.2) continue;
         const S = A.gnu;
         shadow(o.x, o.y, 9, 3);
-        spr(S.run[Math.floor(o.anim * 8) % 8], o.x, o.y, S.ox, S.oy, o.face < 0);
+        spr(S.run[Math.floor(o.anim * S.run.length) % S.run.length], o.x, o.y, S.ox, S.oy, o.face < 0);
         if (Math.random() < dt * 14) this.burst('dust', o.x - Math.cos(o.a) * 10, o.y, 2, { col: P.sand2 });
       } else if (it.k === 11) {
         const wind = Math.sin(t * 1.3 + o.x * 0.02 + o.ph) + Math.sin(t * 2.9 + o.y * 0.03) * 0.4;
-        const fr = o.v[wind > 0.5 ? 2 : wind < -0.5 ? 0 : 1];
-        ctx.drawImage(fr, Q(o.x - 13 - cx), Q(o.y - 21 - cy));
+        const fr = o.v[Math.max(0, Math.min(6, Math.round(3 + wind * 2.3)))]; // frames run from full left lean to full right
+        ctx.drawImage(fr, Q(o.x - A.tallgrass.ox - cx), Q(o.y - A.tallgrass.oy - cy));
       } else if (it.k === 10) {
         const S = A.lion;
         const pick = (arr) => arr[Math.floor(o.anim * arr.length) % arr.length];
@@ -411,7 +432,10 @@ export class Renderer {
         shadow(o.x, o.y, 11, 3);
         spr(fr, o.x, o.y, S.ox, S.oy, o.face < 0);
       } else if (it.k === 9) {
-        const img = A.croc[o.state === 'snap' ? 1 : 0];
+        const C = A.croc;
+        const img = o.state === 'snap' ? C.snap[Math.min(C.snap.length - 1, Math.floor(o.t / 0.8 * C.snap.length))]
+          : o.state === 'sink' ? C.sink[Math.min(C.sink.length - 1, Math.floor(o.t * C.sink.length))]
+          : C.lurk[Math.floor(t * 5) % C.lurk.length];
         const X = Q(o.x - cx), Y = Q(o.y - cy);
         if (o.state === 'sink') ctx.globalAlpha = Math.max(0, 1 - o.t);
         // wake
@@ -420,14 +444,17 @@ export class Renderer {
           ctx.fillRect(X - o.face * (10 + i * 6), Y - i * 2 + 2, 3, 1);
           ctx.fillRect(X - o.face * (10 + i * 6), Y + i * 2 + 5, 3, 1);
         }
-        if (o.face < 0) { ctx.save(); ctx.translate(X, 0); ctx.scale(-1, 1); ctx.drawImage(img, -12, Y - 3); ctx.restore(); }
-        else ctx.drawImage(img, X - 12, Y - 3);
+        // the sprite's anchor is the waterline under its eyes
+        if (o.face < 0) { ctx.save(); ctx.translate(X, 0); ctx.scale(-1, 1); ctx.drawImage(img, -C.ox, Y + 5 - C.oy); ctx.restore(); }
+        else ctx.drawImage(img, X - C.ox, Y + 5 - C.oy);
         ctx.globalAlpha = 1;
       } else if (it.k === 6) {
         const S = A.cat;
         let arr = S[p.state] || S.idle;
         if (game.over) arr = S.dead;
-        const fr = arr[Math.floor(p.anim * arr.length) % arr.length];
+        let fr = arr[Math.floor(p.anim * arr.length) % arr.length];
+        // the leap itself: launch, full stretch, reach (the crouch and landing frames bracket it)
+        if (arr === S.pounce && arr.length >= 4) fr = arr[1 + Math.min(2, Math.floor((1 - Math.min(1, p.pounce / 0.25)) * 3))];
         const sb = p.state === 'pounce' ? 0 : depth(p.x, p.y, 8, 4);
         if (!sb) shadow(p.x, p.y, 10, 3);
         if (p.state === 'pounce') {
@@ -507,8 +534,8 @@ export class Renderer {
         const a = t * 0.8 + i * 2.1 + c.id;
         const vx = c.x + Math.cos(a) * (26 + i * 6), vy = c.y + Math.sin(a) * 12 - 46 - i * 4;
         shadow(c.x + Math.cos(a) * (26 + i * 6), c.y + Math.sin(a) * 12, 4, 1.2, 0.15);
-        const fr = A.vulture[Math.floor(t * 6 + i) % 4];
-        ctx.drawImage(fr, Q(vx - cx - 11), Q(vy - cy - 6));
+        const V = A.vulture, vs = (t * 0.25 + i * 0.37) % 1 < 0.3 ? V.flap : V.soar; // mostly gliding, a few slow beats
+        ctx.drawImage(vs[Math.floor(t * 7 + i * 3) % vs.length], Q(vx - cx - V.ox), Q(vy - cy - V.oy));
       }
     }
 

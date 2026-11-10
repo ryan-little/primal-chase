@@ -126,7 +126,7 @@ export class Game {
       const ang = this.r() * TAU;
       this.hunters.push({
         id: UID++, x: this.band.x + Math.cos(ang) * 20, y: this.band.y + Math.sin(ang) * 20,
-        vx: 0, vy: 0, face: 1, anim: this.r(), variant: k % 2,
+        vx: 0, vy: 0, face: 1, anim: this.r(), variant: k % 3,
         slot: k, state: 'walk', throwCd: this.r.range(2, 4), windup: 0, down: 0, stab: 0,
         tx: 0, ty: 0, mark: 0, markType: '', speedJit: this.r.range(0.95, 1.05),
       });
@@ -422,12 +422,12 @@ export class Game {
     // animation state
     if (p.pounce > 0) p.state = 'pounce';
     else if (p.drinking) p.state = 'drink';
-    else if (p.eating) p.state = 'drink';
+    else if (p.eating) p.state = 'eat';
     else if (p.lying) p.state = 'lie';
     else if (sp > T.trot * 1.15) p.state = 'run';
-    else if (sp > 8) p.state = 'walk';
+    else if (sp > 8) p.state = p.stalking ? 'stalk' : 'walk';
     else p.state = 'idle';
-    const animRate = p.state === 'run' ? sp / 95 : p.state === 'walk' ? sp / 40 : p.state === 'lie' ? 0.25 : 0.6;
+    const animRate = p.state === 'run' ? sp / 95 : p.state === 'walk' ? sp / 40 : p.state === 'stalk' ? sp / 26 : p.state === 'lie' ? 0.25 : 0.6;
     p.anim = (p.anim + dt * animRate) % 1;
 
     if (p.landmark && !this.found.has(p.landmark.key) && !this.over) this.discover(p.landmark);
@@ -936,7 +936,7 @@ export class Game {
   // He's alone: dodge him, outrun him, or knock him flat.
   makeRunner(x, y, life = 26, maxThrows = 3) {
     return {
-      id: UID++, x, y, vx: 0, vy: 0, face: 1, anim: 0, variant: (UID + this.day) % 2,
+      id: UID++, x, y, vx: 0, vy: 0, face: 1, anim: 0, variant: (UID + this.day) % 3,
       slot: 0, state: 'run', throwCd: 1.2 + this.r() * 0.8, windup: 0, down: 0, stab: 0, tx: 0, ty: 0, mark: 0, markType: '',
       life, seen: false, leaving: false, scout: true, maxThrows,
     };
