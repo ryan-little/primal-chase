@@ -1,0 +1,48 @@
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8"><title>UI kit sheet</title>
+<style>
+  body { margin: 0; background: #2b1d15; color: #f3ead2; font: 12px Consolas, monospace; padding: 10px; }
+  .row { display: flex; flex-wrap: wrap; gap: 10px; align-items: flex-end; margin-bottom: 12px; }
+  figure { margin: 0; text-align: center; } figcaption { font-size: 10px; color: #c9b491; }
+  img { image-rendering: pixelated; background: #5a6e3a; }
+  h3 { margin: 8px 0 4px; color: #ffe08a; font-size: 13px; }
+</style></head><body>
+<div id="out"></div>
+<script type="module">
+import { buildArt } from '../js/art2/build.js';
+import { installUI, iconCanvas, perkArt, secretArt, drawLogo, PERK_ICON, FEAT_ICON, SECRET_ICON } from '../js/ui-art.js';
+const art = buildArt();
+const t0 = performance.now();
+const { ms } = installUI(art);
+const out = document.getElementById('out');
+const sec = (t) => { const h = document.createElement('h3'); h.textContent = t; out.appendChild(h); const r = document.createElement('div'); r.className = 'row'; out.appendChild(r); return r; };
+const fig = (r, src, cap, z = 4) => { const f = document.createElement('figure'); const i = new Image(); i.src = src; i.onload = () => { i.style.width = i.naturalWidth * z + 'px'; }; f.appendChild(i); const c = document.createElement('figcaption'); c.textContent = cap; f.appendChild(c); r.appendChild(f); };
+const root = getComputedStyle(document.documentElement);
+let r = sec('kit (installUI ' + ms.toFixed(1) + ' ms)');
+for (const k of ['panel', 'frame', 'frame-hot', 'frame-gold', 'frame-cool', 'vellum', 'vellum-hi', 'banner', 'btn', 'btn-hi', 'btn-dn', 'btn-p', 'btn-p-hi', 'btn-p-dn', 'btn-on', 'key', 'key-hi', 'key-dn', 'kbd', 'bar', 'bar-hot', 'bar-cool', 'fill-health', 'fill-heat', 'fill-water', 'fill-food', 'fill-danger', 'mark', 'dots', 'thumb', 'check', 'check-on', 'ring', 'stick', 'knob', 'stalk', 'stalk-dn', 'pounce', 'pounce-dn']) {
+  const v = document.documentElement.style.getPropertyValue('--ui-' + k).trim().slice(5, -2);
+  fig(r, v, k);
+}
+r = sec('icons');
+const names = new Set(['sun', 'moon', 'dawn', 'dusk', 'rain', 'storm', 'fog', 'dust', 'heatwave', 'map', 'pause', 'paw', 'prints', 'hand', 'claws', 'scroll', 'sliders', 'arrowL', 'spearhead', 'spear', 'spears', 'broken', 'swirl', 'copy', 'hut', 'star', 'spark', 'eye', 'wave', 'pelt', 'scar', 'leap', 'dash', 'fang', 'gourd', 'loop', 'scent', 'cliff', 'compass', 'secret', 'cave', 'gazelle', 'goldgaz', 'horns', 'dog', 'lion', 'cathead', 'hunterhead', 'palm', 'baobab', 'fire', 'arch', 'pole', 'ribs', 'tusk', 'shard', 'drum']);
+for (const n of names) { const c = iconCanvas(n); fig(r, typeof c === 'string' ? c : c.toDataURL(), n); }
+for (const n of ['heat', 'water', 'food', 'health', 'hunter']) fig(r, art.icons[n], n + '*');
+r = sec('perk paintings');
+for (const id of Object.keys(PERK_ICON)) fig(r, perkArt(id), id, 3);
+r = sec('secret paintings');
+for (const id of Object.keys(SECRET_ICON)) fig(r, secretArt(id), id, 3);
+r = sec('logo');
+const lc = document.createElement('canvas'); lc.width = 340; lc.height = 112; lc.style.cssText = 'width:1020px;image-rendering:pixelated;background:#c2a64a'; drawLogo(lc, 0.3); r.appendChild(lc);
+r = sec('favicon');
+fig(r, document.getElementById('favicon')?.href || '', '32', 6);
+fig(r, document.getElementById('favicon16')?.href || '', '16', 12);
+fig(r, document.getElementById('favicon')?.href || '', '32@1', 1);
+fig(r, document.getElementById('favicon16')?.href || '', '16@1', 1);
+r = sec('numerals');
+await document.fonts.ready;
+for (const s of [15, 20, 24, 30, 70]) { const d = document.createElement('div'); d.style.cssText = `font-family:'PC Numerals','Pixelify Sans';font-size:${s}px;color:#ffe08a`; d.textContent = '0123456789 x2.5 4,860'; r.appendChild(d); }
+window.info = { ms, total: performance.now() - t0, fonts: [...document.fonts].map((f) => f.family + ':' + f.status) };
+window.done = true;
+</script>
+<link rel="icon" id="favicon" href="data:,">
+</body></html>

@@ -28,8 +28,8 @@ export const SECRETS = {
     gift: 'Wounds mended. Rest here heals fast.',
   },
   camp: {
-    name: 'A Cold Camp', biomes: [B.SAVANNA, B.WOODLAND, B.HIGHLAND, B.WETLAND], reward: 'intel',
-    lore: 'Ashes, days old. A shelter of hide, a rack for spears, bones picked clean. They sleep in turns. They sing to keep awake. They are only men.',
+    name: "The Hunters' Camp", biomes: [B.SAVANNA, B.WOODLAND, B.HIGHLAND, B.WETLAND], reward: 'intel',
+    lore: 'A shelter of hide, a rack for spears, bones picked clean, and one of them left behind to keep the fire. They sleep in turns. They sing to keep awake. They are only men.',
     gift: 'For the rest of the day you sense exactly where they are.',
   },
   arch: {

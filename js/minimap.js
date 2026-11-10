@@ -1,6 +1,7 @@
 // What the cat remembers: a map that fills in only where you've actually been.
 import { P } from './palette.js';
 import { G } from './terrain.js';
+import { iconCanvas } from './ui-art.js';
 
 const CELLPX = 24; // world pixels per remembered cell
 const COLORS = {
@@ -61,6 +62,10 @@ export class Minimap {
   paint(ctx, W, H, game, cx, cy, scale, big) {
     ctx.fillStyle = '#140d09';
     ctx.fillRect(0, 0, W, H);
+    // unexplored land: dark hide with a faint stitch grid
+    ctx.fillStyle = '#21170f';
+    const step = big ? Math.max(8, Math.round(scale * 4)) : 12;
+    for (let y = step / 2; y < H; y += step) for (let x = ((y / step) % 2) * step / 2; x < W; x += step) ctx.fillRect(Math.round(x), Math.round(y), big ? 2 : 2, big ? 2 : 2);
     const cellsW = Math.ceil(W / scale / 2) + 1, cellsH = Math.ceil(H / scale / 2) + 1;
     const ci = Math.floor(cx / CELLPX), cj = Math.floor(cy / CELLPX);
     const fx = (cx / CELLPX - ci) * scale, fy = (cy / CELLPX - cj) * scale;
@@ -71,30 +76,29 @@ export class Minimap {
       ctx.fillRect(Math.floor(W / 2 + di * scale - fx), Math.floor(H / 2 + dj * scale - fy), Math.ceil(scale), Math.ceil(scale));
     }
     const toX = (x) => W / 2 + ((x - cx) / CELLPX) * scale, toY = (y) => H / 2 + ((y - cy) / CELLPX) * scale;
+    // markers are the UI's own pixel icons, drawn at a whole-number scale k
+    ctx.imageSmoothingEnabled = false;
+    const k = big ? Math.max(1, Math.round(1.5 * (window.devicePixelRatio || 1))) : 1;
+    const mark = (name, X, Y, s = k) => ctx.drawImage(iconCanvas(name), Math.round(X - 8 * s), Math.round(Y - 8 * s), 16 * s, 16 * s);
     // secrets found this run
     const range = (Math.max(W, H) / scale) * CELLPX;
     for (const lm of game.world.landmarksNear(cx, cy, range)) {
       if (!game.found.has(lm.key)) continue;
-      const X = toX(lm.x), Y = toY(lm.y);
-      ctx.fillStyle = P.gold1;
-      ctx.beginPath();
-      for (let k = 0; k < 10; k++) { const a = (k / 10) * Math.PI * 2 - Math.PI / 2; const rr = k % 2 ? 2 : 5; ctx.lineTo(X + Math.cos(a) * rr * (big ? 1.4 : 1), Y + Math.sin(a) * rr * (big ? 1.4 : 1)); }
-      ctx.fill();
+      mark('star', toX(lm.x), toY(lm.y));
     }
     // the band, if you've learned their ways (or they're in sight)
     const intel = game.intelDay === game.day;
     for (const h of game.hunters) {
       const d = Math.hypot(h.x - game.player.x, h.y - game.player.y);
       if (!intel && d > 300) continue;
-      ctx.fillStyle = P.danger;
-      ctx.fillRect(toX(h.x) - 1.5, toY(h.y) - 1.5, 3, 3);
+      if (big) { mark('hunterhead', toX(h.x), toY(h.y)); continue; }
+      const X = Math.round(toX(h.x)), Y = Math.round(toY(h.y));
+      ctx.fillStyle = P.ink; ctx.fillRect(X - 4, Y - 4, 8, 8);
+      ctx.fillStyle = P.danger; ctx.fillRect(X - 2, Y - 2, 4, 4);
     }
     // you
     const p = game.player;
-    ctx.fillStyle = '#fff';
-    ctx.beginPath(); ctx.arc(toX(p.x), toY(p.y), big ? 4 : 2.5, 0, Math.PI * 2); ctx.fill();
-    ctx.fillStyle = P.fur2;
-    ctx.beginPath(); ctx.arc(toX(p.x), toY(p.y), big ? 2.6 : 1.5, 0, Math.PI * 2); ctx.fill();
+    mark('cathead', toX(p.x), toY(p.y), big ? k : 2);
   }
 
   draw(game) {

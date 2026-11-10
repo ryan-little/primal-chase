@@ -1,0 +1,105 @@
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Primal Chase UI pack: before and after</title>
+<style>
+  :root { --ink: #1a110c; --panel: #f3ead2; --line: #cdbf96; --accent: #c2562e; }
+  * { box-sizing: border-box; }
+  body { margin: 0; background: #2b1d15; color: var(--ink); font: 13px/1.4 ui-monospace, Consolas, Menlo, monospace; }
+  header { position: sticky; top: 0; z-index: 5; background: #1a110c; color: #f3ead2; padding: 8px 14px; display: flex; flex-wrap: wrap; gap: 6px 18px; align-items: center; border-bottom: 2px solid var(--accent); }
+  header h1 { font-size: 15px; margin: 0 8px 0 0; letter-spacing: .5px; }
+  header label { display: inline-flex; align-items: center; gap: 5px; white-space: nowrap; }
+  header button { font: inherit; background: #3a2618; color: #f3ead2; border: 1px solid #7a5434; border-radius: 3px; padding: 2px 7px; cursor: pointer; }
+  header button.on { background: var(--accent); border-color: #ffb13b; }
+  nav { display: flex; flex-wrap: wrap; gap: 4px 10px; width: 100%; font-size: 12px; }
+  nav a { color: #ffe08a; text-decoration: none; } nav a:hover { text-decoration: underline; }
+  main { padding: 10px 14px 60px; }
+  .note { color: #e0bb84; font-size: 12px; margin: 4px 0 8px; max-width: 1100px; }
+  section > h2 { color: #ffe08a; font-size: 15px; margin: 22px 0 8px; border-bottom: 1px solid #7a5434; padding-bottom: 3px; }
+  .card { background: var(--panel); border: 1px solid var(--line); border-radius: 4px; margin: 0 0 14px; overflow: hidden; display: inline-block; vertical-align: top; margin-right: 12px; max-width: 100%; }
+  .card > h3 { margin: 0; padding: 5px 10px; font-size: 13px; background: #e4d7b0; border-bottom: 1px solid var(--line); display: flex; gap: 10px; align-items: baseline; }
+  .card > h3 small { font-weight: normal; color: #6e4a2c; }
+  .body { padding: 8px; }
+  /* slider: after over before, clipped at the handle */
+  .cmp { position: relative; display: block; line-height: 0; user-select: none; cursor: ew-resize; background: #000; }
+  .cmp img { display: block; max-width: 100%; height: auto; }
+  .cmp .top { position: absolute; inset: 0; clip-path: inset(0 0 0 var(--cut, 50%)); }
+  .cmp .top img { width: 100%; }
+  .cmp .bar { position: absolute; top: 0; bottom: 0; left: var(--cut, 50%); width: 2px; margin-left: -1px; background: #ffe08a; box-shadow: 0 0 0 1px #1a110c; }
+  .cmp .tag { position: absolute; top: 6px; font: 11px/1 ui-monospace, Consolas, monospace; color: #fff; background: rgba(26,17,12,.75); padding: 3px 6px; border-radius: 2px; }
+  .cmp .tag.b { left: 6px; } .cmp .tag.a { right: 6px; }
+  .pair { display: flex; gap: 8px; flex-wrap: wrap; align-items: flex-start; }
+  .pair figure { margin: 0; line-height: 0; }
+  .pair figcaption { font-size: 10px; color: #8a6e2a; text-transform: uppercase; letter-spacing: .5px; line-height: 1.6; }
+  .pair img { max-width: 100%; height: auto; }
+  body.side .cmp { display: none; } body:not(.side) .pair { display: none; }
+  img.px { image-rendering: pixelated; }
+  .desk img { width: var(--dw, 960px); } .phone-p img { width: var(--pw, 300px); } .phone-l img { width: var(--lw, 560px); }
+  .icon img { width: 128px; }
+  body.side .desk .pair img { width: calc(var(--dw) * .62); }
+  .missing { color: #b5322a; font-size: 12px; padding: 4px 8px; }
+</style></head><body>
+<header>
+  <h1>PRIMAL CHASE · UI pack</h1>
+  <button id="mode">side by side</button>
+  <label>size <select id="size"><option value="0.6">small</option><option value="0.75" selected>medium</option><option value="1">full (1280)</option></select></label>
+  <nav id="nav"></nav>
+</header>
+<main>
+  <p class="note">Every screen before (left of the handle) and after (right of it). Drag across a picture to move the handle, or switch to side by side. Desktop shots are 1280x720; phone shots are 390x844 and 844x390 at 2x. The same scripted tour takes both sets: <code>node tools/uishots.mjs before|after</code>. The title backdrop is a randomly picked gameplay clip, so it can differ between the two sets.</p>
+  <div id="out"></div>
+</main>
+<script>
+// [section, [ [file, title, kind] ]]   kind: d desktop, p portrait phone, l landscape phone, i icon (pixelated)
+const SECTIONS = [
+  ['Title', [['d01-title', 'Title', 'd'], ['d02-title-hover', 'Hover on a button', 'd'], ['d03-title-focus', 'Keyboard focus (arrows)', 'd'], ['p01-title', 'Phone, portrait', 'p'], ['l01-title', 'Phone, landscape', 'l']]],
+  ['Opening cinematic', [['c01-cine-gate', 'Autoplay refused: press any key', 'd'], ['c02-cine-line', 'A narration line', 'd'], ['c03-cine-logo', 'Title reveal', 'd']]],
+  ['How to survive', [['d04-how', 'How to survive', 'd'], ['d04b-how-bottom', 'Scrolled to the bottom', 'd']]],
+  ['Feats', [['d05-feats', 'Feats', 'd']]],
+  ['Journal', [['d06-journal', 'Journal', 'd']]],
+  ['Settings', [['d07-settings', 'Settings', 'd']]],
+  ['HUD', [['d08-hud-start', 'Run start: Day banner and first hint', 'd'], ['d09-hud', 'Calm, daytime', 'd'], ['d12-toast', 'A hint with a key cap', 'd'], ['d13-hud-chase-night', 'Night, seen, overheated, thirsty', 'd'],
+    ['p02-hud', 'Phone portrait, thumb on the stick', 'p'], ['p03-hud-calm', 'Phone portrait, calm', 'p'], ['l02-hud', 'Phone landscape, thumb on the stick', 'l'], ['l03-hud-calm', 'Phone landscape, calm', 'l']]],
+  ['Secrets and the Day banner', [['d10-lore', 'Secret found (held lore card)', 'd'], ['d11-dawn', 'A new dawn: banner and news', 'd']]],
+  ['Map', [['d14-map', 'Full map', 'd']]],
+  ['Pause', [['d15-pause', 'Paused, with instincts held', 'd']]],
+  ['Instinct choice', [['d16-perk', 'Dawn instinct choice', 'd'], ['d17-perk-hover', 'Hover lifts a card', 'd'], ['p04-perk', 'Phone, portrait', 'p'], ['l04-perk', 'Phone, landscape', 'l']]],
+  ['Death', [['d18-death', 'Results', 'd'], ['p05-death', 'Phone, portrait', 'p'], ['l05-death', 'Phone, landscape', 'l']]],
+  ['Favicon', [['d19-favicon', '32x32, shown 4x', 'i'], ['d19b-favicon16', 'At tab size 16x16, shown 8x', 'i']]],
+  ['Numerals', [['n01-digits', '0-9 at every size the UI uses (12-70 px). Before: Pixelify Sans; after: the PC Numerals digits ahead of it', 'd']]],
+];
+const el = (t, c, s) => { const e = document.createElement(t); if (c) e.className = c; if (s != null) e.textContent = s; return e; };
+const out = document.getElementById('out'), nav = document.getElementById('nav');
+for (const [title, items] of SECTIONS) {
+  const id = title.toLowerCase().replace(/[^a-z]+/g, '-');
+  const a = el('a', '', title); a.href = '#' + id; nav.appendChild(a);
+  const sec = el('section'); sec.id = id; sec.appendChild(el('h2', '', title));
+  for (const [f, t, k] of items) {
+    const card = el('div', 'card ' + { d: 'desk', p: 'phone-p', l: 'phone-l', i: 'icon' }[k]);
+    const h = el('h3', '', t); h.appendChild(el('small', '', f + '.png')); card.appendChild(h);
+    const body = el('div', 'body');
+    const img = (w) => { const i = new Image(); i.src = `uipack/${w}/${f}.png`; i.alt = `${w}: ${t}`; if (k === 'i') i.className = 'px'; i.onerror = () => { i.replaceWith(el('div', 'missing', `missing ${w}/${f}.png`)); }; return i; };
+    // slider
+    const cmp = el('div', 'cmp');
+    cmp.appendChild(img('before'));
+    const top = el('div', 'top'); top.appendChild(img('after')); cmp.appendChild(top);
+    cmp.appendChild(el('div', 'bar'));
+    cmp.appendChild(el('span', 'tag b', 'before')); cmp.appendChild(el('span', 'tag a', 'after'));
+    const move = (e) => { const r = cmp.getBoundingClientRect(); const x = Math.max(0, Math.min(1, ((e.touches ? e.touches[0].clientX : e.clientX) - r.left) / r.width)); cmp.style.setProperty('--cut', (x * 100).toFixed(2) + '%'); };
+    cmp.addEventListener('pointermove', move); cmp.addEventListener('pointerdown', move);
+    body.appendChild(cmp);
+    // side by side
+    const pair = el('div', 'pair');
+    for (const w of ['before', 'after']) { const fig = el('figure'); fig.appendChild(img(w)); fig.appendChild(el('figcaption', '', w)); pair.appendChild(fig); }
+    body.appendChild(pair);
+    card.appendChild(body);
+    sec.appendChild(card);
+  }
+  out.appendChild(sec);
+}
+document.getElementById('mode').onclick = (e) => { document.body.classList.toggle('side'); e.target.classList.toggle('on'); };
+const size = document.getElementById('size');
+const apply = () => { const k = +size.value; const r = document.documentElement.style; r.setProperty('--dw', 1280 * k + 'px'); r.setProperty('--pw', 390 * k + 'px'); r.setProperty('--lw', 844 * k + 'px'); };
+size.onchange = apply; apply();
+</script>
+</body></html>

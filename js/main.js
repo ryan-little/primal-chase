@@ -1,9 +1,8 @@
 // Boot, screens, the frame loop, and the glue between simulation, sound, pixels and HUD.
 
-import { canvas } from './art.js';
 import { buildArt } from './art2/build.js';
 import { Audio } from './audio.js';
-import { Game, BITS, HUNTER_DAYS, TRACKERS_DAY, TORCH_DAY, FIRE_DAY } from './game.js';
+import { Game, BITS, HUNTER_DAYS, TRACKERS_DAY, TORCH_DAY, PACE_DAY, FIRE_DAY } from './game.js';
 import { SPECIES } from './fauna.js';
 import { PERK_BY_ID } from './perks.js';
 import { SECRETS, SECRET_IDS } from './secrets.js';
@@ -12,8 +11,8 @@ import { ClipLayer, TitleReel } from './clips.js';
 import { Cinematic } from './cinematic.js';
 import { Renderer } from './render.js';
 import { Input } from './input.js';
-import { drawText } from './font.js';
 import { G, GROUND_INFO } from './world.js';
+import { installUI, drawLogo as drawLogoArt, iconImg, PERK_ICON, FEAT_ICON, SECRET_ICON, perkArt, secretArt, stage, spr, icon } from './ui-art.js';
 import { P } from './palette.js';
 import { clamp, dist } from './util.js';
 
@@ -42,89 +41,91 @@ function applySettings() {
   audio.sfxVol = settings.sfx;
   audio.applyVolumes();
   renderer.reducedMotion = settings.reduceShake;
+  document.body.classList.toggle('calm', !!settings.reduceShake);
   renderer.imperial = settings.units === 'imperial';
   store.set('settings', settings);
 }
 applySettings();
 
-// ---------------- icons, favicon, logo ----------------
+// ---------------- UI kit, icons, favicon, logo (js/ui-art.js) ----------------
+const uiBuild = installUI(art);
 for (const [id, key] of [['v-health', 'health'], ['v-heat', 'heat'], ['v-water', 'water'], ['v-food', 'food']]) {
   $(id).querySelector('img').src = art.icons[key];
 }
+const drawLogo = (t = 0, c = $('logo')) => drawLogoArt(c, t, c.id === 'cine-logo');
+const pxCss = () => parseFloat(getComputedStyle(document.documentElement).getPropertyValue('--px')) || 2;
+// How to survive: a strip of the chase over the page, and an icon for each lesson
 {
-  const f = canvas(32, 32), x = f.getContext('2d');
-  x.imageSmoothingEnabled = false;
-  // fit the cat's visible pixels, whatever the sprite's framing
-  const fr = canvas(art.cat.run[1].width, art.cat.run[1].height);
-  fr.getContext('2d').drawImage(art.cat.run[1], 0, 0); // frames may be atlas regions
-  const d = fr.getContext('2d').getImageData(0, 0, fr.width, fr.height).data;
-  let x0 = fr.width, y0 = fr.height, x1 = -1, y1 = -1;
-  for (let y = 0; y < fr.height; y++) for (let i = 0; i < fr.width; i++) {
-    if (d[(y * fr.width + i) * 4 + 3] > 20) { x0 = Math.min(x0, i); x1 = Math.max(x1, i); y0 = Math.min(y0, y); y1 = Math.max(y1, y); }
-  }
-  const h = y1 - y0 + 1, w = Math.min(x1 - x0 + 1, Math.round(h * 1.5)); // head and body; the tail trails off the left edge
-  x0 = x1 - w + 1;
-  const k = Math.min(32 / w, 32 / h);
-  const dw = Math.round(w * k), dh = Math.round(h * k);
-  x.drawImage(fr, x0, y0, w, h, (32 - dw) >> 1, (32 - dh) >> 1, dw, dh);
-  $('favicon').href = f.toDataURL();
+  const how = $('how').querySelector('.panel');
+  const fr = document.createElement('canvas');
+  fr.className = 'vignette how-strip';
+  fr.setAttribute('aria-hidden', 'true');
+  how.querySelector('h2').after(fr);
+  const icons = ['heat', 'hunter', 'water', 'wave', 'food', 'spear', 'prints', 'cliff', 'secret', 'spark', 'storm', 'lion'];
+  how.querySelectorAll('.how-grid > div > h3').forEach((h, i) => h.insertAdjacentHTML('afterbegin', iconImg(icons[i] || 'paw')));
+  const kick = stage(fr, (x, t) => drawHowStrip(fr, x, t), 12);
+  new MutationObserver(() => { if (!$('how').classList.contains('hidden')) { sizeVignette(fr, 300, 36); kick(); } }).observe($('how'), { attributes: true, attributeFilter: ['class'] });
 }
-const silCache = new Map();
-let logoText = null;
-function drawLogo(t = 0, c = $('logo')) {
-  const x = c.getContext('2d');
-  x.imageSmoothingEnabled = false;
-  x.clearRect(0, 0, c.width, c.height);
-  // sun
-  const g = x.createRadialGradient(170, 66, 4, 170, 66, 44);
-  g.addColorStop(0, '#fff0a0'); g.addColorStop(0.5, '#ff9a3a'); g.addColorStop(1, 'rgba(255,106,26,0)');
-  x.fillStyle = g;
-  x.beginPath(); x.arc(170, 66, 44, 0, Math.PI * 2); x.fill();
-  // lettering: a mask of the words, outlined in ink one font-pixel thick, filled with a sunset
-  if (!logoText) {
-    const s = 4, txt = 'PRIMAL CHASE';
-    const W = c.width, H = 60;
-    const mask = canvas(W, H), mx = mask.getContext('2d');
-    drawText(mx, txt, W / 2, 10, { color: '#fff', shadow: 'rgba(0,0,0,0)', scale: s, align: 'center' });
-    const tint = (col) => {
-      const k = canvas(W, H), kx = k.getContext('2d');
-      kx.drawImage(mask, 0, 0);
-      kx.globalCompositeOperation = 'source-in';
-      kx.fillStyle = col;
-      kx.fillRect(0, 0, W, H);
-      return k;
-    };
-    const g2 = mask.getContext('2d').createLinearGradient(0, 10, 0, 10 + 7 * s);
-    g2.addColorStop(0, '#fff3c4'); g2.addColorStop(0.45, '#ffd166'); g2.addColorStop(1, '#e8763a');
-    const ink = tint(P.ink), fill = tint(g2);
-    logoText = canvas(W, H);
-    const lx = logoText.getContext('2d');
-    for (const [dx, dy] of [[-1, 0], [1, 0], [0, -1], [0, 1], [-1, -1], [1, -1], [-1, 1], [1, 1], [0, 2], [1, 2], [-1, 2]]) lx.drawImage(ink, dx * s, dy * s);
-    lx.drawImage(fill, 0, 0);
+// fit a vignette canvas to its column in whole art pixels
+function sizeVignette(c, maxW, h) {
+  const px = pxCss(), avail = c.parentElement.clientWidth - 40;
+  const w = Math.max(120, Math.min(maxW, Math.floor(avail / px)));
+  if (c.width !== w || c.height !== h) { c.width = w; c.height = h; }
+  c.style.width = w * px + 'px'; c.style.height = h * px + 'px';
+}
+// a painted backdrop: banded sky, a sun, a strip of grass that can scroll
+function backdrop(x, W, H, t, { sky, sun, ground, scroll = 0 }) {
+  for (let y = 0; y < H; y++) {
+    const k = Math.min(sky.length - 1, Math.floor((y / (H - 8)) * sky.length));
+    x.fillStyle = sky[k]; x.fillRect(0, y, W, 1);
+    if (k + 1 < sky.length && (y / (H - 8)) * sky.length % 1 > 0.7) { x.fillStyle = sky[k + 1]; for (let i = y % 2; i < W; i += 2) x.fillRect(i, y, 1, 1); }
   }
-  x.drawImage(logoText, 0, 2);
-  // horizon silhouettes: the cat running, the band behind
-  x.fillStyle = P.ink;
-  x.fillRect(24, 104, 292, 1);
-  const cat = art.cat.run[Math.floor(t * 10) % 8];
-  const sil = (img, dx, dy, flip) => {
-    let tmp = silCache.get(img);
-    if (!tmp) {
-      tmp = canvas(img.width, img.height);
-      const tx = tmp.getContext('2d');
-      tx.drawImage(img, 0, 0);
-      tx.globalCompositeOperation = 'source-atop';
-      tx.fillStyle = P.ink;
-      tx.fillRect(0, 0, img.width, img.height);
-      silCache.set(img, tmp);
+  if (sun) { x.fillStyle = sun[0]; x.beginPath(); x.arc(sun[1] * W, H - 9, sun[2], Math.PI, 0); x.fill(); }
+  x.fillStyle = ground[0]; x.fillRect(0, H - 9, W, 9);
+  x.fillStyle = ground[1]; x.fillRect(0, H - 9, W, 1);
+  x.fillStyle = ground[2];
+  const off = Math.floor(scroll) % 13;
+  for (let i = -13; i < W + 13; i += 13) { const gx = i - off; x.fillRect(gx, H - 11, 1, 3); x.fillRect(gx + 2, H - 12, 1, 4); x.fillRect(gx + 7, H - 6, 1, 2); }
+}
+function drawHowStrip(c, x, t) {
+  const W = c.width, H = c.height;
+  x.clearRect(0, 0, W, H);
+  backdrop(x, W, H, t, { sky: ['#e8c890', '#e0b878', '#d8a868', '#c99a5c'], sun: ['#ffe8a0', 0.62, 7], ground: ['#a8903f', '#c2a64a', '#7a6a2e'], scroll: t * 60 });
+  const y = H - 4;
+  const C = art.cat, cat = C.run[Math.floor(t * 14) % C.run.length];
+  spr(x, C, cat, Math.round(W * 0.74), y);
+  // the band: two running, one stopping to throw every few seconds
+  for (let i = 0; i < 3; i++) {
+    const Hn = art.hunter[i % art.hunter.length];
+    let f = Hn.d.run[Math.floor(t * 10 + i * 3) % Hn.d.run.length];
+    if (i === 0) {
+      const ph = (t % 4) / 4;
+      if (ph > 0.55 && ph < 0.75) f = Hn.d.windup[Math.min(3, Math.floor((ph - 0.55) / 0.2 * 4))];
+      else if (ph >= 0.75 && ph < 0.95) f = Hn.d.throw[Math.min(4, Math.floor((ph - 0.75) / 0.2 * 5))];
     }
-    x.save();
-    if (flip) { x.translate(dx + img.width, dy); x.scale(-1, 1); x.drawImage(tmp, 0, 0); } else x.drawImage(tmp, dx, dy);
-    x.restore();
-  };
-  sil(cat, 184, 78);
-  for (let i = 0; i < 3; i++) sil(art.hunter[i % art.hunter.length].d.run[Math.floor(t * 8 + i * 3) % 8], 62 + i * 20, 67 + (i % 2));
+    spr(x, Hn, f, Math.round(W * 0.12 + i * 22), y - (i % 2));
+  }
+  const G = art.gazelle, gf = G.stot ? G.stot[Math.floor(t * 9) % G.stot.length] : G.run[0];
+  if (W > 220) spr(x, G, gf, Math.round(W * 0.93), y - 1);
 }
+// death: the band over the cat, at dusk
+const deathStrip = document.createElement('canvas');
+deathStrip.className = 'vignette death-strip';
+deathStrip.setAttribute('aria-hidden', 'true');
+$('death').querySelector('.kicker').before(deathStrip);
+const kickDeath = stage(deathStrip, (x, t) => {
+  const W = deathStrip.width, H = deathStrip.height, y = H - 4;
+  x.clearRect(0, 0, W, H);
+  backdrop(x, W, H, t, { sky: ['#3a2a3a', '#6a3a32', '#a8502a', '#d8803a'], sun: ['#ffb13b', 0.22, 10], ground: ['#5a4a22', '#7a6a2e', '#3a301a'] });
+  const C = art.cat, cx = Math.round(W / 2);
+  spr(x, C, C.dead[0], cx, y);
+  if (art.spearStuck) x.drawImage(art.spearStuck.img, cx + 14 - art.spearStuck.ox, y - 2 - art.spearStuck.oy);
+  for (let i = 0; i < 3; i++) {
+    const Hn = art.hunter[i % art.hunter.length], f = Hn.d.cheer[Math.floor(t * 7 + i * 2) % Hn.d.cheer.length];
+    const hx = [cx - 40, cx + 42, cx - 62][i];
+    spr(x, Hn, f, hx, y - (i === 2 ? 1 : 0), i === 1);
+  }
+}, 10);
 
 // ---------------- screens ----------------
 let state = 'title';
@@ -166,7 +167,7 @@ let cine = null;
 function startCinematic() {
   state = 'cine';
   show(null);
-  cine = new Cinematic(clipLayer, { root: $('cine'), line: $('cine-line'), logo: $('cine-logo'), skip: $('cine-skip') }, () => { cine = null; toTitle(); });
+  cine = new Cinematic(clipLayer, { root: $('cine'), line: $('cine-line'), logo: $('cine-logo'), skip: $('cine-skip'), voice: settings.sfx > 0 }, () => { cine = null; toTitle(); });
   cine.start();
 }
 
@@ -198,8 +199,8 @@ function renderJournal() {
   $('journal-list').innerHTML = SECRET_IDS.map((id) => {
     const S = SECRETS[id];
     return journal[id]
-      ? `<div class="jentry"><h3>${S.name}</h3><p>${S.lore}</p><small>found ${journal[id]} time${journal[id] > 1 ? 's' : ''}</small></div>`
-      : '<div class="jentry locked"><h3>???</h3><p>Somewhere out there.</p></div>';
+      ? `<div class="jentry"><img class="jart" src="${secretArt(id)}" alt=""><h3>${iconImg(SECRET_ICON[id])}${S.name}</h3><p>${S.lore}</p><small>found ${journal[id]} time${journal[id] > 1 ? 's' : ''}</small></div>`
+      : `<div class="jentry locked"><h3>${iconImg('secret')}???</h3><p>Somewhere out there.</p></div>`;
   }).join('');
 }
 // Secret lore cards. When nothing is hunting nearby the world holds still until the player
@@ -216,6 +217,7 @@ function showLore(g, S, kicker) {
   $('lore-title').textContent = S.name;
   $('lore-text').textContent = S.lore;
   $('lore-gift').textContent = S.gift;
+  $('lore').style.setProperty('--lore-ic', `url("${icon(SECRET_ICON[SECRET_IDS.find((k) => SECRETS[k] === S)] || 'secret')}")`);
   loreHold = loreSafe(g);
   loreGrace = 0.7;
   loreRest = false;
@@ -270,7 +272,7 @@ $('btn-share').onclick = () => {
   const text = `Primal Chase${daily ? ' (daily ' + todayKey() + ')' : ''}: I survived to Day ${s.day} (${s.phase}), ran ${fmtDist(s.dist, true)} and scored ${s.score.toLocaleString()}. They always catch you. How long can you last? https://primalchase.com`;
   navigator.clipboard?.writeText(text).then(() => { $('btn-share').textContent = 'Copied'; setTimeout(() => ($('btn-share').textContent = 'Copy result'), 1500); });
 };
-document.querySelectorAll('[data-back]').forEach((b) => (b.onclick = () => { click(); show(returnTo); }));
+document.querySelectorAll('[data-back]').forEach((b) => (b.onclick = () => { audio.play('back'); show(returnTo); }));
 $('pause-btn').onclick = () => pause();
 document.querySelectorAll('.btn').forEach((b) => b.addEventListener('pointerenter', () => audio.play('ui', { pitch: 76 })));
 
@@ -385,23 +387,23 @@ function checkFeats(g, dt) {
     for (const k of Object.keys(g.stats.kinds)) kindsEaten.add(k);
     if (kindsEaten.size !== n) store.set('kinds', [...kindsEaten]);
   }
-  for (const [id, icon, name, , test] of FEATS) {
+  for (const [id, , name, , test] of FEATS) {
     if (feats.has(id) || !test(g)) continue;
     feats.add(id);
     runFeats.add(name);
     store.set('feats', [...feats]);
-    featQ.push(`<b>Feat:</b> ${icon} ${name}`);
+    featQ.push(`<b>Feat:</b> ${iconImg(FEAT_ICON[id] || 'star')} ${name}`);
   }
 }
 function renderFeats() {
   $('feats-count').textContent = `${feats.size} of ${FEATS.length} earned`;
-  $('feats-list').innerHTML = FEATS.map(([id, icon, name, desc]) => `<div class="feat ${feats.has(id) ? 'got' : ''}"><i>${feats.has(id) ? icon : '·'}</i><div><b>${name}</b><span>${featText(desc)}</span></div></div>`).join('');
+  $('feats-list').innerHTML = FEATS.map(([id, , name, desc]) => `<div class="feat ${feats.has(id) ? 'got' : ''}"><i>${iconImg(feats.has(id) ? FEAT_ICON[id] || 'star' : 'secret')}</i><div><b>${name}</b><span>${featText(desc)}</span></div></div>`).join('');
 }
 
 // ---------------- perks ----------------
 let perkOffer = [];
 function perkChips(g) {
-  return Object.entries(g.perks).map(([id, n]) => `<span class="chip">${PERK_BY_ID[id].icon} ${PERK_BY_ID[id].name}${n > 1 ? ` <b>x${n}</b>` : ''}</span>`).join('');
+  return Object.entries(g.perks).map(([id, n]) => `<span class="chip">${iconImg(PERK_ICON[id] || 'spark')}${PERK_BY_ID[id].name}${n > 1 ? ` <b>x${n}</b>` : ''}</span>`).join('');
 }
 function openPerks(title = 'Choose an instinct', kicker = `Dawn of day ${game.day}`) {
   state = 'perk';
@@ -412,18 +414,18 @@ function openPerks(title = 'Choose an instinct', kicker = `Dawn of day ${game.da
   $('perk-kicker').textContent = kicker;
   $('perk-cards').innerHTML = perkOffer.map((k, i) => {
     const have = game.perks[k.id] || 0;
-    return `<button class="perk-card" data-i="${i}"><span class="pk">${i + 1}</span><span class="pi">${k.icon}</span><span class="pn">${k.name}</span><span class="pt">${k.text}</span><span class="pl">${k.max > 1 ? `Rank ${have + 1} of ${k.max}` : 'Unique'}</span></button>`;
+    return `<button class="perk-card" data-i="${i}"><span class="pk">${i + 1}</span><img class="pa" src="${perkArt(k.id)}" alt=""><span class="pn">${iconImg(PERK_ICON[k.id] || 'spark', 'pi')}${k.name}</span><span class="pt">${k.text}</span><span class="pl">${k.max > 1 ? `Rank ${have + 1} of ${k.max}` : 'Unique'}</span></button>`;
   }).join('');
   $('perk-cards').querySelectorAll('.perk-card').forEach((b) => (b.onclick = () => choosePerk(+b.dataset.i)));
   show('perk');
-  audio.play('trail');
+  audio.play('perkopen');
 }
 function choosePerk(i) {
   const k = perkOffer[i];
   if (!k || state !== 'perk') return;
   game.takePerk(k.id);
-  audio.play('perk');
-  toast(`<b>${k.icon} ${k.name}</b> ${k.text}`, 3);
+  audio.cue('perk');
+  toast(`<b>${iconImg(PERK_ICON[k.id] || 'spark')}${k.name}</b> ${k.text}`, 3);
   if (game.perkChoices > 0) openPerks('Another instinct', 'The land gives more');
   else { state = 'playing'; audio.setMuffle(false); show(null); }
 }
@@ -491,7 +493,7 @@ function updateToasts(dt) {
   if (featQ.length && state === 'playing') {
     toast(featQ.shift(), 3);
     toastLock = 3;
-    audio.play('trail');
+    audio.cue('feat');
     return;
   }
   if (laterQ.length) { toast(...laterQ.shift()); return; }
@@ -529,6 +531,7 @@ function startRun(isDaily = daily) {
   daily = !!isDaily;
   const seed = daily ? [...todayKey()].reduce((h, c) => (h * 31 + c.charCodeAt(0)) | 0, 7) >>> 0 : (Math.random() * 1e9) | 0;
   game = new Game(seed, art, audio);
+  game.grantPerkChoice({ title: 'Choose your first instinct', kicker: 'Before the chase' }); // every run opens with one pick
   runFeats = new Set();
   featQ = []; laterQ = []; toastLock = 0;
   minimap.reset();
@@ -545,6 +548,7 @@ function startRun(isDaily = daily) {
   $('best-inline').textContent = store.get('best', 0) ? 'best ' + store.get('best', 0).toLocaleString() : '';
   show(null);
   card(daily ? 'Daily hunt' : 'Day 1', daily ? `The same land for everyone today, ${todayKey()}.` : 'The hunters have your scent.');
+  audio.cue('start');
   audio.sting('start');
   if (!store.get('played', false)) {
     seenHints = new Set();
@@ -599,6 +603,7 @@ function finishRun() {
   const top = store.get('runs', []).slice(0, 5);
   $('history').innerHTML = `Your longest chases${dailyLine}<ol>${top.map((r, i) => `<li class="${r.date === entry.date ? 'me' : ''}">${i + 1}. ${r.score.toLocaleString()} <small>day ${r.day}</small></li>`).join('')}</ol>`;
   show('death');
+  sizeVignette(deathStrip, 200, 40); kickDeath();
   // count the score up
   const el = $('final-score');
   const target = game.score;
@@ -627,95 +632,100 @@ function fmtTime(s) {
 function handleEvents(g) {
   const p = g.player;
   const near = (e, r = 520) => clamp(1 - dist(e.x, e.y, p.x, p.y) / r, 0.05, 1);
+  // sound placed where it happened: quieter and duller with distance, panned left or right
+  const at = (e, r = 520) => ({ vol: near(e, r), pan: clamp((e.x - p.x) / 320, -0.9, 0.9) });
+  const kindAt = (list, e) => { let k = null, bd = 40; for (const q of list) { const d = dist(q.x, q.y, e.x, e.y); if (d < bd) { bd = d; k = q.kind; } } return k; };
   for (const e of g.events) {
     switch (e.type) {
       case 'pop': renderer.pop(e.text, e.x, e.y, e.color); audio.play('score', { pitch: e.text.includes('DAY') ? 7 : 0 }); break;
       case 'step':
-        audio.play('step', { water: e.water, g: e.g, vol: e.sprint ? 0.9 : 0.5 });
+        audio.play('step', { water: e.water, g: e.g, vol: e.sprint ? 0.9 : 0.5, sprint: e.sprint, stalk: p.stalking });
         if (e.water) renderer.burst('splash', e.x, e.y, e.sprint ? 4 : 2);
         else if (e.sprint) renderer.burst('dust', e.x - p.face * 6, e.y, 2, { col: e.g === G.ROCK ? P.rock3 : e.g === G.LUSH ? P.lush2 : P.sand3, vx: -p.vx * 0.2 });
         break;
-      case 'pounce': audio.play('pounce'); renderer.burst('dust', e.x, e.y, 6); renderer.shake(1.5); hint('pounce'); break;
-      case 'startle': audio.play('startle', { vol: near(e, 500), fly: e.fly }); break;
+      case 'pounce': audio.play('pounce', { g: p.ground }); renderer.burst('dust', e.x, e.y, 6); renderer.shake(1.5); hint('pounce'); break;
+      case 'startle': audio.play('startle', { ...at(e, 500), fly: e.fly, kind: kindAt(g.prey, e) }); break;
       case 'climb': audio.play('climb'); renderer.burst('dust', e.x, e.y, 8); renderer.shake(1); break;
-      case 'kill': audio.play('kill'); renderer.burst('blood', e.x, e.y, 14); renderer.shake(3); hitstop = 0.07; break;
+      case 'kill': audio.play('kill', { kind: kindAt(g.carcasses, e) }); audio.cue('kill'); renderer.burst('blood', e.x, e.y, 14); renderer.shake(3); hitstop = 0.07; break;
       case 'eat': audio.play('eat', { vol: 0.8 }); renderer.burst('blood', e.x + p.face * 10, e.y, 2); break;
       case 'drink': audio.play('drink', { vol: 0.8 }); renderer.burst('splash', e.x + p.face * 10, e.y + 2, 2); break;
       case 'hurt':
-        audio.play('hit');
+        audio.play('hit', { kind: e.kind }); audio.cue('hurt');
         renderer.burst('blood', e.x, e.y, 16);
         renderer.shake(6);
         hitstop = 0.09;
         break;
-      case 'bite': audio.play('bark', { vol: 1 }); break;
-      case 'throw': audio.play('throw', { vol: near(e) }); break;
-      case 'windup': audio.play('windup', { vol: near(e) }); hint('spear'); break;
-      case 'thunk': audio.play('thunk', { vol: near(e) }); renderer.burst('dust', e.x, e.y, 5); break;
-      case 'dodge': audio.play('dodge'); if (e.close && !window.__pc.steady) { slow = 0.35; } renderer.burst('spark', e.x, e.y - 6, 6, { col: '#ffffff' }); break;
+      case 'bite': audio.play('bite'); break;
+      case 'throw': audio.play('throw', at(e)); break;
+      case 'windup': audio.play('windup', at(e)); hint('spear'); break;
+      case 'thunk': audio.play('thunk', { ...at(e), g: g.world.typeAt(e.x, e.y) }); renderer.burst('dust', e.x, e.y, 5); break;
+      case 'dodge': audio.play('dodge'); audio.cue('dodge'); if (e.close && !window.__pc.steady) { slow = 0.35; } renderer.burst('spark', e.x, e.y - 6, 6, { col: '#ffffff' }); break;
       case 'sighted':
         audio.play('sighted', { vol: 1 });
         renderer.shake(2);
         hint('sighted');
         break;
-      case 'lost': toast('They lost sight of you. Back to your tracks…', 2.4); audio.play('shout', { vol: 0.4 }); break;
+      case 'lost': toast('They lost sight of you. Back to your tracks…', 2.4); audio.play('shout', { ...at(e, 900), call: 'lost' }); break;
       case 'trailcold': audio.play('trail'); hint('trail'); break;
-      case 'found': audio.play('shout', { vol: near(e, 900) * 0.7 }); break;
-      case 'knockdown': audio.play('knockdown'); renderer.burst('dust', e.x, e.y, 10); renderer.shake(5); hitstop = 0.1; break;
-      case 'dogdown': audio.play('yelp'); renderer.burst('dust', e.x, e.y, 8); renderer.shake(3); hitstop = 0.06; break;
-      case 'bark': audio.play('bark', { vol: near(e, 700) * (e.quiet ? 0.5 : 1) }); hint('dogs'); break;
+      case 'found': audio.play('shout', { ...at(e, 900), call: 'found' }); break;
+      case 'knockdown': audio.play('knockdown', at(e, 700)); renderer.burst('dust', e.x, e.y, 10); renderer.shake(5); hitstop = 0.1; break;
+      case 'dogdown': audio.play('yelp', at(e, 700)); renderer.burst('dust', e.x, e.y, 8); renderer.shake(3); hitstop = 0.06; break;
+      case 'bark': { const a = at(e, 700); a.vol *= e.quiet ? 0.5 : 1; audio.play('bark', a); } hint('dogs'); break;
       case 'overheat': audio.play('overheat'); renderer.burst('sweat', e.x, e.y, 10); hint('overheat', true); break;
       case 'dawn':
         card(`Day ${e.day}`, BITS[(e.day * 3) % BITS.length], 3.8);
-        audio.sting('dawn');
+        audio.play('chorus');
         {
           const news = [];
-          if (e.day === 2) news.push('The band grows faster each dawn. Dogs have joined them.');
+          if (e.day === 2) news.push('The band learns you a little more each dawn. A dog has joined them.');
           if (e.day === TRACKERS_DAY) news.push('<b>They have learned how you hide.</b> Broken trails buy less time now.');
           if (e.day === TORCH_DAY) news.push('<b>Torches.</b> They no longer slow down at night, and they see farther in the dark.');
+          if (e.day === PACE_DAY) news.push('<b>They have learned your pace.</b> They now walk faster than you trot.');
           if (e.day === FIRE_DAY) news.push('<b>Fire.</b> They will light the grass beyond you and let the wind drive you back to them.');
           if (HUNTER_DAYS.includes(e.day)) news.push('Another hunter joins the band.');
-          if (e.day > 2 && e.day % 2 === 1) news.push('Another dog runs with them.');
+          if (e.day > 2 && e.day % 2 === 0 && e.day <= 10) news.push('Another dog runs with them.');
           if (news.length) toast(news.join('<br>'), 3 + news.length * 1.8, true);
         }
         break;
       case 'dusk': audio.sting('dusk'); hint('night'); break;
       case 'rain': hint('rain', true); audio.play('thunder', { vol: 0.6 }); break;
       case 'thunder': audio.play('thunder'); break;
-      case 'death': audio.sting('death'); renderer.shake(8); break;
-      case 'scout': audio.play('shout', { vol: 0.5 }); hint('scout'); break;
-      case 'croc': audio.play('splash', { vol: 0.5 }); hint('croc', true); break;
-      case 'crocsnap': audio.play('snap'); renderer.burst('splash', e.x, e.y, 12); renderer.shake(3); break;
-      case 'hyenas': audio.play('laugh', { vol: near(e, 600) }); hint('hyenas'); break;
-      case 'snarl': audio.play('snarl'); break;
+      case 'death': audio.cue('death'); audio.play('fall'); renderer.shake(8); break;
+      case 'scout': audio.play('shout', { ...at(e, 900), call: 'scout' }); hint('scout'); break;
+      case 'croc': audio.play('croc', at(e, 600)); hint('croc', true); break;
+      case 'crocsnap': audio.play('snap', at(e, 600)); renderer.burst('splash', e.x, e.y, 12); renderer.shake(3); break;
+      case 'hyenas': audio.play('laugh', at(e, 600)); hint('hyenas'); break;
+      case 'snarl': audio.play('snarl', { ...at(e, 500), who: g.hyenas.some((h) => dist(h.x, h.y, e.x, e.y) < 30) ? 'hyena' : 'warthog' }); break;
       case 'stampede': audio.play('rumble'); renderer.shake(2); hint('stampede', true); break;
       case 'secret': {
         const S = SECRETS[e.secret];
         journal[e.secret] = (journal[e.secret] || 0) + 1;
         store.set('journal', journal);
         showLore(g, S, journal[e.secret] === 1 ? 'A new secret' : 'Secret place');
-        audio.sting('secret');
+        audio.cue('secret');
         renderer.burst('spark', e.x, e.y - 30, 24, { col: '#ffe08a' });
         break;
       }
-      case 'secondwind': toast('<b>Second wind!</b> Stamina restored.', 2.5); audio.play('roar', { vol: 0.6 }); renderer.burst('spark', e.x, e.y - 8, 10, { col: '#ffe08a' }); break;
+      case 'secondwind': toast('<b>Second wind!</b> Stamina restored.', 2.5); audio.play('saw', { vol: 0.6 }); renderer.burst('spark', e.x, e.y - 8, 10, { col: '#ffe08a' }); break;
       case 'golden': hint('golden', true); audio.play('golden'); break;
-      case 'pride': hint('pride', true); audio.play('roar', { vol: near(e, 700) * 0.6 }); break;
-      case 'roar': audio.play('roar', { vol: near(e, 600) }); renderer.shake(2); break;
+      case 'pride': hint('pride', true); audio.play('roar', at(e, 900)); break;
+      case 'roar': audio.play('roar', { ...at(e, 600), charge: true }); renderer.shake(2); break;
       case 'weather': {
         const msg = { dust: '<b>Dust storm.</b> Nobody can see far, and the wind is erasing your tracks.', storm: '<b>Thunderstorm.</b> Rain hides your trail. Watch for the glow where lightning will land.', heat: '<b>Heatwave.</b> The sun is brutal today. Stay near water and shade.', rain: null }[e.kind];
         if (msg) toast(msg, 4.5);
         break;
       }
-      case 'strike': audio.play('thunder', { vol: 1 }); audio.play('snap', { vol: 0.6 }); renderer.shake(5); renderer.burst('spark', e.x, e.y, 16, { col: '#fffbe0' }); break;
-      case 'wildfire': hint('fire', true); break;
-      case 'firedrive': toast('<b style="color:#ff9a4a">Fire drive!</b> They lit the grass beyond you. Get round the end of the line, or onto rock, water or bare ground.', 4.5, true); audio.play('shout', { vol: 0.6 }); renderer.shake(2); break;
+      case 'strike': audio.play('strike', at(e, 900)); renderer.shake(5); renderer.burst('spark', e.x, e.y, 16, { col: '#fffbe0' }); break;
+      case 'wildfire': hint('fire', true); audio.play('ignite', at(e, 900)); break;
+      case 'firedrive': toast('<b style="color:#ff9a4a">Fire drive!</b> They lit the grass beyond you. Get round the end of the line, or onto rock, water or bare ground.', 4.5, true); audio.play('shout', { ...at(e, 900), call: 'sight' }); audio.play('ignite', at(e, 900)); renderer.shake(2); break;
       case 'mult': multBumpT = 0.25; audio.play('ui', { pitch: 84 + Math.min(12, Math.round(e.v * 3)) }); hint('mult'); break;
       case 'multloss': audio.play('multloss'); break;
       case 'drop': audio.play('drop', { vol: 0.8 }); break;
-      case 'linewarn': toast('They are reading your line. <b>Change direction</b> or they will run ahead to meet you.', 4.5); audio.play('shout', { vol: 0.5 }); break;
+      case 'linewarn': toast('They are reading your line. <b>Change direction</b> or they will run ahead to meet you.', 4.5); audio.play('shout', { vol: 0.6, call: 'search' }); break;
       case 'intercept': toast('<b style="color:#ff4a2e">Interceptors ahead!</b> They cut across your line.', 3.5); audio.play('sighted'); renderer.shake(2); break;
       case 'ambush': toast('<b style="color:#ff4a2e">Ambush!</b> They were waiting where your line led.', 3.5); audio.play('sighted'); renderer.shake(3); break;
-      case 'scoutsee': audio.play('sighted', { vol: 0.9 }); renderer.shake(1.5); break;
+      case 'scoutsee': audio.play('sighted', at(e, 700)); renderer.shake(1.5); break;
+      case 'bandclimb': audio.play('shout', { ...at(e, 700), call: 'grunt' }); break;
     }
   }
   g.events.length = 0;
@@ -734,7 +744,9 @@ function updateHUD(g, dt) {
   $('day-label').textContent = `Day ${g.day}`;
   const wk = g.weather.fog > 0.4 ? 'Fog' : g.weather.dust > 0.4 ? 'Dust storm' : g.weather.kind === 'storm' ? 'Storm' : g.weather.rain > 0.4 ? 'Rain' : g.weather.heat > 0.4 ? 'Heatwave' : '';
   $('phase-label').textContent = g.phaseName + (wk ? ' \u00b7 ' + wk : '');
-  $('clock-icon').className = g.isNight ? 'moon' : '';
+  const ci = wk === 'Fog' ? 'fog' : wk === 'Dust storm' ? 'dust' : wk === 'Storm' ? 'storm' : wk === 'Rain' ? 'rain' : wk === 'Heatwave' ? 'heatwave' :
+    g.isNight ? 'moon' : g.phaseName === 'Dawn' ? 'dawn' : g.phaseName === 'Dusk' ? 'dusk' : 'sun';
+  if ($('clock-icon').className !== ci) $('clock-icon').className = ci;
   $('score').textContent = g.score.toLocaleString();
   const mEl = $('mult');
   const mTxt = g.mult.toFixed(1);
@@ -827,10 +839,8 @@ function updateMusic(g, dt) {
     g._hb = (g._hb || 0) - dt;
     if (g._hb <= 0) { g._hb = 0.5 + g.player.health / 50; audio.play('heart', { vol: 1 - g.player.health / 40 }); }
   }
-  if (!g.over && g.player.overheated) {
-    g._pant = (g._pant || 0) - dt;
-    if (g._pant <= 0) { g._pant = 0.32; audio.play('pant', { vol: 0.8 }); }
-  }
+  // panting (its rate follows heat), wind in the trees, herds, footfalls, torches: audio reads the scene
+  audio.scene(g, dt);
 }
 
 // ---------------- menu navigation (keyboard arrows, gamepad) ----------------
@@ -875,7 +885,7 @@ function frame(now) {
     if (inp.confirm && document.activeElement?.tagName !== 'BUTTON') startRun();
   } else if (state === 'cine') {
     logoT += dt;
-    if (cine) { cine.update(dt, inp, input.pad()); if (cine && cine.t > 31) drawLogo(logoT, $('cine-logo')); }
+    if (cine) { cine.update(dt, inp, input.pad()); if (cine && cine.logoSoon) drawLogo(logoT, $('cine-logo')); }
   } else if (state === 'playing') {
     if (inp.pause && !loreHold) pause(); // Esc on a held lore card only closes the card
     if (hitstop > 0 && !window.__pc.steady) { hitstop -= dt; dt = 0; }
@@ -934,4 +944,4 @@ if (settings.cinematic) startCinematic(); else toTitle();
 requestAnimationFrame(frame);
 
 // debug hook for automated testing
-window.__pc = { get game() { return game; }, startRun, renderer, audio, art, prof, get state() { return state; } };
+window.__pc = { get game() { return game; }, startRun, renderer, audio, art, prof, ui: uiBuild, get state() { return state; } };

@@ -26,3 +26,6 @@ package-lock.json
 
 tools/shots/
 tools/*.png
+
+# UI before/after screenshots (regenerate with node tools/uishots.mjs before|after)
+tools/uipack/

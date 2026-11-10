@@ -744,7 +744,7 @@ export class Renderer {
     // the band itself is only sensed once you've found their camp (below): out of sight, you guess
     for (const d of game.dogs) if (!d.dead && dist(d.x, d.y, p.x, p.y) < 500) arrow(d.x, d.y, P.fire1, null);
     if (game.gnus.length && game.stampedeWarn > 0) { const g0 = game.gnus[0]; arrow(g0.x, g0.y, P.sand3, 'STAMPEDE', Math.sin(game.time * 14) * 2 + 2); }
-    for (const r of game.runners) if (!r.leaving) arrow(r.x, r.y - 10, P.danger, null, Math.sin(game.time * 12) * 1.5 + 1);
+    for (const r of game.runners) if (!r.leaving && !(r.keeper && !r.seen)) arrow(r.x, r.y - 10, P.danger, null, Math.sin(game.time * 12) * 1.5 + 1);
     // secrets: a pull toward the unknown
     {
       const R = game.has('nose') ? 900 : 520;
