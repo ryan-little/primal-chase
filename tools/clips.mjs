@@ -34,14 +34,14 @@ fs.mkdirSync(TMP, { recursive: true });
 const SCENES = [
   { name: 'dawn', biome: 0, clock: 0.035, secs: 6, pre: 90, setup: `g.weather.fogDawn = true; g.weather.fog = 0.85; clearBand(); level(); gazelles(95, 3);`, input: `trot(0.6, 9)`, aim: `pair(nearPrey(150), 0.35)` },
   // a flat-out sprint at grazing gazelles on open ground, ending on the catch
-  { name: 'hunt', avoid: [2], tries: 20, catchAt: [1.3, 2.4], biome: 0, clock: 0.16, secs: 6, pre: 8, check: `!g.stats.prey && !window.__wet`, setup: `clearBand(); pl.food = 18; level(); dryAhead(400); gazelles(125, 1);`, input: `sprint()`, aim: `pair(nearPrey(140) || (g.carcasses[0] && [g.carcasses[0].x, g.carcasses[0].y - 6]), 0.45)` },
-  { name: 'band', crf: 29, biome: 0, clock: 0.22, secs: 6, pre: 150, setup: `level(); bandBehind(85);`, input: `keep(55, 85)`, aim: `pair(nearHunter(), 0.5)` },
-  { name: 'heat', avoid: [6, 7, 8], biome: 3, clock: 0.36, secs: 7, pre: 150, setup: `g.weather.heatDay = true; g.weather.heat = 1; level(); bandBehind(80); pl.heat = 40; g.sightRange = () => 0;`, quiet: true, input: `keep(58, 84)`, aim: `pair(nearHunter(), 0.5)`, heatCap: 76 },
-  { name: 'night', avoid: [6, 7, 8, 2], biome: 0, clock: 0.8, secs: 6, pre: 150, setup: `g.day = 5; level(); bandBehind(80); g.sightRange = () => 0;`, quiet: true, input: `keep(58, 84)`, aim: `pair(nearHunter(), 0.5)` },
+  { name: 'hunt', avoid: [2], tries: 20, catchAt: [1.3, 2.4], post: `openAt(g.carcasses[0])`, biome: 0, clock: 0.16, secs: 6, pre: 8, check: `!g.stats.prey && !window.__wet`, setup: `clearBand(); pl.food = 18; level(); dryAhead(400); gazelles(125, 1);`, input: `sprint()`, aim: `pair(nearPrey(140) || (g.carcasses[0] && [g.carcasses[0].x, g.carcasses[0].y - 6]), 0.45)` },
+  { name: 'band', crf: 29, biome: 0, clock: 0.22, secs: 6, pre: 150, setup: `level(); bandBehind(420); g.sightRange = () => 0;`, quiet: true, input: `keep(380, 460)`, aim: `pair(bandAt(), 1)` },
+  { name: 'heat', avoid: [6, 7, 8], biome: 3, clock: 0.36, secs: 7, pre: 150, setup: `g.weather.heatDay = true; g.weather.heat = 1; level(); bandBehind(420); pl.heat = 40; g.sightRange = () => 0;`, quiet: true, input: `keep(380, 460)`, aim: `pair(bandAt(), 1)`, heatCap: 76 },
+  { name: 'night', avoid: [6, 7, 8, 2], biome: 0, clock: 0.8, secs: 6, pre: 150, setup: `g.day = 5; level(); bandBehind(420); g.sightRange = () => 0;`, quiet: true, input: `keep(380, 460)`, aim: `pair(bandAt(), 1)` },
   { name: 'chase', crf: 29, biome: 2, clock: 0.5, secs: 7, pre: 120, setup: `level(); bandBehind(85, true);`, input: `keep(60, 95, 0.45)`, aim: `pair(nearHunter(), 0.5)` },
   { name: 'stampede', avoid: [2], biome: 0, salt: 'b', clock: 0.3, secs: 6, pre: 30, setup: `clearBand(); level(); herd();`, input: `aside(96)`, aim: `pair(nearGnus(), 0.3)` },
   { name: 'storm', crf: 29, biome: 2, salt: 'b', clock: 0.45, secs: 6, pre: 90, setup: `clearBand(); level(); g.startWeather('storm', 60); g.weather.rain = 1; g.weather.strikeT = 99; strikes([[2.2, 55], [5.2, -60]]);`, input: `trot(0.45, 7)`, aim: `pair(nearFire(120), 0.4)` },
-  { name: 'fire', avoid: [3, 6, 7, 8], check: `g.fire.size > 20`, biome: 0, clock: 0.6, secs: 6, pre: 60, setup: `clearBand(); level(); fireBehind();`, input: `trot(0.3, 8)`, aim: `pair(nearFire(110), 0.4)` },
+  { name: 'fire', avoid: [3, 6, 7, 8], check: `g.fire.size > 20`, biome: 0, clock: 0.6, secs: 6, pre: 60, setup: `clearBand(); level(); fireBehind(); fireproof();`, input: `wary(0.3, 8, 34)`, aim: `pair(nearFire(110), 0.4)` },
   // the quiet life between chases: no hunters anywhere
   { name: 'drink', biome: 0, clock: 0.12, secs: 7, pre: 20, check: `!!window.__water`, setup: `clearBand(); level(); pl.water = 22; waterAhead(70, 150); gazelles(150, 3);`, input: `drink()`, aim: `pair(null, 0)`, still: true },
   { name: 'feast', avoid: [2], biome: 0, clock: 0.42, secs: 7, pre: 20, check: `window.__open`, setup: `clearBand(); level(); pl.food = 20; carcassAhead(75);`, input: `feast()`, aim: `pair(null, 0)`, still: true },
@@ -121,6 +121,10 @@ const prideAhead = (d, off) => {
 };
 // is there water or a cliff on the line ahead (a fleeing animal is turned back), or tall grass (it hides the cat)?
 const dryAhead = (d) => { const [ax, ay] = window.__away; window.__wet = false; for (let r = 0; r <= d; r += 12) for (const o of [-30, 0, 30]) { const t = W.typeAt(pl.x + ax * r - ay * o, pl.y + ay * r + ax * o); if (W.isWater(t) || t === 2 || t === 13 || t === 16) window.__wet = true; } };
+// the shot is about the fire, not about getting burned: no hurt flash or knockback from flames
+const fireproof = () => { const h = g.hurtPlayer.bind(g); g.hurtPlayer = (d, x, y, kind) => kind === 'fire' ? false : h(d, x, y, kind); };
+// is this spot clear of trees and big rocks that would hide what happens on it?
+window.openAt = (c) => { if (!c) return false; for (const pr of W.propsNear(c.x, c.y, 90)) if ((pr.shade || pr.solid > 6) && Math.abs(pr.x - c.x) < 60 && pr.y - c.y > -14 && pr.y - c.y < 80) return false; return true; };
 const strikes = (list) => { window.__strikes = list.map(([t, dx]) => ({ t, dx })); };
 `;
 
@@ -134,6 +138,8 @@ window.nearHunter = () => {
   let x = 0, y = 0, n = 0; for (const u of g.hunters) if (Math.hypot(u.x - q.x, u.y - q.y) < h.d + 45) { x += u.x; y += u.y; n++; }
   return [x / n, y / n - 14];
 };
+// the band as a group, wherever the cat is (for shots of them alone)
+window.bandAt = () => { const g = window.__pc.game, hs = g.hunters.filter((u) => Math.hypot(u.x - g.band.x, u.y - g.band.y) < 200); if (!hs.length) return null; let x = 0, y = 0; for (const u of hs) { x += u.x; y += u.y; } return [x / hs.length, y / hs.length - 14]; };
 window.nearLion = () => { const g = window.__pc.game, h = near(g.lions); return h && h.d < 260 ? [h.x, h.y - 8] : null; };
 window.nearPrey = (r) => { const g = window.__pc.game, h = near(g.prey); return h && h.d < r ? [h.x, h.y - 8] : null; };
 window.nearGnus = () => {
@@ -197,6 +203,8 @@ window.steer = (inp, g) => {
 };
 window.__mk = {
   trot: (mag, period) => { const [ax, ay] = window.__away, a0 = Math.atan2(ay, ax); return (g) => { const a = a0 + Math.sin(g.time / period * 6.283) * 0.45; return { x: Math.cos(a) * mag, y: Math.sin(a) * mag, sprint: false, stalk: false, pounce: false }; }; },
+  // trot, but bend away from any flames closer than r
+  wary: (mag, period, r) => { const t = window.__mk.trot(mag, period); return (g) => { const v = t(g), q = g.player; let px = 0, py = 0; for (const f of g.fire.values()) { const dx = q.x - f.x, dy = q.y - f.y, d = Math.hypot(dx, dy); if (d < r && d > 0.1) { px += dx / d * (1 - d / r); py += dy / d * (1 - d / r); } } const pm = Math.hypot(px, py); if (pm > 0) { const k = Math.min(1, pm) * 1.4; v.x += px / pm * k * 0.7; v.y += py / pm * k * 0.7; v.sprint = pm > 0.6; } return v; }; },
   // move away from the nearest hunter, faster when it's close, easing off when it
   // falls back, so the gap stays between lo and hi
   keep: (lo, hi, weave = 0.3) => (g) => {
@@ -223,7 +231,9 @@ window.__mk = {
   // charge the nearest gazelle at full speed and pounce once in reach; then stay on the kill
   // (staged: the gazelles flee at their cruising pace, skipping the opening burst that outruns a cat,
   // so the cat visibly closes the gap inside the shot)
-  sprint: () => (g) => { for (const k of g.prey) if (k.state === 'flee' && k.fleeT < 2.3) k.fleeT = 2.3; const q = g.player; if (q.eating || g.stats.prey) return { x: 0, y: 0 }; const b = near(g.prey); if (!b) return { x: 0, y: 0 }; return { x: (b.x - q.x) / b.d, y: (b.y - q.y) / b.d, sprint: true, stalk: false, pounce: b.d < 52 }; },
+  sprint: () => (g) => { for (const k of g.prey) if (k.state === 'flee' && k.fleeT < 2.3) k.fleeT = 2.3; const q = g.player; if (g.stats.prey) return window.__mk.dine(g); const b = near(g.prey); if (!b) return { x: 0, y: 0 }; return { x: (b.x - q.x) / b.d, y: (b.y - q.y) / b.d, sprint: true, stalk: false, pounce: b.d < 52 }; },
+  // settle beside the kill, level with it, facing it, head over the body
+  dine: (g) => { const q = g.player, c = g.carcasses[0]; if (!c) return { x: 0, y: 0 }; const D = window.__dine || (window.__dine = { side: Math.sign(q.x - c.x) || 1 }); const tx = c.x + D.side * 13, ty = c.y + 1, d = Math.hypot(tx - q.x, ty - q.y); if (D.sat || d < 3) { D.sat = true; q.face = -D.side; return { x: 0, y: 0 }; } const m = d < 20 ? 0.35 : 0.55; return { x: (tx - q.x) / d * m, y: (ty - q.y) / d * m }; },
   hunt: () => (g) => { const q = g.player; if (q.eating || g.stats.prey) return { x: 0, y: 0 }; let b = null, bd = 1e9; for (const k of g.prey) { const d = Math.hypot(k.x - q.x, k.y - q.y); if (d < bd) { bd = d; b = k; } } if (!b) return { x: 0, y: 0 }; const dx = b.x - q.x, dy = b.y - q.y; return { x: dx / bd, y: dy / bd, stalk: bd > 40, sprint: false, pounce: bd < 40 && q.stamina > 20 }; },
 };
 `;
@@ -355,6 +365,12 @@ async function record(sc, framed, tries = 0) {
       return record({ ...sc, salt: (sc.salt || '') + 's' }, framed, tries + 1);
     }
   }
+  // something only known once the shot is done (say, the kill landed under a tree): somewhere else
+  if (sc.post && tries < (sc.tries || 6) && !(await p.evaluate('(() => { const g = window.__pc.game; return ' + sc.post + '; })()'))) {
+    console.log(tag, 'post check failed; retry', tries + 1);
+    await ctx.close();
+    return record({ ...sc, salt: (sc.salt || '') + 'p' }, framed, tries + 1);
+  }
   // a hunt that ends too soon (prey pinned) or never: somewhere else
   if (sc.catchAt && tries < (sc.tries || 6)) {
     const k = log.findIndex((m) => m.prey) / FPS;
@@ -364,7 +380,7 @@ async function record(sc, framed, tries = 0) {
       return record({ ...sc, salt: (sc.salt || '') + 'k' }, framed, tries + 1);
     }
   }
-  const info = await p.evaluate(() => { const g = window.__pc.game; return { biome: g.world.biomeAt(g.player.x, g.player.y), clock: +g.clock.toFixed(2), mode: g.band.mode, prey: g.stats.prey, fire: g.fire.size, gnus: g.gnus.length, state: window.__pc.state, S: window.__pc.renderer.S }; });
+  const info = await p.evaluate(() => { const g = window.__pc.game; return { biome: g.world.biomeAt(g.player.x, g.player.y), clock: +g.clock.toFixed(2), mode: g.band.mode, prey: g.stats.prey, hurts: g.stats.hurts || 0, fire: g.fire.size, gnus: g.gnus.length, state: window.__pc.state, S: window.__pc.renderer.S }; });
   console.log(tag, JSON.stringify(info));
   await ctx.close();
   if (preview) execFileSync(FFMPEG, ['-y', '-loglevel', 'error', '-i', path.join(TMP, tag + '-p%02d.png'), '-vf', 'scale=iw/2:-1,tile=3x3', '-frames:v', '1', path.join(TMP, 'sheet-' + tag + '.png')]);
